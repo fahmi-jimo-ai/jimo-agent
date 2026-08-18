@@ -1,0 +1,1726 @@
+/* ============================================================
+   Jimo AI agent widget — ported from
+   demo-apps/trigger-demo/builder/src/styles/widget.css
+   (1705 lines, "atomized design tokens + the 9 states").
+
+   TWO deliberate changes from the source, both required here:
+
+   1. The source's `:root { --agent-* }` block is scoped to `#agent`.
+      The `.ag-*` rules were already scoped; that variable block was not,
+      and Storybook loads every stylesheet for every story — so leaving it
+      on :root leaked the widget's tokens into the dashboard stories.
+      Nothing else moves: the file's own derivation hub already reads these
+      at `#agent`, so inheritance covers the whole widget subtree.
+
+   2. `--spring` is added below. The source READS it everywhere but it was
+      defined in host.css, which is not ported. A shorthand transition with
+      an unresolvable var() is dropped whole, so without this every
+      transition in the file silently stops working.
+   ============================================================ */
+:root { --spring: cubic-bezier(.32, .72, 0, 1); }
+
+/* ============================================================
+   Jimo AI agent widget — atomized design tokens + the 9 states
+   Everything blue derives from --agent-primary (color-mix).
+   Change --agent-primary and the whole widget recolors.
+   ============================================================ */
+@property --ab-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+#agent {
+  /* Brand — THE knob */
+  --agent-primary: #1260EB;                                                       /* Blue/400 Main */
+  --agent-primary-10:   color-mix(in srgb, var(--agent-primary) 10%, transparent); /* row hover, stop-btn bg */
+  --agent-primary-60:   color-mix(in srgb, var(--agent-primary) 60%, transparent); /* CTA labels, step fade */
+  --agent-primary-50:   color-mix(in srgb, var(--agent-primary) 50%, transparent); /* step trailing dots */
+  --agent-primary-soft:  color-mix(in srgb, var(--agent-primary) 30%, white);      /* ~ Blue/200 #BCDDFF */
+  --agent-primary-tint:  color-mix(in srgb, var(--agent-primary) 14%, white);      /* ~ Blue/150 #DDEEFF */
+  --agent-primary-faint: color-mix(in srgb, var(--agent-primary) 5%, white);       /* ~ Blue/100 #F3F7FE */
+  --agent-border-accent: color-mix(in srgb, var(--agent-primary) 70%, white);      /* ~ #528CF2 border */
+
+  /* Neutrals */
+  --agent-text: #071331;            /* Neutral/800 */
+  --agent-text-secondary: #4D637B;  /* Neutral/700 */
+  --agent-text-muted: #7C8A99;      /* Neutral/600 */
+  --agent-surface: #FFFFFF;
+  --agent-surface-hover: #F0F2F4;   /* Neutral/100 */
+  --agent-border: #ECECEC;          /* Neutral/200 */
+  --agent-border-minimal: #E5E5E5;
+
+  /* Typography */
+  --agent-font-heading: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  --agent-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --agent-font-input: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Radii */
+  /* No --agent-radius-pill and no --agent-radius-think. The status pill and the
+     thinking panel both terminate at --agent-radius-panel now, because they ARE
+     panels (see .ag-pill / .ag-think). THERE IS EXACTLY ONE PANEL RADIUS
+     TERMINAL in this file: a panel surface that invents a radius token of its
+     own is the bug, not the exception — 32px against the panel's 20px is what
+     made the thinking state read as a foreign box one state away from the
+     response it turns into. */
+  --agent-radius-bar: 16px;  --agent-radius-panel: 20px;
+  --agent-radius-row: 12px;  --agent-radius-btn: 8px;
+
+  /* Shadows */
+  --agent-shadow-bar: 0 5px 28px rgba(0,0,0,.09);
+  --agent-shadow-pill: 0 5px 14px rgba(0,0,0,.09);
+  --agent-shadow-panel: 0 0 0 1px rgba(14,63,126,.04), 0 1px 1px rgba(42,51,69,.04),
+    0 3px 3px rgba(42,51,70,.04), 0 6px 6px rgba(42,51,70,.04),
+    0 12px 12px rgba(42,51,70,.04), 0 44px 44px rgba(42,51,70,.06);
+
+  /* Jimo avatar ("Group 46992") — embedded once, reused everywhere */
+  --agent-avatar: url('data:image/svg+xml;base64,PHN2ZyBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBvdmVyZmxvdz0idmlzaWJsZSIgc3R5bGU9ImRpc3BsYXk6IGJsb2NrOyIgdmlld0JveD0iMCAwIDIzLjIzNTEgMjQuNjU3NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBpZD0iR3JvdXAgNDY5OTIiPjxnIGlkPSJSZWN0YW5nbGUgMTkwNCIgZmlsdGVyPSJ1cmwoI2ZpbHRlcjBfZF8wXzkpIj48cmVjdCB3aWR0aD0iMjMuMjM1MSIgaGVpZ2h0PSIyMy4yMzUxIiByeD0iOS40ODM3IiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMF85KSIvPjwvZz48cGF0aCBpZD0iVmVjdG9yIDEwMyIgZD0iTTEzLjE1ODggMTUuNjk0NEMxMi41ODA3IDE2LjQxMDEgMTEuMDEyNyAxNy40MTIgOS4zNjUyOSAxNS42OTQ0IiBzdHJva2U9IiMxMTExMTEiIHN0cm9rZS13aWR0aD0iMS44OTY3NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBpZD0iRWxsaXBzZSAxNDI4IiBjeD0iMTQuMjI1MyIgY3k9IjkuMDA5MjMiIHI9IjMuMzE5MjkiIGZpbGw9IiNGN0Y1RjMiLz48Y2lyY2xlIGlkPSJFbGxpcHNlIDE0MjkiIGN4PSI5LjAwOTU0IiBjeT0iOS4wMDkyMyIgcj0iMy4zMTkyOSIgZmlsbD0iI0Y3RjVGMyIvPjxjaXJjbGUgaWQ9IkVsbGlwc2UgMTQzMCIgY3g9IjcuNTg3MDkiIGN5PSI5LjAwOTQxIiByPSIxLjQyMjU1IiBmaWxsPSIjMTExMTExIi8+PGNpcmNsZSBpZD0iRWxsaXBzZSAxNDMxIiBjeD0iMTMuMjc3MSIgY3k9IjkuMDA5NDEiIHI9IjEuNDIyNTUiIGZpbGw9IiMxMTExMTEiLz48L2c+PGRlZnM+PGZpbHRlciBpZD0iZmlsdGVyMF9kXzBfOSIgeD0iMCIgeT0iMCIgd2lkdGg9IjIzLjIzNTEiIGhlaWdodD0iMjQuNjU3NiIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZUZsb29kIGZsb29kLW9wYWNpdHk9IjAiIHJlc3VsdD0iQmFja2dyb3VuZEltYWdlRml4Ii8+PGZlQ29sb3JNYXRyaXggaW49IlNvdXJjZUFscGhhIiB0eXBlPSJtYXRyaXgiIHZhbHVlcz0iMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMTI3IDAiIHJlc3VsdD0iaGFyZEFscGhhIi8+PGZlT2Zmc2V0IGR5PSIxLjQyMjU1Ii8+PGZlQ29tcG9zaXRlIGluMj0iaGFyZEFscGhhIiBvcGVyYXRvcj0ib3V0Ii8+PGZlQ29sb3JNYXRyaXggdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMC44NjM2MzggMCAwIDAgMCAwLjc1MDk4OSAwIDAgMCAwIDAuMzIxMjUzIDAgMCAwIDEgMCIvPjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW4yPSJCYWNrZ3JvdW5kSW1hZ2VGaXgiIHJlc3VsdD0iZWZmZWN0MV9kcm9wU2hhZG93XzBfOSIvPjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iZWZmZWN0MV9kcm9wU2hhZG93XzBfOSIgcmVzdWx0PSJzaGFwZSIvPjwvZmlsdGVyPjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8wXzkiIHgxPSIxNS40OSIgeTE9IjAuNjExNDQ5IiB4Mj0iNC44OTE1OSIgeTI9IjI0LjI1NDEiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBzdG9wLWNvbG9yPSIjRjNEOENCIi8+PHN0b3Agb2Zmc2V0PSIwLjQ2NjM0NiIgc3RvcC1jb2xvcj0iI0YzRDk2MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjwvc3ZnPg==');
+}
+
+/* ============================================================
+   DERIVATION HUB — Section B of the token spec, expressed purely
+   as fallback chains. Two axes: colour derives from the send-button
+   CTA; typography derives from the input-bar input font (Thinking /
+   Options / Bottom bar) or the Response title/body font (Guide pill).
+   These aliases exist only so the chains below read as one line each.
+
+   Derivation rule: family / letter-spacing / colour derive 1:1;
+   SIZE derives via the part's ratio in calc(); WEIGHT stays a per-part
+   role constant. Where a part's default differs from the source's
+   default (e.g. the thinking echo is a HEADING-role text), the chain
+   still starts at the same override var — only its terminal literal
+   is the part's own default, so the default render is unchanged and
+   an override still propagates 1:1.
+
+   Every var read below is emitted by src/tokens/toCssVars.ts.
+   ============================================================ */
+#agent {
+  /* THE widget-wide accent. */
+  --ag-accent:    var(--agent-inputbar-sendbtn-bg, var(--agent-primary));
+  --ag-accent-fg: var(--agent-inputbar-sendbtn-color, #fff);
+  --ag-accent-10: color-mix(in srgb, var(--ag-accent) 10%, transparent);
+  --ag-accent-16: color-mix(in srgb, var(--ag-accent) 16%, transparent);
+  --ag-accent-50: color-mix(in srgb, var(--ag-accent) 50%, transparent);
+  --ag-accent-60: color-mix(in srgb, var(--ag-accent) 60%, transparent);
+
+  /* THE brand tone, for the one part that must read as the BRAND rather than as
+     the send CTA: the thinking panel's rotating aura. --agent-primary is the
+     Widget node's Brand color prop (scope:'theme'); there is no --agent-brand
+     token in this repo and none should be minted. Same shape as the -10/-16/
+     -50/-60 aliases above, just sourced one step earlier in the chain. */
+  --ag-brand-50: color-mix(in srgb, var(--agent-primary) 50%, transparent);
+
+  /* THE input-bar text style. `-lh` terminates at `normal` (not 1.5):
+     .ag-bar-input sets no line-height today, and the derived parts must
+     keep that geometry — the WAAPI FLIP morph measures real DOM boxes. */
+  --ag-input-family: var(--agent-inputbar-input-font-family, var(--agent-font-input));
+  --ag-input-size:   var(--agent-inputbar-input-font-size, 14px);
+  --ag-input-weight: var(--agent-inputbar-input-font-weight, 400);
+  --ag-input-lh:     var(--agent-inputbar-input-font-lh, var(--agent-font-input-lh, normal));
+  --ag-input-ls:     var(--agent-inputbar-input-font-ls, var(--agent-font-input-ls, -0.5px));
+  --ag-input-color:  var(--agent-inputbar-input-font-color, var(--agent-text));
+  --ag-input-color-10: color-mix(in srgb, var(--ag-input-color) 10%, transparent);
+  --ag-input-color-16: color-mix(in srgb, var(--ag-input-color) 16%, transparent);
+  --ag-placeholder-color: var(--agent-inputbar-placeholder-color, var(--agent-text-muted));
+
+  /* THE send-CTA button style (Submit + Stop are 1:1 with it). */
+  --ag-cta-radius: var(--agent-inputbar-sendbtn-radius, var(--agent-radius-btn));
+  --ag-cta-family: var(--agent-inputbar-sendbtn-font-family, var(--agent-font-heading));
+  --ag-cta-weight: var(--agent-inputbar-sendbtn-font-weight, 600);
+  --ag-cta-size:   var(--agent-inputbar-sendbtn-font-size, 14px);
+  --ag-cta-lh:     var(--agent-inputbar-sendbtn-font-lh, normal);
+  --ag-cta-ls:     var(--agent-inputbar-sendbtn-font-ls, normal);
+}
+
+/* ---- container ----
+   LAYOUT & POSITION ONLY. The widget root paints nothing: box styling
+   now lives on the `agentPanel` token namespace, which cascades into
+   every panel surface (see THE PANEL-SURFACE CONTRACT below for the list —
+   and note that agentPanel.highlightSelectors in elements.ts is a SHORTER
+   list on purpose: it rings only the surfaces that are sibling boxes with no
+   other owner, so .ag-sugg-empty is governed but not ringed).
+
+   WHERE TEXT STYLE LIVES — the one rule for this file.
+   Text style is declared ONLY on elements that actually render text:
+     .ag-win-title (Response header title) · .ag-md-h* (Message title) ·
+     .ag-md / .ag-md-p / .ag-md-list li / .ag-md-check / .ag-md-quote
+     (Message body — the whole #agBody payload) · .ag-cta-dark / .ag-cta-outline
+     (the two CTAs) · .ag-sugg (Suggestion item) · .ag-sugg-empty (the no-match
+     line — NOT a Suggestion item twin: it derives .ag-think-echo's type from
+     the input bar, see its own rule) · .ag-bar-input (Input bar
+     input) · .ag-bar-btn.is-text (Send button label).
+   CONTAINERS own layout and box only, never a font: #agent (Widget),
+   the `agentPanel` namespace, .ag-window (Response), .ag-suggestions
+   (Suggestions), and the three unstyleable panel surfaces (.ag-think,
+   .ag-pill, .ag-botbar). Declaring a font on a container
+   would hand every descendant a concrete inherited value it does not have
+   today, silently moving parts that were never selected. That is why
+   `agentPanel` is BOX-ONLY (bg / border / radius / padding / shadow) and
+   why its six --agent-panel-font-* vars — once the middle link of every
+   text chain, e.g.
+     var(--agent-response-body-font-size, var(--agent-panel-font-size, 16px))
+   — no longer exist. `SuggestionsOverride.font` went the same way earlier.
+   Every text chain is now exactly TWO levels: the part's own override var,
+   then the literal terminal. Those terminals are mirrored by
+   state/resolveValue.ts and must stay byte-identical to what renders here.
+
+   Unchanged by that removal: a property a part does not tokenise stays
+   untokenised (the `600` role-constant weights on the derived parts), and
+   parts DERIVED from another element still read their SOURCE's var, never a
+   container's — everything on the --ag-input-* / --ag-cta-* aliases
+   (thinking, question options, bottom bar) and the guide pill, which
+   borrows the Response title/body vars.
+
+   DERIVATION APPLIES TO THE BOX, NOT ONLY TO TYPE. The three guide/execute
+   surfaces derive their whole surface from the element they stand in for, on
+   the same three-level chain the source itself uses:
+     .ag-pill  + .ag-runlog -> the Response panel  (--agent-response-* -> panel)
+     .ag-botbar             -> the Input bar       (--agent-inputbar-* -> literal)
+   That is what makes guide/execute read as the same widget the user was just
+   talking to. .ag-botbar derives from the BAR and not from the panel because it
+   IS the input bar in those states (the slot-visibility block hides .ag-bar
+   there) — matching the panel would have been the wrong kind of consistent.
+   NOTE THE ASYMMETRY, it is load-bearing: the two PANEL surfaces keep the
+   agentPanel middle link because agentPanel is genuinely their default layer,
+   and .ag-botbar has NO such link because .ag-bar has none either. Giving the
+   bar a link its source lacks is what makes a "derived" surface fork from the
+   thing it derives from the moment agentPanel is styled.
+   All three are --agent-width wide for the same reason .ag-bar is in expanded /
+   response: surfaces that stack have to agree on their edges.
+
+   THE PANEL-SURFACE CONTRACT — read this before adding or editing any surface.
+   Every panel-shaped box in this file declares the SAME SIX MATERIAL
+   properties, on the SAME three-level chain, with the SAME terminals:
+     background    --agent-response-bg           -> --agent-panel-bg           -> --agent-surface
+     border-width  --agent-response-border-width -> --agent-panel-border-width -> 1px
+     border-style  --agent-response-border-style -> --agent-panel-border-style -> solid
+     border-color  --agent-response-border-color -> --agent-panel-border-color -> rgba(255,255,255,.4)
+     border-radius --agent-response-radius       -> --agent-panel-radius       -> --agent-radius-panel
+     box-shadow    --agent-response-shadow       -> --agent-panel-shadow       -> --agent-shadow-panel
+   Members: .ag-window · .ag-think · .ag-pill · .ag-runlog ·
+   .ag-sugg-empty (chips). (.ag-suggestions.is-panel is the one that
+   legitimately differs: it is a STYLEABLE element, so its first link is its own
+   --agent-suggestions-* layer, not --agent-response-*.)
+   WIDTH, PADDING and GAP are NOT in the contract — they are content geometry
+   and are per-surface on purpose (.ag-think-inner 20px 32px).
+   (.ag-options was a member until 2026-07-27, with its own 8px padding. It is
+   gone: asking's rows live in .ag-win-body now, so the window's padding is the
+   only one there is. See "ASKING HAS NO SURFACE OF ITS OWN" below.) MATERIAL is not: a surface that terminates somewhere else does not
+   look "slightly different", it looks like it belongs to another product.
+   Copy the six lines verbatim. Do not retype them, do not shorten a chain, and
+   do not mint a --agent-radius-<mysurface> — that is precisely how .ag-think
+   spent five states looking like someone else's component. `e2e-panels.mjs`
+   asserts all of this on every surface, at defaults and under both overrides. */
+#agent {
+  width: var(--agent-width, 495px);
+  transition: opacity .32s var(--spring), width .34s var(--spring);
+}
+/* Widget position — consumes align/offset tokens and defeats the legacy
+   host.css `.agent{bottom:24px;left:50%;transform:translate(-50%)}` rule via
+   higher specificity (.preview-scope .agent). position/z-index stay from the
+   legacy rule; width stays from #agent (id-selector, 495 beats legacy 480). */
+.preview-scope .agent {
+  left: var(--agent-pos-left, 50%);
+  right: var(--agent-pos-right, auto);
+  transform: var(--agent-pos-transform, translateX(-50%));
+  bottom: var(--agent-offset-y, 24px);
+}
+/* align-items is the HORIZONTAL edge here (flex-direction:column), and it is the
+   second half of the Align theme prop — .preview-scope .agent above pins the
+   COLUMN, this pulls the narrow states to the same edge inside it.
+   Why it cannot stay the literal `center` it was: #agent is
+   `width: var(--agent-width, 495px)` in EVERY state (there is no s-idle width
+   override on the root), but the visible bar was narrower in three of them —
+   idle 260px (--agent-bar-idle-w) plus thinking and asking at a since-retired
+   342px --agent-bar-w. With `align:left; offsetX:0` the 495px column WAS flush
+   left, yet the 260px pill floated with (495 - 260) / 2 = 117.5px of transparent
+   column on each side (76.5px for the two 342px states). That phantom gap is
+   neither a margin nor an inset — it is the invisible remainder of a fixed-width
+   column, so no offset could dial it out.
+   ONLY IDLE IS STILL NARROW: thinking and asking both went panel-flush (see the
+   .ag-bar section), so this rule now has exactly one state to pull. It stays
+   anyway — idle is the state the widget spends most of its life in, and a token
+   whose whole job is 'which edge' cannot be conditional on how many states
+   currently need it.
+   The `center` FALLBACK is load-bearing, not decoration: the published preview
+   renders this same stylesheet with no builder store behind it, and a saved
+   config that predates --agent-align-items sets it nowhere — both must still
+   centre, exactly as before. It is also why the golden
+   computed-style snapshot cannot drift: theme default align is 'center', which
+   emits `center`, identical to the literal this replaced. */
+.ag-surface {
+  display: flex; flex-direction: column; align-items: var(--agent-align-items, center);
+  gap: var(--agent-widget-gap, 12px);
+  width: 100%; color: var(--agent-text); font-family: var(--agent-font-body);
+}
+
+/* ---- slot visibility per state ---- */
+.ag-suggestions, .ag-think, .ag-window, .ag-pill, .ag-botbar { display: none; }
+.ag-bar { display: flex; }
+/* Suggestions is a flex column (see below) — `display` must be set HERE, not in
+   the .ag-suggestions rule, or it would override the `display:none` above. */
+.proto.s-expanded .ag-suggestions { display: flex; }
+.proto.s-thinking .ag-think { display: block; }
+.proto.s-response .ag-window,
+.proto.s-asking  .ag-window { display: flex; }
+.proto.s-guide-waiting .ag-pill, .proto.s-guide-checking .ag-pill,
+.proto.s-execute-action .ag-pill, .proto.s-execute-thinking .ag-pill { display: flex; }
+.proto.s-guide-waiting .ag-botbar, .proto.s-guide-checking .ag-botbar,
+.proto.s-execute-action .ag-botbar, .proto.s-execute-thinking .ag-botbar { display: flex; }
+.proto.s-guide-waiting .ag-bar, .proto.s-guide-checking .ag-bar,
+.proto.s-execute-action .ag-bar, .proto.s-execute-thinking .ag-bar { display: none; }
+.proto.s-asking .ag-feedback { display: none; }
+
+/* ---- avatar (single embedded source) ---- */
+/* ONE painted avatar class remains: .ag-bar-av. The response panel's .ag-av is
+   gone — DOM node, schema and emitter all deleted — so there is no second size
+   var and no second aspect ratio. Size is overridable on the `barAvatar` node
+   via --agent-inputbar-avatar-size; height tracks width through the source
+   image's 24/23 aspect ratio. Two elements carry the class: the input bar's
+   avatar and a second one inside .ag-botbar, which is intentionally
+   unstyleable — that is why elements.ts binds `barAvatar` with the descendant
+   selector `.ag-bar .ag-bar-av` rather than the bare class. */
+.ag-bar-av { width: var(--agent-inputbar-avatar-size, 23px); height: calc(var(--agent-inputbar-avatar-size, 23px) * 24 / 23); }
+.ag-bar-av { flex-shrink: 0; background: var(--agent-avatar) no-repeat center / contain; }
+
+/* ---- animated rotating border (thinking panel + pills) ---- */
+.ag-animborder { position: relative; }
+.ag-animborder::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--ab-width, 2px);
+  background: conic-gradient(from var(--ab-angle), var(--ag-accent), transparent 62%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude; animation: ag-spin 2.6s linear infinite; pointer-events: none;
+}
+@keyframes ag-spin { to { --ab-angle: 360deg; } }
+@keyframes ag-rot { to { transform: rotate(360deg); } }
+
+/* ---- input bar (Idle / Expanded / Thinking / Response / Asking) ---- */
+/* THE BAR IS PANEL-FLUSH BY DEFAULT — every state that shows a panel above it
+   sizes the bar to the same --agent-width, so the widget reads as one box
+   instead of two. box-sizing:border-box matches .ag-suggestions / .ag-window /
+   .ag-think, so the edges line up exactly, and reading
+   --agent-width (rather than a bar-specific token) means it tracks the
+   Widget > Width theme prop for free.
+
+   THIS USED TO BE THE EXCEPTION AND IS NOW THE RULE. The flush width arrived as
+   a three-state override (`.s-expanded, .s-thinking, .s-response`) sitting on a
+   342px `--agent-bar-w` base, and each state joined that list one at a time as
+   its panel grew to --agent-width. Asking was the last holdout — it was
+   documented as a DELIBERATE exclusion, on the argument that a flush bar under
+   what was then a WELDED two-part panel read as a three-decker rather than one
+   box. Fahmi's call, 2026-07-27: it read as a MISMATCH, not as separation, and
+   the bar should fill the width like the panel. (The weld itself is gone too —
+   asking is ONE window now — so the argument has no subject left.) With asking in,
+   the override covered every state that renders a bar except idle, so the
+   override IS the base now and `--agent-bar-w` has no readers left (see the
+   token note below).
+
+   Idle is the one genuine narrow state and keeps its own --agent-bar-idle-w.
+   Guide / execute hide `.ag-bar` outright (see slot visibility above);
+   in guide/execute `.ag-botbar` stands in for it and is already
+   `var(--agent-width, 495px)` — matching that is now automatic rather than a
+   coincidence two rules apart.
+
+   `--agent-bar-w` / `theme.barWidthPx` went with this rule and must not come
+   back: it was the base width here and NOTHING else read it, so leaving it in
+   place would have left a token in the schema that no surface renders from —
+   the same dead-knob bug that retired --agent-radius-pill, --agent-radius-think
+   and --agent-pill-maxw. --agent-bar-idle-w survives because idle still reads
+   it. Widget > Width is the knob that sizes this stack. */
+.ag-bar {
+  width: var(--agent-width, 495px); box-sizing: border-box; align-items: center; gap: 12px;
+  background: var(--agent-inputbar-bg, var(--agent-surface));
+  border-width: var(--agent-inputbar-border-width, 1px);
+  border-style: var(--agent-inputbar-border-style, solid);
+  border-color: var(--agent-inputbar-border-color, var(--agent-border));
+  border-radius: var(--agent-inputbar-radius, var(--agent-radius-bar));
+  box-shadow: var(--agent-inputbar-shadow, var(--agent-shadow-bar));
+  padding: var(--agent-inputbar-pad, 8px 8px 8px 12px); /* width morphs via WAAPI FLIP (morphAgent) — no CSS width transition */
+}
+.proto.s-idle .ag-bar { width: var(--agent-bar-idle-w, 260px); }
+/* THE typography source for Thinking / Question options / Bottom bar. */
+.ag-bar-input {
+  flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+  font-family: var(--ag-input-family);
+  font-size: var(--ag-input-size);
+  font-weight: var(--ag-input-weight);
+  letter-spacing: var(--ag-input-ls);
+  color: var(--ag-input-color); padding: 2px 0;
+}
+.ag-bar-input::placeholder { color: var(--ag-placeholder-color); }
+/* THE accent source. Its own radius default is the 999px pill, not --ag-cta-radius. */
+.ag-bar-btn {
+  flex-shrink: 0; width: 28px; height: 28px; border: none;
+  border-radius: var(--agent-inputbar-sendbtn-radius, 999px);
+  background: var(--ag-accent); color: var(--ag-accent-fg); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .2s, transform .14s;
+}
+.ag-bar-btn svg { width: 16px; height: 16px; }
+.ag-bar-btn:active { transform: scale(.9); }
+.proto.s-idle .ag-bar-btn { opacity: .3; }
+.ag-bar-stop {
+  display: none; flex-shrink: 0; width: 28px; height: 28px; border: none; border-radius: 999px;
+  background: var(--agent-primary-tint); color: var(--agent-primary); cursor: pointer;
+  align-items: center; justify-content: center;
+}
+.ag-bar-stop svg { width: 15px; height: 15px; }
+.proto.s-thinking .ag-bar-btn { display: none; }
+.proto.s-thinking .ag-bar-stop { display: flex; }
+
+/* ---- send button in TEXT mode (overrides.inputBar.sendButton.mode='text') ---- */
+.ag-bar-btn.is-text {
+  width: auto; height: 28px; border-radius: var(--agent-inputbar-sendbtn-radius, 999px); padding: 0 14px;
+  font-family: var(--ag-cta-family);
+  font-size: var(--agent-inputbar-sendbtn-font-size, 12px);
+  font-weight: var(--ag-cta-weight);
+  line-height: var(--ag-cta-lh);
+  letter-spacing: var(--agent-inputbar-sendbtn-font-ls, -0.1px);
+  white-space: nowrap;
+}
+
+/* ---- disclaimer line (config.disclaimer) — created imperatively by
+   applyContent as the last child of .ag-surface. Only visible in the states
+   where the input bar itself shows; hidden during guide/execute. ---- */
+.ag-disclaimer { display: none; width: 100%; text-align: center; padding: 0 8px; }
+.proto.s-idle .ag-disclaimer,
+.proto.s-expanded .ag-disclaimer,
+.proto.s-thinking .ag-disclaimer,
+.proto.s-response .ag-disclaimer,
+.proto.s-asking .ag-disclaimer { display: block; }
+
+/* ---- suggestions (Expanded) — own layer → Agent panel → literal ----
+   TWO VARIANTS, exactly one of which is always stamped on the container by
+   applySuggestionsType (applyContent.ts): `.is-panel` is the historical
+   surface, `.is-chips` (the DEFAULT) is a transparent stack of pills.
+
+   The base rule holds ONLY what both variants share; every surface
+   declaration moved verbatim onto `.ag-suggestions.is-panel`, which is
+   strictly more specific (0,2,0) than the base and than every other rule in
+   this file naming .ag-suggestions (lines below set display / overflow /
+   animation only, all 0,1,0 or 0,2,0 and none of them a surface property).
+   A `.is-panel` render is therefore byte-identical to what shipped before.
+
+   flex + gap:0px reproduces the old display:block geometry exactly (the FLIP
+   morph measures real DOM), while exposing suggestions.gapPx. The 0px
+   terminal is load-bearing and stays on the BASE — the chips gap rides the
+   variant selector. `display` stays OUT of all three rules: it lives on
+   `.proto.s-expanded .ag-suggestions`, or it would beat the display:none
+   slot-visibility base above. */
+.ag-suggestions {
+  box-sizing: border-box;
+  flex-direction: column;                     /* `display:flex` lives on .proto.s-expanded */
+  gap: var(--agent-suggestions-gap, 0px);
+}
+.ag-suggestions.is-panel {
+  width: var(--agent-width, 495px);
+  background:    var(--agent-suggestions-bg,           var(--agent-panel-bg,           var(--agent-surface)));
+  border-width:  var(--agent-suggestions-border-width, var(--agent-panel-border-width, 1px));
+  border-style:  var(--agent-suggestions-border-style, var(--agent-panel-border-style, solid));
+  border-color:  var(--agent-suggestions-border-color, var(--agent-panel-border-color, rgba(255,255,255,.4)));
+  border-radius: var(--agent-suggestions-radius,       var(--agent-panel-radius,       var(--agent-radius-panel)));
+  box-shadow:    var(--agent-suggestions-shadow,       var(--agent-panel-shadow,       var(--agent-shadow-panel)));
+  padding:       var(--agent-suggestions-pad,          var(--agent-panel-pad,          8px));
+}
+/* CHIPS — the container paints nothing at all; each row IS the surface.
+   overflow is VISIBLE here on purpose. The Motion section further down clips
+   every morphing slot (`.ag-suggestions … { overflow: hidden }`), which on a
+   zero-padding max-content box would slice off the chip's drop shadow. Nothing
+   is lost by unclipping — clipping exists so a SURFACE doesn't spill its
+   contents mid-morph, and this variant has no surface. (Chips do NOT reveal a
+   hover CTA — see the `.is-chips … :hover .ag-sugg-cta` rule below — so the tag
+   no longer widens a row past the container's max-content width.) The entrance
+   is still ag-slot-in plus the per-row `--d` stagger the renderer writes.
+
+   align-self:flex-start overrides .ag-surface's align-items so the max-content
+   stack always hugs the widget's LEFT edge — regardless of the Align theme prop
+   (left/center/right). It is a constant, not tied to --agent-align-items:
+   `center` would otherwise centre the stack in the 495px column. */
+.ag-suggestions.is-chips {
+  width: max-content;
+  align-items: flex-start;
+  align-self: flex-start;
+  gap: var(--agent-suggestions-gap, 8px);
+  background: transparent;
+  border-width: 0;
+  box-shadow: none;
+  padding: 0;
+  overflow: visible;
+}
+/* One suggestion row — the ONLY text node in this subtree, so it owns the whole
+   text style. Box props still cascade `.ag-suggestions` → `agentPanel` above,
+   but the FONT chain is two levels flat: the row's own var, then the literal.
+   Neither container gets a middle link — `.ag-suggestions` never had a Font
+   property (its --agent-suggestions-font-* link was unreachable), and
+   `agentPanel` no longer has one either. */
+.ag-sugg {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  gap: 8px; border: none; cursor: pointer; text-align: left;
+  padding:       var(--agent-sugg-pad, 12px);
+  border-radius: var(--agent-sugg-radius, var(--agent-radius-row));
+  background:    var(--agent-sugg-bg, transparent);
+  font-family:   var(--agent-sugg-font-family, var(--agent-font-body));
+  font-weight:   var(--agent-sugg-font-weight, 500);
+  font-size:     var(--agent-sugg-font-size,   14px);
+  line-height:   var(--agent-sugg-font-lh,     var(--agent-font-body-lh, normal));
+  letter-spacing:var(--agent-sugg-font-ls,     var(--agent-font-body-ls, normal));
+  color:         var(--agent-sugg-font-color,  var(--agent-text));
+  transition: background .14s;
+}
+.ag-sugg-main { display: flex; align-items: center; gap: var(--agent-sugg-gap, 8px); min-width: 0; }
+.ag-sugg-icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--agent-sugg-icon-color, var(--ag-accent)); display: flex; }
+.ag-sugg-icon svg { width: 18px; height: 18px; }
+.ag-sugg-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-sugg-cta {
+  display: none; align-items: center; gap: 4px; flex-shrink: 0;
+  color: var(--ag-accent); opacity: .6; font-size: 12px; font-weight: 500;
+}
+.ag-sugg-cta svg { width: 14px; height: 14px; transform: rotate(90deg); }
+.ag-sugg:hover { background: var(--ag-accent-10); }
+.ag-sugg:hover .ag-sugg-cta { display: flex; }
+.ag-sugg.is-hidden { display: none; }
+
+/* One suggestion CHIP. Only TERMINALS move — every declaration keeps the
+   `--agent-sugg-*` override var it reads on the base rule, so Suggestion item
+   > Corner radius / Padding / Background / Font still win in chips mode (it is
+   the default mode, so hardcoding here would kill four live controls).
+   Weight is untouched: the base terminal is already 500.
+   The fill is what makes a chip read as a solid pill over the host page, so it
+   terminates at --agent-surface instead of the base's `transparent`; the
+   elevation reuses the widget's own --agent-shadow-pill (theme > Shadow pill,
+   the tighter 14px-blur one the guide pill uses — there is no
+   --agent-sugg-shadow var, and --agent-shadow-bar's 28px blur is tuned for a
+   full-width bar, not a 38px-tall pill). */
+.ag-suggestions.is-chips .ag-sugg {
+  width: auto;
+  max-width: 100%;
+  justify-content: flex-start;
+  white-space: nowrap;
+  border-radius: var(--agent-sugg-radius,    999px);
+  padding:       var(--agent-sugg-pad,       9px 16px);
+  font-size:     var(--agent-sugg-font-size, 13.5px);
+  background:    var(--agent-sugg-bg,        var(--agent-surface));
+  box-shadow:    var(--agent-shadow-pill);
+  transition: background .14s ease-out;        /* hover fill eases in/out, never snaps */
+}
+/* A chip is a compact pill, not a wide panel row — the "Ask/Execute/Guide me +
+   chevron" CTA tag that the base `.ag-sugg:hover .ag-sugg-cta { display:flex }`
+   (0,3,0) reveals has no room here, so chips keep it hidden. This wins on
+   specificity and the element stays in the DOM for panel mode. */
+.ag-suggestions.is-chips .ag-sugg:hover .ag-sugg-cta { display: none; }
+/* The base :hover (0,2,0) loses to the chips rule above (0,3,0), so it has to
+   be restated at 0,4,0.
+   The hover fill is the BRAND at 10% — --agent-primary, the Widget node's Brand
+   color prop, NOT --ag-accent (which resolves to the send button's background
+   first, so a recoloured Submit would drag the chip hover with it). Same reason
+   --ag-brand-50 is sourced one step earlier than the rest of the hub.
+   It is mixed into the chip's own Background rather than into `transparent`:
+   a translucent fill REPLACES the pill's opaque surface, so the host page would
+   show through on hover. Over the default white bg the two are visually
+   identical; over a coloured host they are not. */
+.ag-suggestions.is-chips .ag-sugg:hover {
+  background: color-mix(in srgb, var(--agent-primary) 10%, var(--agent-sugg-bg, var(--agent-surface)));
+}
+
+/* ---- no-match fallback line ----
+   Emitted by renderSuggestions() as the LAST child of #suggestions and
+   toggled via `is-hidden` inside the existing morphAgent() call whenever
+   filterSuggestions() leaves zero visible rows. It deliberately does not carry
+   the `ag-sugg` class token — querySelectorAll('.ag-sugg') and the
+   closest('.ag-sugg') click delegate must never match it. No hover, no
+   pointer. `margin:0` kills the UA <p> margin.
+
+   It is NOT a twin of .ag-sugg. A row that matches nothing is not a row: it is
+   the widget speaking, so it takes the THINKING panel's look — the same
+   big-panel surface and the same centred prompt-scale type as .ag-think — minus
+   the rotating aura (`ag-animborder` is never on this element, so there is no
+   ::before to strip and no --ab-width to copy) and minus the thinking DOM
+   (echo / step / eye). Consequence: this line no longer follows a Suggestion
+   item font override. Its type derives from the INPUT BAR exactly as
+   .ag-think-echo does, and its surface from agentPanel. Both are still live
+   controls, just different ones.
+
+   The <p> must stay a BARE <p>: applySuggestionsEmptyText writes
+   `#agSuggEmpty.textContent`, which would delete any inner wrapper on the next
+   copy edit — so the centring and the .ag-think-inner padding live on the
+   element itself, not on a mimic of .ag-think-inner.
+
+   It is deliberately NOT added to agentPanel's highlightSelectors even though
+   it now reads --agent-panel-*: every entry there is a SIBLING surface with no
+   other owner, while this is a DESCENDANT of .ag-suggestions, which is already
+   in the list. Adding it would ring a box inside its own parent's ring, in
+   exactly the state a designer opens to look at it. */
+.ag-sugg-empty {
+  margin: 0;
+  cursor: default;
+  text-align: center;
+  padding: var(--agent-response-pad, var(--agent-panel-pad, 20px 32px)); /* = .ag-think-inner */
+  /* = .ag-think-echo: family / letter-spacing / colour 1:1 from the input bar,
+     size via the 10/7 ratio (20px at the 14px default), weight + line-height
+     role constants. */
+  font-family: var(--agent-inputbar-input-font-family, var(--agent-font-heading));
+  font-weight: 600;                                              /* role constant */
+  font-size: calc(var(--ag-input-size) * 10 / 7);                /* 20px at the 14px default */
+  line-height: 1.25;
+  letter-spacing: var(--agent-inputbar-input-font-ls, var(--agent-font-heading-ls, normal));
+  color: var(--ag-input-color);
+}
+/* In chips — the DEFAULT path — the container paints nothing, so the line has
+   to carry the surface itself: .ag-think's box, verbatim. THAT WORD IS A
+   CONTRACT, not a description — this block and .ag-think's are the same eight
+   declarations, and if they ever stop matching, that is the bug. In `.is-panel`
+   the container ALREADY is the big panel, so a second --agent-width box nested
+   inside it would be a panel in a panel — hence this is scoped to chips and the
+   base above declares no surface at all. No nowrap/ellipsis twin of the pill
+   rule: those terminate a max-content chip, and a full-width panel should wrap. */
+.ag-suggestions.is-chips .ag-sugg-empty {
+  width: var(--agent-width, 495px); box-sizing: border-box;
+  background:    var(--agent-response-bg,           var(--agent-panel-bg,           var(--agent-surface)));
+  border-width:  var(--agent-response-border-width, var(--agent-panel-border-width, 1px));
+  border-style:  var(--agent-response-border-style, var(--agent-panel-border-style, solid));
+  border-color:  var(--agent-response-border-color, var(--agent-panel-border-color, rgba(255,255,255,.4)));
+  border-radius: var(--agent-response-radius,       var(--agent-panel-radius,       var(--agent-radius-panel)));
+  box-shadow:    var(--agent-response-shadow,       var(--agent-panel-shadow,       var(--agent-shadow-panel)));
+}
+.ag-sugg-empty.is-hidden { display: none; }
+
+/* ---- thinking panel — derived from the Response panel ----
+   Same three-level chain as .ag-window, terminal for terminal, for the same
+   reason .ag-pill and .ag-runlog took it: thinking is the state the response
+   GROWS OUT OF. One morph separates them, so any material the two do not share
+   reads as the widget swapping itself for a different object mid-answer.
+
+   What it used to be, and what each fork looked like on screen:
+     width 380px         -> the one hardcoded panel width in the file. Not the
+                            495px column, not the 342px bar under it — a third
+                            number, so the panel overhung its own bar by 11%
+                            and matched nothing above or below it. The bar moved
+                            to 495 with it (see the panel-flush rule).
+     no --agent-response link
+                         -> a Response override moved every other panel and left
+                            this one behind. agentPanel still reached it, which
+                            is why this survived so long: the state LOOKS themed
+                            right up until someone styles the Response node.
+     --agent-radius-think -> 32px against the panel's 20px, and its own theme
+                            knob to keep it there. Token deleted with this.
+     --agent-border       -> #ECECEC against the panel's rgba(255,255,255,.4).
+     --agent-shadow-bar   -> a single 28px-blur drop shadow against the panel's
+                            six-layer ambient stack: same white box, visibly
+                            different elevation.
+   PADDING IS NOT IN THIS BLOCK ON PURPOSE and must not be added here: it lives
+   on .ag-think-inner, and declaring it in both places stacks them (48px under a
+   24px panel override). --ab-width stays 3px, likewise deliberately — it is the
+   rotating aura's thickness, not part of the surface, and .ag-pill's 2px
+   disagrees with it by design. */
+.ag-think {
+  width: var(--agent-width, 495px); box-sizing: border-box; --ab-width: 3px;
+  background:    var(--agent-response-bg,           var(--agent-panel-bg,           var(--agent-surface)));
+  border-width:  var(--agent-response-border-width, var(--agent-panel-border-width, 1px));
+  border-style:  var(--agent-response-border-style, var(--agent-panel-border-style, solid));
+  border-color:  var(--agent-response-border-color, var(--agent-panel-border-color, rgba(255,255,255,.4)));
+  border-radius: var(--agent-response-radius,       var(--agent-panel-radius,       var(--agent-radius-panel)));
+  box-shadow:    var(--agent-response-shadow,       var(--agent-panel-shadow,       var(--agent-shadow-panel)));
+}
+/* The thinking aura is the one place the widget shows the BRAND rather than the
+   send CTA — "the agent is working" is a product moment, not a button. The base
+   .ag-animborder::before gradient reads --ag-accent (= the send-button bg first);
+   this override swaps only the gradient's colour stop for --ag-brand-50, which
+   derives from --agent-primary. Two classes beat the base rule's one, so this
+   wins on specificity as well as on order. .ag-pill's 2px aura is deliberately
+   NOT included — it keeps --ag-accent. */
+.ag-think.ag-animborder::before {
+  background: conic-gradient(from var(--ab-angle), var(--ag-brand-50), transparent 62%);
+}
+/* The thinking panel's padding lives HERE, not on .ag-think — see that rule.
+   The 20px 32px literal is a per-surface content geometry constant (a centred
+   prompt echo needs more room than the response's 16px), the same species as
+   the role-constant font weights on the derived parts. The CHAIN above it is
+   not optional though: it is the panel chain, so an override still moves it. */
+.ag-think-inner { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: var(--agent-response-pad, var(--agent-panel-pad, 20px 32px)); }
+/* Prompt echo — the input's own text, in a heading ROLE: family/ls/colour
+   derive 1:1 from the input-bar override, size via the 10/7 ratio (20px at
+   the 14px default), weight + the heading terminals are role constants. */
+.ag-think-echo {
+  margin: 0; padding: 24px 0; text-align: center;
+  font-family: var(--agent-inputbar-input-font-family, var(--agent-font-heading));
+  font-weight: 600;                                              /* role constant */
+  font-size: calc(var(--ag-input-size) * 10 / 7);                /* 20px at the 14px default */
+  line-height: 1.25;
+  letter-spacing: var(--agent-inputbar-input-font-ls, var(--agent-font-heading-ls, normal));
+  color: var(--ag-input-color);
+}
+.ag-think-step { display: flex; align-items: center; gap: 8px; }
+.ag-think-eye { width: 16px; height: 16px; color: var(--ag-accent); flex-shrink: 0; }
+.ag-think-steptext {
+  margin: 0;
+  font-family: var(--ag-input-family);
+  font-weight: 500;                                              /* role constant */
+  font-size: var(--ag-input-size);
+  line-height: var(--ag-input-lh);
+  letter-spacing: var(--agent-inputbar-input-font-ls, normal);
+  color: var(--ag-accent); white-space: nowrap; animation: ag-step-in .28s ease both;
+}
+.ag-think-steptext .tail { color: var(--ag-accent-60); }
+.ag-think-steptext .dots { color: var(--ag-accent-50); }
+@keyframes ag-step-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ---- agent window (Response / Asking) — own layer → Agent panel → literal ---- */
+.ag-window {
+  width: var(--agent-width, 495px); box-sizing: border-box; flex-direction: column; gap: 16px;
+  background:    var(--agent-response-bg,           var(--agent-panel-bg,           var(--agent-surface)));
+  border-width:  var(--agent-response-border-width, var(--agent-panel-border-width, 1px));
+  border-style:  var(--agent-response-border-style, var(--agent-panel-border-style, solid));
+  border-color:  var(--agent-response-border-color, var(--agent-panel-border-color, rgba(255,255,255,.4)));
+  border-radius: var(--agent-response-radius,       var(--agent-panel-radius,       var(--agent-radius-panel)));
+  box-shadow:    var(--agent-response-shadow,       var(--agent-panel-shadow,       var(--agent-shadow-panel)));
+  padding:       var(--agent-response-pad,          var(--agent-panel-pad,          16px));
+}
+/* Response header — COLLAPSED AT REST, revealed under `.agent.head-open`.
+   setHeadOpen() (mountPrototype.js) owns that boolean — widget hover, composer
+   focus, or the builder's setHeaderRevealed pin — and routes the class write
+   through morphAgent, so the container's resize is the WAAPI FLIP.
+
+   NEVER collapse this with `display:none`. e2e-tokens.mjs's __vis walks the
+   ANCESTOR chain and nulls every sampled property when any ancestor is
+   display:none; .ag-win-head is the parent of the sampled .ag-win-title, so
+   display:none would null 8 golden rows across `response` and `asking`.
+   height:0 + overflow:hidden removes the BOX while the element stays displayed,
+   so the computed font and colour underneath stay real — zero drift.
+   `overflow: hidden` is load-bearing twice over: it clips the content, AND it is
+   what makes `height: 0` stick at all. This is a flex item in a COLUMN container,
+   so its `min-height: auto` would otherwise resolve to the content-based minimum
+   and the header would refuse to collapse; the automatic minimum size applies
+   only to items whose main-axis overflow is `visible`.
+
+   .ag-window is `gap: 16px` and a zero-height flex item still earns its gap, so
+   without the negative margin the container would only half-shrink. The two
+   numbers must move together if that gap ever changes.
+
+   NO height transition here, on purpose: every dimensional change on this slot
+   is WAAPI owned — by morphAgent for the .ag-window container, and by
+   setHeadOpen()'s own paired FLIP for the two properties BELOW that actually
+   move (height and margin-bottom), on the same MORPH_MS/SPRING_EASE clock. A
+   CSS transition on either would race both. The fade therefore rides the
+   CHILDREN — .ag-win-head itself also carries .ag-stagger, whose
+   `ag-rise … both` fill pins its opacity at 1 from the ANIMATION origin, which
+   outranks any normal declaration written here.
+
+   flex: 0 0 auto is load-bearing for that FLIP. `overflow:hidden` (needed for
+   the collapse, above) drops this item's automatic minimum size to 0, so at
+   the default flex-shrink:1 it is the ONLY child of the column that CAN be
+   squeezed — .ag-win-body's overflow is visible, so its min-height:auto pins
+   it at content size. Mid-morph the container is animating through heights
+   BELOW its content height, and every one of those pixels came out of the
+   header: it collapsed and re-grew under its own animation. Shrink 0 makes the
+   WAAPI height the one that renders and lets the container clip instead.
+
+   pointer-events:none so the collapsed strip cannot swallow clicks meant for
+   .ag-win-body, which the negative margin pulls up over it. */
+.ag-win-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; flex: 0 0 auto;
+  background: var(--agent-response-header-bg, transparent); border-radius: 8px;
+  height: 0; opacity: 0; overflow: hidden; pointer-events: none;
+  margin-bottom: -16px;   /* cancels .ag-window's 16px gap */
+}
+/* Asymmetric on purpose, and this is the half of the reveal you actually READ.
+   OPENING: the spring is front-loaded, so the box has most of its height by
+   ~190ms — an .08s delay puts the title's fade behind the space that holds it
+   instead of over a 0-height strip, which is what "text arrives before its
+   slot" looked like. CLOSING: no delay and half the duration, so the content
+   is gone before the container starts eating its height, never clipped mid-word. */
+.ag-win-head > * { opacity: 0; transition: opacity .12s ease; }
+.agent.head-open .ag-win-head {
+  height: auto; opacity: 1; pointer-events: auto; margin-bottom: 0;
+}
+.agent.head-open .ag-win-head > * { opacity: 1; transition: opacity .22s ease .08s; }
+/* ---- ASKING PINS THE HEADER OPEN ----
+   Everywhere else this row is CHROME — the parts that are about the response
+   rather than part of it — so collapsing it until you hover is right. In asking
+   it also carries the question COUNTER and the only prev/next control, i.e.
+   content and navigation, and navigation you cannot see is not navigation.
+   So the STATE pins it, on top of the three hover inputs rather than instead of
+   them: setHeadOpen()'s boolean is untouched, still owns `response`, and this
+   rule simply cannot be un-hovered away.
+
+   It RESTATES the four properties instead of adding a selector to
+   `.agent.head-open` above, because that class sits on `.agent` while
+   `s-asking` sits on the `.proto` ROOT — different elements, so they cannot
+   share one compound selector. Equal specificity (0,2,1), so source order is
+   what makes this win, and it must stay BELOW the head-open rule.
+   The children's line is not redundant either: `.ag-win-head > *`'s own
+   `opacity: 0` would otherwise win on source order the moment the pointer left.
+
+   Deliberately no `transition` here — entering asking is a morphAgent FLIP and
+   the row is already at full height when the state class lands, so there is no
+   0 -> auto to animate and nothing for setHeadOpen's own FLIP to fight (its
+   `Math.abs(now.h - was.h) < 0.5` guard sits out the hover no-op).
+   This is also why the counter had to move into THIS row rather than staying in
+   the panel body: inheriting the header's tokens is the entire point of the move,
+   and a token is inherited from the element you sit in. */
+.proto.s-asking .ag-win-head {
+  height: auto; opacity: 1; pointer-events: auto; margin-bottom: 0;
+}
+.proto.s-asking .ag-win-head > * { opacity: 1; }
+/* The drag grip follows the Header's ONE colour, like the head buttons — it is
+   header chrome, not a neutral. Same var as `.ag-round-btn`, but it keeps its
+   OWN quieter terminal (`--agent-text-muted`, not the buttons' text-secondary):
+   the var is emitted only once the panel's Color row is set, so an untouched
+   header renders exactly as before and the grip stays the faintest thing in the
+   row until someone deliberately colours the header. */
+.ag-grip { color: var(--agent-response-header-action-color, var(--agent-text-muted)); display: flex; cursor: grab; }
+.ag-grip:active, .agent.dragging .ag-grip { cursor: grabbing; }
+.ag-grip svg { width: 18px; height: 18px; }
+.ag-win-title {
+  flex: 1;
+  font-family:  var(--agent-response-header-title-font-family, var(--agent-font-heading));
+  font-weight:  var(--agent-response-header-title-font-weight, 600);
+  font-size:    var(--agent-response-header-title-font-size, 14px);
+  line-height:  var(--agent-response-header-title-font-lh, var(--agent-font-heading-lh, normal));
+  letter-spacing: var(--agent-response-header-title-font-ls, normal);
+  color:        var(--agent-response-header-title-font-color, var(--agent-text-secondary));
+}
+.ag-win-actions { display: flex; align-items: center; gap: 4px; }
+.ag-round-btn {
+  width: 24px; height: 24px; border: none; border-radius: 999px; background: transparent;
+  color: var(--agent-response-header-action-color, var(--agent-text-secondary)); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .18s ease;
+}
+.ag-round-btn svg { width: 15px; height: 15px; }
+/* No resting fill; hover tints with the widget action colour @10% (the same
+   `--ag-accent-10` every other hover in the widget uses), fading in via the
+   transition above. The GLYPH never moves on hover — it stays on whatever the
+   panel set for this element — so the tint reads as a pressable target without
+   overriding the customer's colour. `.ag-fb-btn` (the feedback row, :947) is
+   the second element on this exact treatment; keep the two in step. */
+.ag-round-btn:hover { background: var(--ag-accent-10); }
+.ag-win-body { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+
+/* markdown */
+.ag-md { font-family: var(--agent-response-body-font-family, var(--agent-font-body)); color: var(--agent-text-secondary); }
+/* The Message TITLE. Now that Title is its own tree node with its own Text
+   section, all six of its props must actually render — `font-weight` and
+   `font-size` used to be hard-coded here (600, and 20/16/14 per level), so the
+   panel's Weight and Size fields were inert controls writing vars nothing read.
+   Both now read --agent-response-title-font-*, with the former literals as the
+   terminals, so the default render is byte-identical.
+
+   Deliberate consequence: the three heading LEVELS share one size var, so
+   setting Title size FLATTENS h1/h2/h3 to that one size. That is correct for a
+   single "Title" control — one control cannot express a three-step scale, and
+   inventing per-level ratios would make the field lie about what it sets. Left
+   un-overridden, the per-level literals stand and nothing moves.
+   Note .ag-pill-title already read these two vars (it DERIVES from the Response
+   title) — this change makes the title itself respond, it does not add a new
+   reader downstream. */
+.ag-md-h1, .ag-md-h2, .ag-md-h3 {
+  font-family: var(--agent-response-title-font-family, var(--agent-font-heading));
+  font-weight: var(--agent-response-title-font-weight, 600);
+  line-height: var(--agent-response-title-font-lh, var(--agent-font-heading-lh, 1.25));
+  letter-spacing: var(--agent-response-title-font-ls, normal);
+  color: var(--agent-response-title-font-color, var(--agent-text));
+  margin: 0 0 8px;
+}
+.ag-md-h1 { font-size: var(--agent-response-title-font-size, 20px); }
+.ag-md-h2 { font-size: var(--agent-response-title-font-size, 16px); }
+.ag-md-h3 { font-size: var(--agent-response-title-font-size, 14px); }
+.ag-md-p {
+  font-family: var(--agent-response-body-font-family, var(--agent-font-body));
+  font-weight: var(--agent-response-body-font-weight, 500);
+  font-size: var(--agent-response-body-font-size, 16px);
+  line-height: var(--agent-response-body-font-lh, var(--agent-font-body-lh, 1.5));
+  letter-spacing: var(--agent-response-body-font-ls, var(--agent-font-body-ls, normal));
+  color: var(--agent-response-body-font-color, var(--agent-text-secondary));
+  margin: 0 0 8px;
+}
+.ag-md-p strong, .ag-md li strong { color: var(--agent-text); font-weight: 600; }
+.ag-md > :last-child { margin-bottom: 0; }
+/* The list / checklist / quote rows are ALL Message-BODY payload — the tree's
+   Message node binds the whole #agBody block and its Body section must style
+   them too, not just <p>. So each reads the same --agent-response-body-font-*
+   family the Body slot drives. Every fallback equals the previous hard-coded
+   literal, so the DEFAULT render is byte-identical (only .ag-md-p is in the
+   token golden, and it is unchanged). font-family is inherited from `.ag-md`,
+   which already reads the body var, so it is not repeated per row. Setting one
+   Body size/weight/… flattens these rows to one, exactly as Title flattens the
+   three heading levels — the intended behaviour of a single Body control. */
+.ag-md-quote {
+  border-left: 3px solid var(--agent-primary-tint); padding-left: 12px; margin: 0 0 8px;
+  font-size: var(--agent-response-body-font-size, 15px);
+  font-weight: var(--agent-response-body-font-weight, 400);
+  line-height: var(--agent-response-body-font-lh, 1.5);
+  letter-spacing: var(--agent-response-body-font-ls, normal);
+  color: var(--agent-response-body-font-color, var(--agent-text-muted));
+}
+.ag-md-list { margin: 0 0 8px; padding-left: 18px; list-style: disc; }
+.ag-md-list li {
+  margin-bottom: 4px;
+  font-size: var(--agent-response-body-font-size, 15px);
+  font-weight: var(--agent-response-body-font-weight, 400);
+  line-height: var(--agent-response-body-font-lh, 1.5);
+  letter-spacing: var(--agent-response-body-font-ls, normal);
+  color: var(--agent-response-body-font-color, var(--agent-text-secondary));
+}
+.ag-md-checklist { margin: 0 0 8px; padding: 0; list-style: none; }
+.ag-md-check {
+  display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px;
+  font-size: var(--agent-response-body-font-size, 15px);
+  font-weight: var(--agent-response-body-font-weight, 400);
+  line-height: var(--agent-response-body-font-lh, 1.4);
+  letter-spacing: var(--agent-response-body-font-ls, normal);
+  color: var(--agent-response-body-font-color, var(--agent-text-secondary));
+}
+.ag-md-box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--agent-border-minimal); flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.ag-md-check.is-done .ag-md-box { background: var(--agent-primary); border-color: var(--agent-primary); color: #fff; }
+.ag-md-check.is-done .ag-md-box svg { width: 11px; height: 11px; }
+
+/* ---- CTAs — TWO independent elements, one variant class each ----
+   `.ag-cta` carries only what is shared and unstyleable (the side-by-side row
+   geometry). Everything themeable is declared per VARIANT, because the primary
+   and secondary buttons are separate tree nodes: primary reads
+   --agent-response-cta-*, secondary reads --agent-response-ctasec-*. Declaring
+   radius/font on `.ag-cta` — as this block used to — is exactly what made
+   "primary corner radius" silently move the secondary button too.
+   Every button always has a variant class (renderCtas defaults variant:'dark'),
+   so nothing renders off the bare `.ag-cta` rule. Both variants' fallbacks are
+   the values that rendered BEFORE the split — the split is pure plumbing. */
+/* align-items:flex-start, not the flex default `stretch`: under stretch the
+   shorter button is inflated to the taller one's height and `.ag-cta`'s own
+   align-items:center re-centres its label inside that inflated box, so its
+   padding-top is only partly honoured — it reads as a phantom min-height on the
+   control. Each button now sizes itself from its own padding. Accepted
+   trade-off: the two stop sharing a height once their paddings differ, which is
+   the correct behaviour given the split above — they are independent elements
+   with independent padding props, not two halves of one control. */
+.ag-ctas { display: flex; align-items: flex-start; gap: 12px; width: 100%; }
+.ag-ctas:empty { display: none; }
+.ag-cta {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; transition: filter .14s;
+}
+.ag-cta:hover { filter: brightness(.97); }
+
+.ag-cta-dark {
+  background:     var(--agent-response-cta-bg, var(--agent-text));
+  color:          var(--agent-response-cta-font-color, #fff);
+  padding:        var(--agent-response-cta-pad, 12px 16px);
+  border-radius:  var(--agent-response-cta-radius, var(--agent-radius-row));
+  border-width:   var(--agent-response-cta-border-width, 1px);
+  border-style:   var(--agent-response-cta-border-style, solid);
+  border-color:   var(--agent-response-cta-border-color, transparent);
+  box-shadow:     var(--agent-response-cta-shadow, 0 2px 2px rgba(0,0,0,.04));
+  font-family:    var(--agent-response-cta-font-family, var(--agent-font-heading));
+  font-weight:    var(--agent-response-cta-font-weight, 600);
+  font-size:      var(--agent-response-cta-font-size, 16px);
+  line-height:    var(--agent-response-cta-font-lh, normal);
+  letter-spacing: var(--agent-response-cta-font-ls, normal);
+}
+
+.ag-cta-outline {
+  background:     var(--agent-response-ctasec-bg, var(--agent-surface));
+  color:          var(--agent-response-ctasec-font-color, var(--agent-text));
+  padding:        var(--agent-response-ctasec-pad, 12px 16px);
+  border-radius:  var(--agent-response-ctasec-radius, var(--agent-radius-row));
+  border-width:   var(--agent-response-ctasec-border-width, 1px);
+  border-style:   var(--agent-response-ctasec-border-style, solid);
+  border-color:   var(--agent-response-ctasec-border-color, var(--agent-border-minimal));
+  box-shadow:     var(--agent-response-ctasec-shadow, 0 2px 2px rgba(0,0,0,.04));
+  font-family:    var(--agent-response-ctasec-font-family, var(--agent-font-heading));
+  font-weight:    var(--agent-response-ctasec-font-weight, 600);
+  font-size:      var(--agent-response-ctasec-font-size, 16px);
+  line-height:    var(--agent-response-ctasec-font-lh, normal);
+  letter-spacing: var(--agent-response-ctasec-font-ls, normal);
+}
+
+/* feedback row — COLLAPSED AT REST, revealed under `.agent.head-open`, and the
+   MIRROR IMAGE of .ag-win-head above. Everything in that rule's comment applies
+   here with the vertical axis flipped, so read it first; only the differences
+   are restated below.
+
+   THE DIRECTION IS THE POINT. The header is the FIRST child of `.ag-window`
+   (gap 16px) and cancels the gap BELOW it, so it grows out of the panel's top
+   edge and its content arrives moving UP. The feedback row is the LAST child of
+   `.ag-win-body` (gap **12px**) and cancels the gap ABOVE it, so it grows out
+   of the bottom edge and its content arrives moving DOWN — `ag-fall`, and the
+   `translateY(-6px)` on the buttons below, against the header's `ag-rise`.
+   **-12px, not -16px**: the two rows live in DIFFERENT containers with
+   different gaps, and each number is tied to its own. Copying the header's 16
+   here would over-shrink the body by 4px.
+
+   `display:none` is FORBIDDEN, and for a REAL reason, not by analogy:
+   `e2e-tokens.mjs` samples `.ag-fb-btn`'s `color` (SPEC line 82) and its `__vis`
+   walks the ANCESTOR chain, nulling every sampled property when any ancestor is
+   display:none. `.ag-feedback` is that ancestor. `height:0` removes the box
+   while the element stays displayed, so the sampled colour underneath stays
+   real — zero drift. (`.proto.s-asking .ag-feedback` IS display:none, but that
+   predates this and is already reflected in the golden; `revealBox()` in
+   mountPrototype.js skips the slot there rather than FLIP a 0 -> 0 box.)
+
+   `flex: 0 0 auto` for the same reason the header needs it: `overflow:hidden`
+   drops this item's automatic minimum size to 0, so without it the row is what
+   gets squeezed while the container animates through heights below its content.
+
+   `overflow:hidden` is doubly load-bearing (clips the content AND is what makes
+   `height:0` stick past `min-height:auto`), and `pointer-events:none` keeps the
+   collapsed strip from swallowing clicks meant for the CTA row that the
+   negative margin now pulls down over it. */
+.ag-feedback {
+  display: flex; align-items: center; gap: 4px; flex: 0 0 auto;
+  height: 0; overflow: hidden; pointer-events: none;
+  margin-top: -12px;   /* cancels .ag-win-body's 12px gap */
+  /* Cancels the 4px the 16px glyph is inset by inside its 24px hover pill, so
+     the FIRST icon still lines up with the message text and the CTA row above
+     it. The buttons grew when they took `.ag-round-btn`'s hover treatment
+     (:947); without this the whole row would visibly shift right by 4px.
+     Gap drops 10 -> 4 to match `.ag-win-actions` for the same reason — the pill
+     now carries the spacing the bare glyphs used to need.
+     LONGHANDS ONLY in this rule and the one below: collapsing either to the
+     `margin` shorthand would wipe the -12px / 0 reveal contract. */
+  margin-left: -4px;
+}
+.agent.head-open .ag-feedback { height: auto; pointer-events: auto; margin-top: 0; }
+/* The operative fade rides the CHILDREN, never `.ag-feedback` itself — it
+   carries `.ag-stagger-fall`, whose `ag-fall … both` fill pins its opacity at 1
+   from the ANIMATION cascade origin and outranks any normal declaration here.
+   Exactly the trap documented on the header. Timings mirror it too: opening is
+   delayed behind the growing box, closing is immediate and half as long. The
+   translate is the ONE asymmetry — negative, so the buttons settle DOWNWARD
+   into the space instead of rising into it. */
+/* `background .18s` and `color .14s` ride this list rather than `.ag-fb-btn`'s
+   own rule, and they HAVE to: `.ag-feedback > *` and `.ag-fb-btn` are both
+   (0,1,0) — the universal selector adds nothing — so the later of the two wins
+   `transition` outright. `.ag-fb-btn` is later, so its `transition: color .14s`
+   silently replaced the whole reveal list and the buttons snapped. One list, on
+   the rule that owns the reveal; the hover tint below still fades because every
+   child of this row IS a `.ag-fb-btn`. Splitting them again reintroduces the
+   clobber — do NOT move `background` down onto `.ag-fb-btn` to sit next to the
+   `:hover` it belongs to. `.18s ease` is `.ag-round-btn`'s own number (:720),
+   since that hover is what this one is a copy of.
+   `color` stays in the list even though hover no longer touches it: it smooths
+   live edits of the panel's Icon color, which is the only thing that moves it
+   now. */
+.ag-feedback > * {
+  opacity: 0; translate: 0 -6px;
+  transition: opacity .12s ease, translate .12s ease, color .14s, background .18s ease;
+}
+.agent.head-open .ag-feedback > * {
+  opacity: 1; translate: 0 0;
+  transition: opacity .22s ease .08s, translate .22s var(--spring) .08s, color .14s, background .18s ease;
+}
+/* Geometry is `.ag-round-btn`'s (:717): a 24px transparent circle centring a
+   16px glyph, so the hover pill has a box to paint. `align-items` /
+   `justify-content` are load-bearing here — a bare `display:flex` would drop the
+   glyph in the top-left corner of the enlarged box. */
+.ag-fb-btn {
+  width: 24px; height: 24px; border: none; border-radius: 999px;
+  background: transparent;
+  color: var(--agent-response-feedback-color, var(--agent-text-muted));
+  cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.ag-fb-btn svg { width: 16px; height: 16px; }
+.ag-fb-dislike svg { transform: rotate(180deg); }
+/* The same hover as the header's action buttons, for the same reason: tint the
+   BOX with `--ag-accent-10` and leave the GLYPH on
+   `--agent-response-feedback-color`. It used to swap the glyph to `--ag-accent`,
+   which threw away the Icon color the panel had just set — the one property the
+   element exposes was the one hover overrode. */
+.ag-fb-btn:hover { background: var(--ag-accent-10); }
+
+/* ---- ASKING HAS NO SURFACE OF ITS OWN: ONE WINDOW, ONE BODY ----
+   `.ag-options` IS GONE — the element, its panel-surface rule, and the entire CSS
+   weld that used to fake one box out of two. `.ag-opt-list` and `.ag-opt-foot`
+   are now children of `.ag-win-body`, beside `.ag-md` and `.ag-ctas`.
+
+   WHAT THIS DELETED, and why none of it is needed any more. The options used to
+   be a SECOND --agent-width panel, a later SIBLING of `.ag-window`, carrying the
+   full three-level panel chain plus its own 8px padding — and then a
+   `.proto.s-asking` block spent a declaration per side hiding that fact: a
+   negative bottom margin cancelling the `.ag-surface` gap, the two adjoining
+   corners squared, BOTH touching border edges dropped, the later sibling's
+   upward shadow suppressed so it could not band the seam, and the outer bottom
+   radii re-borrowed from the window's chain so the merged box did not read
+   lopsided (20px against this panel's own 16px). Every one of those existed to
+   make two boxes look like one. Fahmi's call, 2026-07-27: make it one box. Then
+   the padding, the radius, the shadow and the border are the WINDOW's, once, and
+   the rows are spaced by the body's own 12px gap — the same rhythm the message
+   and the response CTAs already had. Nothing is left to keep in step.
+
+   CONSEQUENCES, all of them deletions elsewhere — do not restore any of them:
+     - `.ag-options` left the PANEL-SURFACE CONTRACT (it is not a surface), so it
+       is out of `e2e-panels.mjs`'s SURFACES list along with all three of its
+       `except` entries and the bespoke weld assertion those existed for.
+     - it left `agentPanel.highlightSelectors` (elements.ts): a node that rings a
+       box which no longer exists is a lying highlight, the same rule that once
+       forced `.ag-runlog` to be ADDED.
+     - it left MORPH_SLOTS (mountPrototype.js). This is the load-bearing one.
+       `slotBox()`'s contract is "null == this slot left the state", which holds
+       only for the top-level siblings that are individually display:none'd. Now
+       that these rows live INSIDE `.ag-window`, computed `display` does not
+       inherit the window's `display:none`, so a slot entry would hand back a
+       non-null 0x0 box and FLIP 0 -> full on every entrance into asking —
+       exactly the trap documented on `.ag-win-head`. The window's own FLIP
+       carries the whole body now, which is the simpler and correct shape.
+     - it left the overflow / slot-in / reduced-motion / builder-morph selector
+       lists below, because it is no longer a morphing slot.
+   The old rule "`.ag-options` is a SIBLING of `.ag-window` and welding them must
+   not change that" retires with it: the reason for the sibling was that BOTH were
+   slots, and only one of them is now. */
+/* State gating moves down to the two ROWS, since there is no wrapper left to
+   toggle. Hidden by default and shown by the state, so `response` renders
+   byte-identically. `.ag-ctas` needs no gate — `renderCtas([])` empties it in
+   asking and `.ag-ctas:empty` is already display:none. */
+/* `display` LIVES ONLY HERE for these two rows — their own rules below must not
+   declare it, and that is not a style preference. Both rules sit LATER in the file
+   at equal specificity (0,1,0), so a `display: flex` there beats this
+   `display: none` and the option list + footer render in `response` too, showing
+   whatever `renderOptions()` last wrote. That is the same trap `.ag-suggestions`
+   documents ("display stays out of all three of those rules"), and it shipped here
+   for real until e2e caught it. Keep the flex CONTAINER properties down there;
+   keep `display` up here. */
+.ag-opt-list, .ag-opt-foot { display: none; }
+.proto.s-asking .ag-opt-list { display: flex; }
+.proto.s-asking .ag-opt-foot { display: flex; }
+/* ---- the question counter IS the header title ----
+   `.ag-opt-head` and `.ag-opt-count` are GONE. The counter used to be its own
+   element at the top of the options panel, with its own derived typography (the input
+   bar's PLACEHOLDER role at input-font x 6/7 — 12px at the 14px default). It now
+   lives in `.ag-win-head` as the TEXT OF `.ag-win-title`: renderOptions() writes
+   "Question 1 of 4" into the same node applyContent's aiName writes "Jimo AI"
+   into, and the state swaps which string is in it.
+
+   ONE ELEMENT, not two hidden alternates, and that is deliberate. `.ag-win-title`
+   is SAMPLED by e2e-tokens.mjs (4 properties x 14 states) and this file forbids
+   `display:none` on a sampled element's ancestor precisely because __vis nulls
+   every sampled property underneath one — a two-span swap would have had to hide
+   the title in asking and would have nulled its four asking rows. Reusing the
+   node keeps them real, and it is also what makes "inherit the tokens and
+   everything from the header element" literally true rather than a derivation to
+   maintain: there is no counter typography left to derive, because the counter is
+   the header title. A Response > Header > Title font edit moves it.
+
+   The cost, and it is handled in applyContent.ts: TWO writers now own one text
+   node. The island writes the counter on every renderOptions(); React writes the
+   AI name on every config pass. So applyContent skips the title write while
+   `s-asking` is on and parks the resolved name in `data-ai-name` for the island
+   to restore on the way out. Neither side may write blind. */
+/* The prev/next pair moved into `.ag-win-head` with the counter and is the one
+   part of that row that is asking-only — the grip, the title and the expand /
+   close actions all belong to `response` too. Hidden by default and shown by the
+   state, rather than the reverse, so `response` renders byte-identically to
+   before this change. `display: flex` and not `inline-flex`: it is a flex ITEM of
+   the header, so its own inner display is what stacks the two chevrons. */
+.ag-win-head .ag-opt-nav { display: none; }
+.proto.s-asking .ag-win-head .ag-opt-nav { display: flex; }
+.ag-opt-nav { gap: 1px; border-radius: 4px; overflow: hidden; }
+/* Chevrons: glyph ← input-bar TEXT colour, chip ← the same colour toned down. */
+.ag-chev {
+  width: 20px; height: 20px; border: none; cursor: pointer; padding: 2px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ag-input-color-10);
+  color: var(--agent-inputbar-input-font-color, var(--agent-text-secondary));
+}
+.ag-chev svg { width: 16px; height: 16px; }
+.ag-chev:hover { background: var(--ag-input-color-16); color: var(--agent-inputbar-input-font-color, var(--agent-text-secondary)); }
+.ag-opt-list { flex-direction: column; gap: 2px;   /* NO `display` — see the gate above */ border-radius: var(--agent-radius-row); overflow: hidden; width: 100%; background: var(--agent-surface); }
+/* Option rows: fill ← CTA @10%, type ← input font. */
+.ag-opt {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 12px;
+  border: none; cursor: pointer; text-align: left; transition: background .12s;
+  background: var(--ag-accent-10);
+  font-family: var(--ag-input-family);
+  font-weight: 500;                                       /* role constant */
+  font-size: var(--ag-input-size);
+  line-height: var(--ag-input-lh);
+  letter-spacing: var(--agent-inputbar-input-font-ls, normal);
+  color: var(--agent-inputbar-input-font-color, var(--agent-text-secondary));
+}
+/* A/B/C badges ← the CTA at 100%. */
+.ag-opt-letter {
+  width: 16px; height: 16px; border-radius: 4px;
+  background: var(--ag-accent); color: var(--ag-accent-fg);
+  font-size: 12px; line-height: 16px; text-align: center;
+  flex-shrink: 0; font-weight: 500;
+}
+.ag-opt:hover, .ag-opt.is-sel { background: var(--ag-accent-16); color: var(--ag-input-color); }
+.ag-opt:hover .ag-opt-letter, .ag-opt.is-sel .ag-opt-letter { background: var(--ag-accent); }
+/* ---- the answer footer: Submit + Skip, LEFT-aligned ----
+   `justify-content: flex-start`, was flex-end. A single right-aligned Submit read
+   as a dialog's confirm button; two buttons belong with the content they act on,
+   and the panel reads left-to-right everywhere else in it (the A/B/C badges, the
+   option labels, the counter). Fahmi's call, 2026-07-27.
+   `gap: 12px` and `align-items: flex-start` are `.ag-ctas`' own two numbers, and
+   the second one is there for the same measured reason: under the flex default
+   `stretch` the shorter button is inflated to the taller one's height and its own
+   `align-items: center` re-centres the label inside that inflated box, so editing
+   ONE button's padding visibly moves the OTHER button's label. These are two
+   independent styleable elements, so each sizes itself. */
+.ag-opt-foot { justify-content: flex-start; align-items: flex-start; gap: 12px; width: 100%; }   /* NO `display` — see the gate above */
+/* ---- Submit / Skip DERIVE FROM THE TWO RESPONSE CTAs ----
+   Submit was `1:1 with the send CTA` — the input bar's send button, via the
+   --ag-accent / --ag-cta-* alias hub. It is not a send button: it is the primary
+   action of a panel, sitting where the response panel's CTAs sit, one morph away
+   from them. So the pair now reads the RESPONSE CTA tokens directly, per Fahmi's
+   call 2026-07-27: Submit from `Call to action primary` (--agent-response-cta-*,
+   the chain `.ag-cta-dark` reads) and Skip from `Call to action secondary`
+   (--agent-response-ctasec-*, `.ag-cta-outline`'s). Editing either CTA node in
+   the builder now moves its twin here, which is the point — the asking state has
+   no tree nodes of its own and is DERIVED, like Thinking and the guide pill.
+
+   Every declaration below is copied from those two variant rules, terminal for
+   terminal — copy them verbatim rather than retyping if either ever changes. Two
+   visible consequences at the defaults, both intended and both a straight
+   consequence of the derivation: padding goes 8px 12px -> 12px 16px and the label
+   14px -> 16px, because that is what a response CTA is.
+
+   WHAT IS NOT COPIED: `.ag-cta`'s `flex: 1`. The response CTAs split a full-width
+   row between them; these two are content-sized and hug the left edge, which is
+   the whole point of the footer change above. The shared row geometry
+   (centring, cursor, the hover filter) is copied, since that part of `.ag-cta` is
+   the unstyleable half and applies equally here.
+   `:active { scale(.97) }` is `.ag-submit`'s own press pop and has no `.ag-cta`
+   equivalent — kept, and extended to Skip so the two press alike. */
+.ag-submit, .ag-skip {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; transition: filter .14s;
+}
+.ag-submit:hover, .ag-skip:hover { filter: brightness(.97); }
+.ag-submit:active, .ag-skip:active { transform: scale(.97); }
+.ag-submit {
+  background:     var(--agent-response-cta-bg, var(--agent-text));
+  color:          var(--agent-response-cta-font-color, #fff);
+  padding:        var(--agent-response-cta-pad, 12px 16px);
+  border-radius:  var(--agent-response-cta-radius, var(--agent-radius-row));
+  border-width:   var(--agent-response-cta-border-width, 1px);
+  border-style:   var(--agent-response-cta-border-style, solid);
+  border-color:   var(--agent-response-cta-border-color, transparent);
+  box-shadow:     var(--agent-response-cta-shadow, 0 2px 2px rgba(0,0,0,.04));
+  font-family:    var(--agent-response-cta-font-family, var(--agent-font-heading));
+  font-weight:    var(--agent-response-cta-font-weight, 600);
+  font-size:      var(--agent-response-cta-font-size, 16px);
+  line-height:    var(--agent-response-cta-font-lh, normal);
+  letter-spacing: var(--agent-response-cta-font-ls, normal);
+}
+.ag-skip {
+  background:     var(--agent-response-ctasec-bg, var(--agent-surface));
+  color:          var(--agent-response-ctasec-font-color, var(--agent-text));
+  padding:        var(--agent-response-ctasec-pad, 12px 16px);
+  border-radius:  var(--agent-response-ctasec-radius, var(--agent-radius-row));
+  border-width:   var(--agent-response-ctasec-border-width, 1px);
+  border-style:   var(--agent-response-ctasec-border-style, solid);
+  border-color:   var(--agent-response-ctasec-border-color, var(--agent-border-minimal));
+  box-shadow:     var(--agent-response-ctasec-shadow, 0 2px 2px rgba(0,0,0,.04));
+  font-family:    var(--agent-response-ctasec-font-family, var(--agent-font-heading));
+  font-weight:    var(--agent-response-ctasec-font-weight, 600);
+  font-size:      var(--agent-response-ctasec-font-size, 16px);
+  line-height:    var(--agent-response-ctasec-font-lh, normal);
+  letter-spacing: var(--agent-response-ctasec-font-ls, normal);
+}
+
+/* ---- status pill (Guidance / Execute) — DERIVED FROM THE RESPONSE PANEL ----
+   Same three-level chain as .ag-window, terminal for terminal: Response layer
+   -> Agent panel -> the response literal. The pill's TYPE already derived from
+   the Response title/body vars (.ag-pill-title / -sub below); this is the same
+   rule applied to the box, and it is what makes the guide/execute stack read as
+   the same object the user was just talking to instead of two foreign chips
+   floating over the host page.
+
+   What it used to be, and why each one read as detached:
+     width max-content   -> the pill and the bottom bar under it sized to their
+                            own text, so the two never even agreed with EACH
+                            OTHER, let alone with the 495px response column.
+     border 0/transparent-> the only surface in the widget with no edge at all.
+     radius 24 (pill)    -> rounder than the panel's 20, so the family read as
+                            two different shape languages one state apart.
+     --agent-shadow-pill -> a tight 14px-blur drop shadow against the panel's
+                            six-layer ambient stack: same white box, visibly
+                            different elevation.
+     padding 12px 16px   -> a chip's padding inside a panel-sized surface.
+   All five now come from the Response chain, so the DEFAULT render matches the
+   panel and any Response / agentPanel override moves both together.
+
+   `--agent-radius-pill` is gone with this rule — .ag-pill was its only reader,
+   so the Theme > Radius > "Pill" knob it fed would have become a dead control.
+   Theme > Radius > Panel is the knob now. --agent-pill-maxw went the same way:
+   a 460px cap under a 495px width is a clamp, not a cap, and Widget > Width is
+   the one knob that should size this stack. */
+.ag-pill {
+  width: var(--agent-width, 495px); box-sizing: border-box; --ab-width: 2px;
+  align-items: center; gap: 8px;
+  background:    var(--agent-response-bg,           var(--agent-panel-bg,           var(--agent-surface)));
+  border-width:  var(--agent-response-border-width, var(--agent-panel-border-width, 1px));
+  border-style:  var(--agent-response-border-style, var(--agent-panel-border-style, solid));
+  border-color:  var(--agent-response-border-color, var(--agent-panel-border-color, rgba(255,255,255,.4)));
+  border-radius: var(--agent-response-radius,       var(--agent-panel-radius,       var(--agent-radius-panel)));
+  box-shadow:    var(--agent-response-shadow,       var(--agent-panel-shadow,       var(--agent-shadow-panel)));
+  padding:       var(--agent-response-pad,          var(--agent-panel-pad,          16px));
+}
+.ag-pill-icon, .ag-pill-spin { width: 16px; height: 16px; color: var(--ag-accent); flex-shrink: 0; display: none; align-items: center; justify-content: center; }
+.ag-pill-icon svg, .ag-pill-spin svg { width: 16px; height: 16px; }
+.ag-pill.is-icon .ag-pill-icon { display: flex; }
+.ag-pill.is-spin .ag-pill-spin { display: flex; }
+.ag-pill-spin svg { animation: ag-rot .9s linear infinite; }
+/* flex:1 so the text column, not the 16px icon, absorbs the fixed --agent-width
+   — and so min-width:0 has something to constrain, which is what lets the
+   ellipsis on the two lines further down actually fire. */
+.ag-pill-text { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+/* Guide pill: colour ← CTA accent, type ← the Response TITLE / BODY fonts. */
+.ag-pill-title {
+  font-family:  var(--agent-response-title-font-family, var(--agent-font-heading));
+  font-weight:  var(--agent-response-title-font-weight, 600);
+  font-size:    var(--agent-response-title-font-size, 14px);
+  line-height:  var(--agent-response-title-font-lh, var(--agent-font-heading-lh, 1.25));
+  letter-spacing: var(--agent-response-title-font-ls, normal);
+  color: var(--ag-accent);
+}
+.ag-pill-sub {
+  font-family:  var(--agent-response-body-font-family, var(--agent-font-body));
+  font-weight:  500;                                                   /* role constant */
+  font-size:    calc(var(--agent-response-body-font-size, 16px) * 0.75); /* 12px at the 16px default */
+  line-height:  var(--agent-response-body-font-lh, var(--agent-font-body-lh, 1.5));
+  letter-spacing: var(--agent-response-body-font-ls, var(--agent-font-body-ls, normal));
+  color: var(--ag-accent-60);
+}
+.ag-pill-sub:empty { display: none; }
+
+/* ---- bottom bar (Guidance / Execute) — IS THE INPUT BAR, SO IT MIRRORS IT ----
+   The slot-visibility block above hides .ag-bar in guide-waiting /
+   guide-checking / execute-action / execute-thinking and shows this in its
+   place, so this is not a surface that RESEMBLES the input bar — in those four
+   states it IS the input bar. Every declaration below is therefore
+   BYTE-IDENTICAL to the .ag-bar rule: same var, same terminal, two levels, in
+   the same order. Diff the two rules; if they ever stop matching, that is the
+   bug.
+
+   THE agentPanel MIDDLE LINK MUST NOT COME BACK — that is the whole point.
+   This rule used to read --agent-panel-* only, and then (worse) read
+   `var(--agent-inputbar-X, var(--agent-panel-X, <literal>))`, which LOOKS like
+   it derives from the bar and silently doesn't: .ag-bar's own chain has no
+   agentPanel link, so the moment `agentPanel` carried a box override and
+   `inputBar` did not — the normal case, since agentPanel is the one knob that
+   styles every panel at once — the two forked. Measured: with a panel bg of
+   #FFF3E0 and panel padding 24px set, .ag-bar stayed white at 8px 8px 8px 12px
+   while this bar went orange at 24px, one slot below it. A three-level chain is
+   right for a PANEL surface (.ag-pill, .ag-runlog, .ag-window all use it,
+   because agentPanel genuinely is their default layer). It is wrong here.
+   Consequence, and it is deliberate: `agentPanel` no longer governs this
+   surface at all, so `.ag-botbar` left agentPanel's highlightSelectors and
+   joined the Input bar node's `selector` list (elements.ts) — a node that rings
+   a box it cannot style is a lying highlight.
+
+   Width USED TO BE the one thing not copied from .ag-bar's base: this rule took
+   --agent-width while that base was a 342px --agent-bar-w, and only the
+   per-state flush overrides brought the two into agreement. That divergence is
+   gone — .ag-bar's base IS --agent-width now — so the two rules match here by
+   construction rather than by two numbers that had to be kept in step. The
+   reason is unchanged: the surface above this bar is --agent-width, so matching
+   it makes the widget read as one box instead of two. box-sizing:border-box
+   likewise matches .ag-bar so the edges line up with the pill's to the pixel. */
+.ag-botbar {
+  align-items: center; gap: 12px;
+  width: var(--agent-width, 495px); box-sizing: border-box;
+  background:    var(--agent-inputbar-bg, var(--agent-surface));
+  border-width:  var(--agent-inputbar-border-width, 1px);
+  border-style:  var(--agent-inputbar-border-style, solid);
+  border-color:  var(--agent-inputbar-border-color, var(--agent-border));
+  border-radius: var(--agent-inputbar-radius, var(--agent-radius-bar));
+  box-shadow:    var(--agent-inputbar-shadow, var(--agent-shadow-bar));
+  padding:       var(--agent-inputbar-pad, 8px 8px 8px 12px);
+}
+/* The status text is the only flexible child, so it is what absorbs the extra
+   width — without this the avatar / text / Stop group huddles at the left edge
+   of a 495px bar exactly the way it used to huddle inside a max-content one. */
+.ag-botbar-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Status text ← the input-bar text style. Stop button = 1:1 with the send CTA. */
+.ag-botbar-text {
+  font-family: var(--ag-input-family);
+  font-weight: 500;                                       /* role constant */
+  font-size: var(--ag-input-size);
+  line-height: var(--ag-input-lh);
+  letter-spacing: var(--agent-inputbar-input-font-ls, normal);
+  color: var(--ag-input-color); white-space: nowrap;
+}
+.ag-ghost-stop {
+  padding: 8px 12px; border: none; cursor: pointer;
+  background: var(--ag-accent-10); color: var(--ag-accent);
+  border-radius: var(--ag-cta-radius);
+  font-family: var(--ag-cta-family); font-weight: var(--ag-cta-weight);
+  font-size: var(--ag-cta-size); line-height: var(--ag-cta-lh); letter-spacing: var(--ag-cta-ls);
+}
+.ag-ghost-stop:hover { background: var(--ag-accent-16); }
+
+/* ---- flight ghost (text flies from bar into thinking panel) ---- */
+.ag-ghost {
+  position: absolute; z-index: 30; background: var(--agent-surface);
+  border: 1px solid var(--agent-border); border-radius: var(--agent-radius-bar);
+  box-shadow: var(--agent-shadow-bar); overflow: hidden; pointer-events: none;
+  transition: top .58s var(--spring), left .58s var(--spring), width .58s var(--spring),
+    height .58s var(--spring), border-radius .58s var(--spring);
+}
+.ag-ghost .g-a { position: absolute; top: 50%; left: 44px; transform: translateY(-50%); font-family: var(--agent-font-input); font-size: 14px; color: var(--agent-text); white-space: nowrap; transition: opacity .2s; }
+.ag-ghost .g-b { position: absolute; top: 50%; left: 28px; right: 28px; transform: translateY(-50%); text-align: center; font-family: var(--agent-font-heading); font-weight: 600; font-size: 20px; color: var(--agent-text); opacity: 0; transition: opacity .3s .2s; }
+.ag-ghost.fly .g-a { opacity: 0; }
+.ag-ghost.fly .g-b { opacity: 1; }
+
+/* ---- host dimming/highlight during guidance & execute (recolored to token) ---- */
+.proto.s-guide-waiting .host-deal, .proto.s-guide-checking .host-deal,
+.proto.s-execute-action .host-deal, .proto.s-execute-thinking .host-deal,
+.proto.s-guide-waiting .host-colhead, .proto.s-guide-checking .host-colhead { opacity: .5; filter: blur(2px); }
+.proto.s-guide-waiting .host-title, .proto.s-guide-checking .host-title,
+.proto.s-execute-action .host-title, .proto.s-execute-thinking .host-title,
+.proto.s-guide-waiting .host-head-actions, .proto.s-guide-checking .host-head-actions,
+.proto.s-execute-action .host-head-actions, .proto.s-execute-thinking .host-head-actions { opacity: .4; filter: blur(1.5px); }
+.proto.s-guide-waiting .host-deal.wk-on, .proto.s-guide-checking .host-deal.wk-on {
+  opacity: 1; filter: none; position: relative; z-index: 2; transform: scale(1.02);
+  box-shadow: 0 0 0 2px var(--agent-primary), 0 0 0 7px var(--agent-primary-10), 0 12px 32px var(--agent-primary-10);
+}
+.proto.s-guide-waiting .host-colhead.wk-on, .proto.s-guide-checking .host-colhead.wk-on { opacity: 1; filter: none; }
+.proto.s-guide-waiting .host-col.wk-on, .proto.s-guide-checking .host-col.wk-on {
+  box-shadow: 0 0 0 2px var(--agent-primary), 0 0 0 7px var(--agent-primary-10); background: #fff;
+}
+.proto.s-execute-action .host-deal.exec-part, .proto.s-execute-thinking .host-deal.exec-part { opacity: 1; filter: none; }
+.proto.s-execute-action .host-deal.exec-on, .proto.s-execute-thinking .host-deal.exec-on {
+  opacity: 1; filter: none; position: relative; z-index: 2; transform: scale(1.02);
+  box-shadow: 0 0 0 2px var(--agent-primary), 0 0 0 7px var(--agent-primary-10), 0 12px 32px var(--agent-primary-10);
+}
+.proto.s-guide-waiting .wk-cursor, .proto.s-guide-checking .wk-cursor,
+.proto.s-execute-action .wk-cursor, .proto.s-execute-thinking .wk-cursor { opacity: 1; }
+.wk-cursor-ring { border-color: var(--agent-primary); }
+
+/* ============================================================
+   Motion — continuous morphs + deck-style staggered reveals
+   WAAPI (morphAgent in the script) owns every dimensional
+   change on the slots; CSS owns entrances and staggers.
+   ============================================================ */
+
+/* Morphing slots clip their content so in-flight width/height
+   morphs reveal/conceal instead of overflowing. */
+.ag-suggestions, .ag-think, .ag-window, .ag-pill, .ag-bar, .ag-botbar { overflow: hidden; }
+/* nowrap + ellipsis: the pill is a fixed --agent-width box now, so a long step
+   title has to terminate somewhere. .ag-pill's own overflow:hidden would clip it
+   mid-glyph; these two clip it at a word boundary with a "…". */
+.ag-pill-title, .ag-pill-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Slot entrance — re-armed by the display:none -> shown toggle on state entry.
+   .ag-think is deliberately excluded: the flight ghost pill lands exactly where
+   the panel appears, so the panel must swap in instantly with its rotating
+   border already moving — an entrance fade reads as a flash at the handoff. */
+@keyframes ag-slot-in {
+  from { opacity: 0; transform: translateY(12px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+.ag-suggestions, .ag-window, .ag-pill, .ag-botbar, .ag-bar {
+  animation: ag-slot-in 440ms var(--spring) both;
+}
+
+/* Per-element staggered reveals (deck grammar: --d ladders, both fill) */
+@keyframes ag-rise {
+  from { opacity: 0; transform: translateY(10px); filter: blur(3px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+/* ag-rise inverted on ONE axis — the translate sign — and identical in every
+   other respect (same 10px, same blur, same duration and easing via
+   .ag-stagger-fall). Its only user is `.ag-feedback`, the chrome row that grows
+   out of the panel's BOTTOM edge: entering from below like everything else
+   would have it travel against the edge it belongs to. Do not "unify" these two
+   back into one keyframe with a variable sign — the blur/opacity halves are
+   shared, the direction is the whole point, and a `--dir` var here would be
+   read as a knob when it is a fact about where the element sits. */
+@keyframes ag-fall {
+  from { opacity: 0; transform: translateY(-10px); filter: blur(3px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+@keyframes ag-pop {
+  0%   { opacity: 0; transform: scale(.86); }
+  60%  { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: none; }
+}
+.ag-stagger      { animation: ag-rise 480ms var(--spring) both; animation-delay: var(--d, 0s); }
+.ag-stagger-fall { animation: ag-fall 480ms var(--spring) both; animation-delay: var(--d, 0s); }
+.ag-stagger-pop  { animation: ag-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both; animation-delay: var(--d, 0s); }
+
+/* Response body: markdown children cascade in */
+.ag-md > * { animation: ag-rise 480ms var(--spring) both; }
+.ag-md > :nth-child(1) { animation-delay: .12s; }
+.ag-md > :nth-child(2) { animation-delay: .18s; }
+.ag-md > :nth-child(3) { animation-delay: .24s; }
+.ag-md > :nth-child(n+4) { animation-delay: .3s; }
+
+/* Exit ghosts: a slot that just left the state is frozen in place by the
+   morph engine and faded via WAAPI — freeze CSS motion so restoring
+   display doesn't replay entrances. */
+.ag-slot-ghost, .ag-slot-ghost * { animation: none !important; transition: none !important; }
+
+/* Host page entrances (applied by renderHost on page switch) */
+.host-enter { animation: ag-rise 480ms var(--spring) both; animation-delay: var(--d, 0s); }
+
+/* Guide/execute dimming used to snap — morph opacity + blur.
+   .host-deal keeps its legacy border/shadow/transform transitions. */
+.host-deal { transition: border-color .15s, box-shadow .15s, transform .15s, opacity .4s var(--spring), filter .4s var(--spring); }
+.host-title, .host-colhead, .host-head-actions { transition: opacity .4s var(--spring), filter .4s var(--spring); }
+
+/* ==========================================================
+   BUILDER MORPH — layout/shape edits animate instead of snapping.
+   ==========================================================
+
+   Every tokenised layout/shape value (width, offsets, gaps, paddings,
+   border widths, radii, text metrics, avatar size) is a CSS variable
+   written by useApplyConfig. A var write is a one-frame jump, so before
+   this block a slider edit SNAPPED — and the only property that did not,
+   `#agent`'s width, glided over a 340ms spring, which made width the one
+   control that felt out of step with the rest.
+
+   WHY IT IS GATED ON `.builder-morphing` AND NOT JUST DECLARED.
+   The island animates its own dimensional changes with a WAAPI FLIP
+   (mountPrototype's morphAgent measures the real box across a single
+   className write). A standing CSS transition on those same properties
+   would race the FLIP on every state change — exactly what the "NO height
+   transition here, on purpose" note on `.ag-window` is about. So the
+   transitions exist ONLY while the builder is applying a config edit:
+   useApplyConfig adds `.builder-morphing` to `.preview-scope` in the same
+   layout effect that writes the vars, and drops it once the edit settles.
+   Default is OFF, so the standalone prototype, `?preview=1` and every
+   state change are byte-identical to before.
+
+   The class MUST be added in that layout effect, before the setProperty
+   loop — not in a later plain effect. If any forced layout (a ring's
+   getBoundingClientRect) flushed between the var write and the class
+   arriving, the browser would resolve the new size with no
+   transition-property set, the box would snap, and the transition would
+   never start. Reduced motion is handled there too, by not adding the
+   class at all, so no selector list here can fall out of sync.
+
+   TWO THINGS DELIBERATELY NOT IN THE LISTS BELOW:
+   - `height`, anywhere. It is not a tokenised prop, and it is the one
+     property the FLIP owns outright.
+   - `transform` on `.agent`. Align switches `left: 50% → auto` and
+     `right: auto → 0`, and `auto` is not interpolable, so those snap
+     whatever we do; animating the paired transform alone would read as a
+     stray slide on top of a jump. Offsets within one align mode are
+     px→px and animate correctly, which is the case this is for.
+     (Same family, same non-bug: `letter-spacing: normal → 1px` cannot
+     interpolate on the first step out of the default. px→px after that
+     is fine.)
+
+   Selectors that ALREADY declare a transition restate it here — the
+   shorthand is all-or-nothing, so omitting `background .14s` on `.ag-sugg`
+   would kill its hover fill for the length of every edit. `.ag-round-btn`
+   and `.ag-fb-btn` carry no tokenised layout/shape props, so they are
+   left out entirely rather than restated for nothing.
+
+   The timing var is declared on `.builder-morphing` ITSELF, not on
+   `.preview-scope`, so it provably exists exactly when these rules can match.
+   That is not tidiness: an unresolvable `var()` inside a `transition`
+   SHORTHAND is invalid at computed-value time and drops the WHOLE
+   declaration — `#agent` would silently lose its opacity fade rather than
+   fall back to the base rule. Same all-or-nothing hazard as the `border:`
+   shorthand invariant. Both hosts that mount the island (`LivePreview` and
+   `PreviewPage`) put the class on their `.preview-scope` root, but this way a
+   third one could not get it wrong. */
+.builder-morphing { --ag-morph: 140ms cubic-bezier(.16, 1, .3, 1); }
+
+/* Widget root — one element, two roles: `#agent` owns the Width theme prop,
+   `.agent` owns the offset/align position. Restates the opacity fade and
+   retunes width off the 340ms spring onto the shared 140ms, so width stops
+   being the odd one out. */
+.builder-morphing #agent {
+  transition:
+    opacity .32s var(--spring),
+    width var(--ag-morph),
+    left var(--ag-morph), right var(--ag-morph), bottom var(--ag-morph);
+}
+/* Stack gap between the panel and the bar. */
+.builder-morphing .ag-surface { transition: row-gap var(--ag-morph); }
+
+/* The six agentPanel surfaces + the response window. `gap` covers the
+   suggestions container's own Gap prop; the four derived slots
+   (think/options/pill/botbar) are here because they read the same
+   --agent-panel-* box tokens. */
+.builder-morphing .ag-window,
+.builder-morphing .ag-suggestions,
+.builder-morphing .ag-think,
+.builder-morphing .ag-pill,
+.builder-morphing .ag-botbar {
+  transition:
+    padding var(--ag-morph), gap var(--ag-morph),
+    border-width var(--ag-morph), border-radius var(--ag-morph),
+    width var(--ag-morph);
+}
+
+/* Input bar — box + its input's text metrics (the typography source the
+   thinking / options / botbar parts derive from, so they follow for free
+   through their own font-size transitions below). */
+.builder-morphing .ag-bar {
+  transition:
+    padding var(--ag-morph), border-width var(--ag-morph),
+    border-radius var(--ag-morph), width var(--ag-morph);
+}
+.builder-morphing .ag-bar-input,
+.builder-morphing .ag-win-title,
+.builder-morphing .ag-md,
+.builder-morphing .ag-md *,
+.builder-morphing .ag-think-echo,
+.builder-morphing .ag-think-steptext,
+.builder-morphing .ag-pill-title,
+.builder-morphing .ag-pill-sub {
+  transition:
+    font-size var(--ag-morph), line-height var(--ag-morph),
+    letter-spacing var(--ag-morph);
+}
+/* AI avatar — one Size prop driving both axes. */
+.builder-morphing .ag-bar-av {
+  transition: width var(--ag-morph), height var(--ag-morph);
+}
+
+/* ── Restated: these four already own a transition ──────────────────── */
+/* Send button (opacity + transform are the idle dim and the press pop). */
+.builder-morphing .ag-bar-btn {
+  transition:
+    opacity .2s, transform .14s,
+    padding var(--ag-morph), border-radius var(--ag-morph),
+    font-size var(--ag-morph), line-height var(--ag-morph),
+    letter-spacing var(--ag-morph);
+}
+/* Suggestion row (hover fill). The chips variant restates its own
+   ease-out at (0,4,0) so it still beats the base rule. `.ag-sugg-main` is
+   the row's inner flex line and owns the item Gap prop. */
+.builder-morphing .ag-sugg {
+  transition:
+    background .14s,
+    padding var(--ag-morph), border-width var(--ag-morph),
+    border-radius var(--ag-morph),
+    font-size var(--ag-morph), line-height var(--ag-morph),
+    letter-spacing var(--ag-morph);
+}
+.builder-morphing .ag-suggestions.is-chips .ag-sugg {
+  transition:
+    background .14s ease-out,
+    padding var(--ag-morph), border-width var(--ag-morph),
+    border-radius var(--ag-morph),
+    font-size var(--ag-morph), line-height var(--ag-morph),
+    letter-spacing var(--ag-morph);
+}
+.builder-morphing .ag-sugg-main { transition: gap var(--ag-morph); }
+/* Both response CTAs. Declared on the shared `.ag-cta` because neither
+   variant class carries a transition of its own — the per-VARIANT rule
+   that matters is the token read, not this. */
+.builder-morphing .ag-cta {
+  transition:
+    filter .14s,
+    padding var(--ag-morph), border-width var(--ag-morph),
+    border-radius var(--ag-morph),
+    font-size var(--ag-morph), line-height var(--ag-morph),
+    letter-spacing var(--ag-morph);
+}
+/* Asking's Submit / Skip. They JOINED this block when they started reading
+   --agent-response-cta-* / -ctasec-* instead of the theme-level --ag-cta-*
+   aliases and a static padding: those two chains are exactly what the CTA nodes
+   edit live, so without this the response CTA would glide while its twin down
+   here jumped. Restated, not added to `.ag-cta`'s rule — `filter .14s` is their
+   own and the shorthand is all-or-nothing, so omitting it would kill the hover
+   dim for the length of every edit. `transform` stays out: it is the press pop,
+   and morphing it would make a click read as a resize. */
+.builder-morphing .ag-submit,
+.builder-morphing .ag-skip {
+  transition:
+    filter .14s,
+    padding var(--ag-morph), border-width var(--ag-morph),
+    border-radius var(--ag-morph),
+    font-size var(--ag-morph), line-height var(--ag-morph),
+    letter-spacing var(--ag-morph);
+}
+/* Question option row (hover fill) — derived, follows the input font. */
+.builder-morphing .ag-opt {
+  transition:
+    background .12s,
+    font-size var(--ag-morph), line-height var(--ag-morph),
+    letter-spacing var(--ag-morph);
+}
+
+/* Reduced motion: collapse everything to near-instant (JS early-outs too) */
+@media (prefers-reduced-motion: reduce) {
+  .ag-suggestions, .ag-think, .ag-window, .ag-pill, .ag-botbar, .ag-bar,
+  .ag-stagger, .ag-stagger-fall, .ag-stagger-pop, .host-enter, .ag-md > *, .ag-think-steptext {
+    animation-duration: .01s !important; animation-delay: 0s !important;
+  }
+  .ag-animborder::before, .ag-pill-spin svg { animation: none !important; }
+  #agent, .agent, .wk-cursor, .dock-rail, .ag-ghost, .ag-win-head > *, .ag-feedback > *,
+  .host-deal, .host-title, .host-colhead, .host-head-actions {
+    transition-duration: .01s !important; transition-delay: 0s !important;
+  }
+  .ag-sugg-skel .ag-skel-icon, .ag-sugg-skel .ag-skel-bar { animation-duration: .01s !important; }
+}
+
+/* ==========================================================
+   Runtime-gaps additions (PRD: Interface Knowledge / Agent Trigger)
+   Grounded-suggestion skeletons, run log (intent groups),
+   guide-correction warning tint. The two --ink-* text vars these were written
+   against map to the --agent-text-* tokens.
+   ========================================================== */
+.ag-sugg-skel { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 14px; }
+/* renderSuggSkeleton() writes these rows into .ag-suggestions, so in CHIPS —
+   the default — they inherit a container that paints nothing and would load
+   as bare bars floating over the host page. Same pill treatment the real rows
+   get, reading the same fill/radius vars so the skeleton dissolves into the
+   chip it becomes. (.ag-sugg-empty no longer shares that pill — it took the
+   thinking panel's surface instead; the skeleton stands in for ROWS, so it
+   stays a chip.) Padding stays its own (the 26px skeleton
+   icon is taller than a chip's 18px one).
+   The three EXPLICIT widths are load-bearing, not decoration: renderSuggSkeleton
+   emits exactly 3 rows whose .ag-skel-bar carries an INLINE percentage width
+   (48/63/78%). In panel the container stretches its rows to --agent-width so
+   those resolve; in chips the container is align-items:flex-start, so an
+   auto/max-content row would size to its intrinsic content — and a percentage
+   width contributes ZERO to intrinsic sizing, collapsing every skeleton to just
+   its icon. A definite width gives the percentages something to resolve
+   against, and the ladder keeps the loading stack as ragged as real chips. */
+.ag-suggestions.is-chips .ag-sugg-skel {
+  border-radius: var(--agent-sugg-radius, 999px);
+  background:    var(--agent-sugg-bg, var(--agent-surface));
+  box-shadow:    var(--agent-shadow-pill);
+}
+.ag-suggestions.is-chips .ag-sugg-skel:nth-child(1) { width: 190px; }
+.ag-suggestions.is-chips .ag-sugg-skel:nth-child(2) { width: 230px; }
+.ag-suggestions.is-chips .ag-sugg-skel:nth-child(3) { width: 270px; }
+.ag-skel-icon { width: 26px; height: 26px; border-radius: 8px; flex: none; background: linear-gradient(90deg, #07133110 25%, #0713311f 50%, #07133110 75%); background-size: 200% 100%; animation: skel-sweep 1.1s linear infinite; }
+.ag-skel-bar { height: 12px; border-radius: 6px; background: linear-gradient(90deg, #07133110 25%, #0713311f 50%, #07133110 75%); background-size: 200% 100%; animation: skel-sweep 1.1s linear infinite; }
+@keyframes skel-sweep { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+
+.ag-pill { cursor: pointer; }
+.ag-pill.is-warn .ag-pill-title { color: #b45309; }
+.ag-pill.is-warn .ag-pill-icon { color: #b45309; }
+
+/* Run log — the pill's expanded face, so it wears the pill's surface, which is
+   the Response panel's. It had NO surface at all: no background, no border, no
+   radius, no shadow. Toggling it open printed bare grey text straight onto the
+   host page above the pill, which is as detached as a floating state can get.
+   Same chain as .ag-pill, so the two read as one object opening.
+   `padding` was 14px 18px 2px — a hand-tuned inset for text with nothing behind
+   it; a real surface takes the panel's own padding. `display` stays on the two
+   rules below (none / flex) — putting it in a surface rule would defeat the
+   collapsed state. overflow-y:auto stays local: .ag-runlog is deliberately NOT
+   in the `overflow: hidden` morph-slot list above, because it scrolls. */
+.ag-runlog {
+  display: none;
+  width: var(--agent-width, 495px); box-sizing: border-box;
+  background:    var(--agent-response-bg,           var(--agent-panel-bg,           var(--agent-surface)));
+  border-width:  var(--agent-response-border-width, var(--agent-panel-border-width, 1px));
+  border-style:  var(--agent-response-border-style, var(--agent-panel-border-style, solid));
+  border-color:  var(--agent-response-border-color, var(--agent-panel-border-color, rgba(255,255,255,.4)));
+  border-radius: var(--agent-response-radius,       var(--agent-panel-radius,       var(--agent-radius-panel)));
+  box-shadow:    var(--agent-response-shadow,       var(--agent-panel-shadow,       var(--agent-shadow-panel)));
+  padding:       var(--agent-response-pad,          var(--agent-panel-pad,          16px));
+}
+.ag-runlog.show { display: flex; flex-direction: column; gap: 7px; max-height: 180px; overflow-y: auto; scrollbar-width: thin; }
+/* Type derives from the Response BODY, the same source .ag-pill-sub reads —
+   these lines are the pill's detail text, just unrolled. Size via the part's
+   ratio (12px at the 16px default), weight a role constant, per the derivation
+   rule at the top of this file. */
+.ag-runlog-item {
+  display: flex; align-items: center; gap: 8px; text-align: left;
+  font-family: var(--agent-response-body-font-family, var(--agent-font-body));
+  font-weight: 500;                                                      /* role constant */
+  font-size: calc(var(--agent-response-body-font-size, 16px) * 0.75);    /* 12px at the 16px default */
+  line-height: 1.35;
+  letter-spacing: var(--agent-response-body-font-ls, var(--agent-font-body-ls, normal));
+  color: var(--agent-response-body-font-color, var(--agent-text-secondary));
+}
+.ag-runlog-item svg { width: 12px; height: 12px; color: #0a7d5a; flex: none; }
+.ag-runlog-item.is-empty { color: var(--agent-text-muted); }

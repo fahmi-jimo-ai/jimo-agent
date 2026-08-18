@@ -1,0 +1,239 @@
+/* ============================================================
+   Moji Design System — Tailwind v4 entry
+   Loads Tailwind's layers, then the Moji design tokens.
+   Components bind to Moji tokens via arbitrary values
+   (e.g. bg-[var(--color-neutral-800)], [font:var(--text-subtitle-3)]).
+   ============================================================ */
+
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Expose the Moji font families as Tailwind theme utilities (font-heading / font-body). */
+@theme {
+  --font-heading: "Montserrat", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+/* DropdownFilterNested — panel slide animations (referenced via arbitrary
+   [animation:...] utilities in DropdownFilterNested.tsx). Verbatim port of the
+   @keyframes from the component's original .css. */
+@keyframes panel-exit-forward {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(calc(var(--space-3) * -1)); }
+}
+@keyframes panel-enter-forward {
+  from { opacity: 0; transform: translateX(var(--space-3)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes panel-exit-back {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(var(--space-3)); }
+}
+@keyframes panel-enter-back {
+  from { opacity: 0; transform: translateX(calc(var(--space-3) * -1)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Toast — bottom-anchored slide + fade (applied via [animation:...] utilities in Toast.tsx).
+   Enter: subtle rise + fade-in (ease-out). Exit: settle back down + fade-out (ease-in).
+   Keyframes run reliably on mount / class-change, avoiding the two-paint transition gotcha. */
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateY(var(--space-4)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(var(--space-4)); }
+}
+
+/* ModalOverlay — backdrop fade + content scale (applied via [animation:...] utilities in
+   ModalOverlay.tsx, timed with the tokens.css transition tokens). Same keyframes approach as
+   Toast: runs on mount / class-change, so it never collapses to a single frame the way an
+   rAF-triggered transition can. */
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modal-backdrop-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes modal-content-in {
+  from { transform: scale(0.9); }
+  to   { transform: scale(1); }
+}
+@keyframes modal-content-out {
+  from { transform: scale(1); }
+  to   { transform: scale(0.9); }
+}
+
+/* ============================================================
+   NumberField — range slider (data-slot="number-field-slider")
+
+   WHY THIS IS CSS AND NOT TAILWIND CLASSES ON THE ELEMENT:
+   the entire look of a range input lives in vendor pseudo-elements
+   (::-webkit-slider-runnable-track / ::-webkit-slider-thumb /
+   ::-moz-range-track / ::-moz-range-thumb), and Tailwind v4 arbitrary
+   variants cannot target them — there is no `[&::-webkit-slider-thumb]:`
+   that compiles. So NumberField.tsx keeps only layout (`flex-1 min-w-0`)
+   plus the disabled affordance, and hands the fill fraction down as an
+   inline `--fill` custom property; everything else is here.
+
+   WHY BESPOKE AT ALL: Moji has NO Slider component — there is nothing in
+   `src/components/ui/` to compose this from. Per the design-system rule,
+   bespoke is a last resort and must be driven ENTIRELY by Moji tokens, so
+   every value below is a `var(--…)`. Spec sampled pixel-by-pixel from the
+   Figma render (file 1whWKA86mBl9qs3TSVFZUM, node 9036:6685): #1260EB
+   filled / #E5E5E5 unfilled track, which ARE --color-brand-default and
+   --color-border-default (confirmed against tokens.css) — use the tokens,
+   never the literals.
+
+   THE FOOTGUN, stated once for everyone who edits this block: WebKit and
+   Firefox pseudo-element selectors CANNOT BE COMMA-COMBINED. A browser
+   that does not understand one selector in a group drops the WHOLE rule,
+   so `::-webkit-slider-thumb, ::-moz-range-thumb { … }` styles the thumb
+   in NEITHER engine. Every pseudo-element below therefore gets its own
+   rule — including each state combo (`:hover::-webkit-slider-thumb` and
+   `:hover::-moz-range-thumb` are two rules, not one). Duplication here is
+   correct; do not "de-dupe" it.
+
+   This block is UNLAYERED, so it outranks Tailwind's layered utilities at
+   equal specificity — which is deliberate for `:disabled` (0,2,0 beats the
+   base rule's 0,1,0) and for the hover/active/focus thumb rules.
+   ============================================================ */
+
+/* The element itself: strip the native control, then give it exactly the
+   16px height the thumb needs (the 2px track is drawn on the pseudo-element,
+   centred inside this box). */
+[data-slot="number-field-slider"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  height: 16px;
+  width: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* The ring is painted on the THUMB (below), so the element's own focus
+   outline would be a second, box-shaped ring around the whole track. */
+[data-slot="number-field-slider"]:focus {
+  outline: none;
+}
+/* Firefox draws a dotted inner focus border on the button box — kill it. */
+[data-slot="number-field-slider"]::-moz-focus-outer {
+  border: 0;
+}
+
+/* Track — one gradient draws BOTH halves, with `--fill` (an inline custom
+   property written by NumberField.tsx) as the hard colour stop. That is why
+   Firefox styles ::-moz-range-track and NOT ::-moz-range-progress: the
+   progress pseudo-element would paint the filled half a second time over
+   the gradient's own filled half. */
+[data-slot="number-field-slider"]::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    to right,
+    var(--color-brand-default) 0 var(--fill, 0%),
+    var(--color-border-default) var(--fill, 0%) 100%
+  );
+}
+[data-slot="number-field-slider"]::-moz-range-track {
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    to right,
+    var(--color-brand-default) 0 var(--fill, 0%),
+    var(--color-border-default) var(--fill, 0%) 100%
+  );
+}
+
+/* Thumb — 16px token-surface disc. WebKit needs its own appearance reset AND
+   a negative margin-top to centre it on the track: WebKit positions the thumb
+   against the TRACK's top edge, so the offset is (2 - 16) / 2 = -7px. Firefox
+   centres the thumb on the track by itself, so it gets no margin — and it DOES
+   need an explicit `border`, because ::-moz-range-thumb ships with a default
+   one that survives `appearance: none` on the element. */
+[data-slot="number-field-slider"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-default);
+  border: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-elevation-01);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+[data-slot="number-field-slider"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-default);
+  border: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-elevation-01);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* Hover — same escalation the field itself uses (default → strong border). */
+[data-slot="number-field-slider"]:hover::-webkit-slider-thumb {
+  border-color: var(--color-border-strong);
+}
+[data-slot="number-field-slider"]:hover::-moz-range-thumb {
+  border-color: var(--color-border-strong);
+}
+
+/* Active (dragging) — brand border, so the thumb reads as "grabbed". */
+[data-slot="number-field-slider"]:active::-webkit-slider-thumb {
+  border-color: var(--color-brand-default);
+}
+[data-slot="number-field-slider"]:active::-moz-range-thumb {
+  border-color: var(--color-brand-default);
+}
+
+/* Keyboard focus — the elevation shadow PLUS the exact focus ring the
+   NumberField's own `focus` cva state uses (a 3px 15% brand `color-mix`),
+   so a tabbed slider and a tabbed field look like the same control. Appended
+   to the elevation rather than replacing it, or the thumb would flatten on
+   focus. */
+[data-slot="number-field-slider"]:focus-visible::-webkit-slider-thumb {
+  border-color: var(--color-brand-default);
+  box-shadow: var(--shadow-elevation-01),
+    0 0 0 3px color-mix(in srgb, var(--color-brand-default) 15%, transparent);
+}
+[data-slot="number-field-slider"]:focus-visible::-moz-range-thumb {
+  border-color: var(--color-brand-default);
+  box-shadow: var(--shadow-elevation-01),
+    0 0 0 3px color-mix(in srgb, var(--color-brand-default) 15%, transparent);
+}
+
+/* Disabled. This rule is why the state is correct at all: the element's base
+   `cursor: pointer` above is unlayered and would otherwise beat Tailwind's
+   layered `.cursor-not-allowed` on the element. Specificity 0,2,0 wins here. */
+[data-slot="number-field-slider"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* agent-escalation — suggestion skeleton (Figma 29:18613). */
+@keyframes skel-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* agent-escalation — the pills arriving once generating finishes. Staggered by
+   an inline animation-delay per pill, so they land as a wave rather than a
+   single block swap. `both` holds the 0% frame through that delay. */
+@keyframes suggest-appear {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="suggestion-appear"] {
+    animation: none !important;
+  }
+}

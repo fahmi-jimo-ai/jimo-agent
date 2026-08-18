@@ -1,0 +1,79 @@
+/* The mock host page and the mock vendor panel that the hand-off opens.
+   Bound to Moji tokens; the widget's own surfaces come from widget.css. */
+
+.wp {
+  position: relative;
+  min-height: 100vh;
+  background: var(--color-blue-50);
+  overflow: hidden;
+}
+
+/* A faint suggestion of the customer's own app behind the widget. */
+.wp-host { padding: var(--space-10) var(--space-12); max-width: 900px; }
+.wp-host h1 { font: var(--text-heading-4); color: var(--color-text-primary); margin: 0 0 var(--space-2); }
+.wp-host p  { font: var(--text-body-3); color: var(--color-text-secondary); margin: 0 0 var(--space-6); max-width: 60ch; }
+.wp-rows { display: flex; flex-direction: column; gap: var(--space-3); }
+.wp-row {
+  height: 56px; border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-default); background: var(--color-neutral-white);
+  box-shadow: var(--shadow-elevation-01);
+}
+.wp-hint {
+  margin-top: var(--space-8); font: var(--text-body-4); color: var(--color-text-tertiary);
+}
+.wp-hint code {
+  background: var(--color-neutral-100); border-radius: var(--radius-sm); padding: 1px 5px;
+}
+
+/* The widget sits bottom-centre, exactly as the builder's defaults describe. */
+.wp-agent { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 10; }
+.wp-agent .agent { width: 495px; }
+
+/* ── the mock vendor chat ─────────────────────────────────────────────── */
+.vp {
+  position: fixed; right: 24px; bottom: 24px; z-index: 20;
+  display: flex; flex-direction: column;
+  width: 380px; max-height: min(620px, calc(100vh - 48px));
+  border-radius: var(--radius-xl); overflow: hidden;
+  background: var(--color-neutral-white);
+  box-shadow: var(--shadow-elevation-04);
+  animation: vp-in 340ms cubic-bezier(.32, .72, 0, 1) both;
+}
+@keyframes vp-in {
+  from { opacity: 0; transform: translateY(16px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.vp-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4); color: #fff; }
+.vp-head-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.vp-head-text strong { font: var(--text-subtitle-4); }
+.vp-head-text span   { font: var(--text-body-4); opacity: .75; }
+.vp-close {
+  border: 0; background: transparent; color: #fff; cursor: pointer;
+  font-size: 22px; line-height: 1; padding: 0 var(--space-1);
+}
+
+.vp-body { flex: 1; overflow-y: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.vp-sys { margin: 0; text-align: center; font: var(--text-body-5); color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .06em; }
+.vp-msg { display: flex; flex-direction: column; gap: 4px; max-width: 90%; }
+.vp-msg p { margin: 0; padding: var(--space-3); font: var(--text-body-3); border-radius: var(--radius-lg); }
+.vp-meta { font: var(--text-body-5); color: var(--color-text-tertiary); }
+
+.vp-msg--user { align-self: flex-end; align-items: flex-end; }
+.vp-msg--user p { background: var(--color-blue-400); color: var(--color-text-inverse); border-bottom-right-radius: var(--radius-sm); }
+.vp-msg--agent { align-self: flex-start; }
+.vp-msg--agent p { background: var(--color-neutral-100); color: var(--color-text-primary); border-bottom-left-radius: var(--radius-sm); }
+
+.vp-note { border-top: 1px solid var(--color-border-default); background: var(--color-orange-100); }
+.vp-note-toggle {
+  display: flex; align-items: center; gap: var(--space-2); width: 100%;
+  border: 0; background: transparent; cursor: pointer; padding: var(--space-3) var(--space-4);
+  font: var(--text-body-4); color: var(--color-warning-default); text-align: left;
+}
+.vp-note-dot { width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--color-orange-400); flex: none; }
+.vp-note-body { padding: 0 var(--space-4) var(--space-4); }
+.vp-note-warn { margin: 0 0 var(--space-3); font: var(--text-body-5); color: var(--color-warning-default); }
+.vp-note-body dl { margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.vp-note-body dl > div { display: flex; gap: var(--space-2); }
+.vp-note-body dt { width: 76px; flex: none; font: var(--text-body-5); color: var(--color-text-tertiary); }
+.vp-note-body dd { margin: 0; font: var(--text-body-5); color: var(--color-text-secondary); }

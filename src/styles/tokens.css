@@ -1,0 +1,203 @@
+/* ============================================================
+   Moji Design System — Design Tokens
+   Auto-generated from Figma (file: 66ejN3hqSMkUXIPgmkebFH)
+   Source nodes: Typography 2906-4970 | Colors 2902-4465
+   ============================================================ */
+
+:root {
+  /* ----------------------------------------------------------
+     TYPOGRAPHY — Composite Font Styles
+     Each token stores the full CSS font shorthand:
+       font-weight size/line-height font-family
+     Usage: font: var(--text-heading-1);
+     Headings also need: letter-spacing: var(--text-heading-tracking);
+  ---------------------------------------------------------- */
+
+  /* Font families (standalone reference) */
+  --font-family-heading: 'Montserrat', sans-serif;
+  --font-family-body: 'Inter', sans-serif;
+
+  /* ── Heading styles — Montserrat Bold 700, line-height 1.2, letter-spacing −0.5px ── */
+  --text-heading-tracking: -0.5px;
+  --text-heading-1: 700 48px/1.2 'Montserrat', sans-serif;
+  --text-heading-2: 700 40px/1.2 'Montserrat', sans-serif;
+  --text-heading-3: 700 32px/1.2 'Montserrat', sans-serif;
+  --text-heading-4: 700 24px/1.2 'Montserrat', sans-serif;
+  --text-heading-5: 700 20px/1.2 'Montserrat', sans-serif;
+
+  /* ── Subtitle styles — Montserrat SemiBold 600, line-height 1.25 ── */
+  --text-subtitle-1: 600 24px/1.25 'Montserrat', sans-serif;
+  --text-subtitle-2: 600 20px/1.25 'Montserrat', sans-serif;
+  --text-subtitle-3: 600 16px/1.25 'Montserrat', sans-serif;
+  --text-subtitle-4: 600 14px/1.25 'Montserrat', sans-serif;
+
+  /* ── Body styles — Inter Medium 500, line-height 1.5 ── */
+  --text-body-1: 500 20px/1.5 'Inter', sans-serif;
+  --text-body-2: 500 16px/1.5 'Inter', sans-serif;
+  --text-body-3: 500 14px/1.5 'Inter', sans-serif;
+  --text-body-4: 500 12px/1.5 'Inter', sans-serif;
+  --text-body-5: 500 10px/1.5 'Inter', sans-serif;
+
+  /* ----------------------------------------------------------
+     COLORS — Neutral
+  ---------------------------------------------------------- */
+  --color-neutral-white: #ffffff;
+  --color-neutral-50: #fbfbfb;
+  --color-neutral-100: #f0f2f4;
+  --color-neutral-200: #ececec;
+  --color-neutral-300: #e5e5e5;
+  --color-neutral-400: #cccccc;
+  --color-neutral-500: #9ca1ad;
+  --color-neutral-600: #7c8a99;
+  --color-neutral-700: #4d637b;
+  --color-neutral-800: #071331;
+
+  /* ----------------------------------------------------------
+     COLORS — Blue
+  ---------------------------------------------------------- */
+  --color-blue-50: #F7F9FE;
+  --color-blue-100: #f3f7fe;
+  --color-blue-150: #ddeeff;
+  --color-blue-200: #bcddff;
+  --color-blue-300: #85b1ff;
+  --color-blue-400: #1260eb;
+  --color-blue-500: #012abb;
+
+  /* ----------------------------------------------------------
+     COLORS — Green
+  ---------------------------------------------------------- */
+  --color-green-100: #e6fde8;
+  --color-green-200: #c4e9bf;
+  --color-green-300: #98d28f;
+  --color-green-400: #159201;
+  --color-green-500: #167322;
+
+  /* ----------------------------------------------------------
+     COLORS — Orange
+  ---------------------------------------------------------- */
+  --color-orange-100: #fff9f3;
+  --color-orange-200: #fdf2e6;
+  --color-orange-300: #fce4c8;
+  --color-orange-400: #ffb968;
+  --color-orange-500: #e07900;
+
+  /* ----------------------------------------------------------
+     COLORS — Yellow
+  ---------------------------------------------------------- */
+  --color-yellow-100: #fffcf5;
+  --color-yellow-200: #fdf8c9;
+  --color-yellow-300: #ffe7a4;
+  --color-yellow-400: #f9d777;
+  --color-yellow-500: #ffc319;
+
+  /* ----------------------------------------------------------
+     COLORS — Purple
+  ---------------------------------------------------------- */
+  --color-purple-100: #f5f2fe;
+  --color-purple-200: #ece6fd;
+  --color-purple-300: #ceb1e5;
+  --color-purple-400: #bb68ff;
+  --color-purple-500: #590e95;
+
+  /* ----------------------------------------------------------
+     COLORS — Red
+  ---------------------------------------------------------- */
+  --color-red-100: #fcf5f7;
+  --color-red-200: #ffd7d7;
+  --color-red-300: #fa7575;
+  --color-red-400: #ff4646;
+  --color-red-500: #b90808;
+
+  /* ----------------------------------------------------------
+     SEMANTIC ALIASES
+  ---------------------------------------------------------- */
+
+  /* Text */
+  --color-text-primary: var(--color-neutral-800);
+  --color-text-secondary: var(--color-neutral-700);
+  --color-text-tertiary: var(--color-neutral-500);
+  --color-text-disabled: var(--color-neutral-400);
+  --color-text-inverse: var(--color-neutral-white);
+
+  /* Backgrounds */
+  --color-bg-default: var(--color-neutral-white);
+  --color-bg-subtle: var(--color-neutral-50);
+  --color-bg-muted: var(--color-neutral-100);
+  --color-bg-emphasis: var(--color-neutral-200);
+
+  /* Borders */
+  --color-border-default: var(--color-neutral-300);
+  --color-border-strong: var(--color-neutral-400);
+  --color-border-focus: var(--color-blue-400);
+
+  /* Brand (primary action) */
+  --color-brand-default: var(--color-blue-400);
+  --color-brand-hover: var(--color-blue-500);
+  --color-brand-subtle: var(--color-blue-100);
+  --color-brand-light: var(--color-blue-200);
+
+  /* Status */
+  --color-success-default: var(--color-green-400);
+  --color-success-subtle: var(--color-green-100);
+  --color-warning-default: var(--color-orange-500);
+  --color-warning-subtle: var(--color-orange-100);
+  --color-danger-default: var(--color-red-400);
+  --color-danger-subtle: var(--color-red-100);
+
+  /* ----------------------------------------------------------
+     SPACING
+  ---------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-11: 44px;
+  --space-12: 48px;
+
+  /* ----------------------------------------------------------
+     SIZING
+  ---------------------------------------------------------- */
+  --size-tooltip-max-width: 240px;
+
+  /* ----------------------------------------------------------
+     BORDER RADIUS
+  ---------------------------------------------------------- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-xxl: 20px;
+  --radius-full: 9999px;
+
+  /* ----------------------------------------------------------
+     SHADOWS
+  ---------------------------------------------------------- */
+  --shadow-elevation-01: 0px 2px 2px rgba(0, 0, 0, 0.04);
+  --shadow-elevation-02: 0px 5px 15px rgba(0, 0, 0, 0.07);
+  --shadow-elevation-03: 0px 5px 28px rgba(0, 0, 0, 0.09);
+  --shadow-elevation-04: 0px 12px 38px rgba(0, 0, 0, 0.15);
+  --shadow-elevation-05: 0px 0px 47px 0px rgba(0, 0, 0, 0.04);
+
+  /* ----------------------------------------------------------
+     TRANSITIONS
+  ---------------------------------------------------------- */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+  --transition-tooltip: 200ms ease-out;
+
+  /* ----------------------------------------------------------
+     Z-INDEX
+  ---------------------------------------------------------- */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+}
