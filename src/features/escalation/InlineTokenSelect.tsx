@@ -32,23 +32,34 @@ export function InlineTokenSelect<T extends string | number>({
 }) {
   const [open, setOpen] = React.useState(false);
 
+  // An off trigger's option is frozen: turning the card back on is the only
+  // way in, so the menu must never be reachable — and must fold away if the
+  // checkbox is unticked while it happens to be open.
+  React.useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
   return (
     <Menu
-      open={open}
+      open={open && !disabled}
       onClose={() => setOpen(false)}
       align={align}
       trigger={
         <button
           type="button"
           aria-haspopup="listbox"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open && !disabled}
+          disabled={disabled}
+          onClick={() => {
+            if (disabled) return;
+            setOpen((o) => !o);
+          }}
           className={cn(
-            'cursor-pointer rounded-[var(--radius-md)] border px-[var(--space-2)] py-px',
+            'rounded-[var(--radius-md)] border px-[var(--space-2)] py-px',
             '[font:var(--text-subtitle-3)] [transition:border-color_var(--transition-fast),background-color_var(--transition-fast)]',
             disabled
-              ? 'border-[var(--color-border-default)] bg-[var(--color-bg-muted)] text-[var(--color-text-tertiary)]'
-              : 'border-[var(--color-blue-200)] bg-[var(--color-blue-100)] text-[var(--color-blue-400)] hover:border-[var(--color-blue-400)]'
+              ? 'cursor-default border-[var(--color-border-default)] bg-[var(--color-bg-muted)] text-[var(--color-text-tertiary)]'
+              : 'cursor-pointer border-[var(--color-blue-200)] bg-[var(--color-blue-100)] text-[var(--color-blue-400)] hover:border-[var(--color-blue-400)]'
           )}
         >
           {label}
