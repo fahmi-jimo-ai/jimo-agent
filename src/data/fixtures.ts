@@ -111,10 +111,10 @@ export const MATCHERS = {
     "didn't work", 'did not work', "doesn't work", 'still broken', 'still failing',
     'not working', 'no it', 'wrong', 'nope', 'that is not', "that's not", 'already tried',
   ],
-  /** Tiered: `subtle` fires on any tier, `slight` on 2+, `furious` on tier 3 only. */
+  /** Tiered: `mild` fires on any tier, `clear` on 2+, `strong` on tier 3 only. */
   frustration: {
-    subtle:  ['hmm', 'not quite', 'confusing', 'unclear', 'again?'],
-    slight:  ['frustrating', 'annoying', 'waste of time', 'going in circles', 'seriously'],
-    furious: ['useless', 'terrible', 'ridiculous', 'awful', 'fed up', 'unacceptable'],
+    mild:   ['hmm', 'not quite', 'confusing', 'unclear', 'again?'],
+    clear:  ['frustrating', 'annoying', 'waste of time', 'going in circles', 'seriously'],
+    strong: ['useless', 'terrible', 'ridiculous', 'awful', 'fed up', 'unacceptable'],
   },
 } as const;

@@ -2,7 +2,7 @@ import type { TopicCategory } from '@/lib/classifyChip';
 
 export type Vendor = 'intercom' | 'zendesk' | 'crisp' | 'email';
 export type FailedCount = 1 | 2 | 3;
-export type FrustrationLevel = 'subtle' | 'slight' | 'furious';
+export type FrustrationLevel = 'mild' | 'clear' | 'strong';
 export type Range = 'this-month' | 'last-30-days' | 'last-7-days';
 
 export interface Topic {
@@ -55,7 +55,7 @@ export const VENDOR_LABEL: Record<Vendor, string> = {
 export const DEFAULT_TRIGGERS: Triggers = {
   explicit: { on: true },
   failedAnswers: { on: true, count: 2 },
-  frustration: { on: true, level: 'slight' },
+  frustration: { on: true, level: 'clear' },
 };
 
 export const INITIAL_STATE: EscalationState = {

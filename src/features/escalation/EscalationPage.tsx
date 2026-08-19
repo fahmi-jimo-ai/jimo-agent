@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Setting2 } from 'iconsax-react';
+import { Setting2, Export } from 'iconsax-react';
 import { Subpage } from '@/components/ui/Subpage/Subpage';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { PrimaryNavSidebar } from '@/components/ui/PrimaryNavSidebar/PrimaryNavSidebar';
@@ -9,14 +9,14 @@ import { EscalationHero } from './EscalationHero';
 import { OAuthPlaceholder } from './OAuthPlaceholder';
 import { SupportEmailModal } from './SupportEmailModal';
 import { ConfigureModal } from './ConfigureModal';
-import { TestEscalationModal } from './TestEscalationModal';
 import { HandoffsChart } from './HandoffsChart';
 import { TriggersSection } from './TriggersSection';
 import { TopicsSection } from './TopicsSection';
 import { VendorMark } from './VendorMark';
 import { useToast } from './toast';
+import { openWidget } from './openWidget';
 import { useEscalation, setState } from '@/state/useEscalation';
-import type { Vendor } from '@/state/types';
+import { VENDOR_LABEL, type Vendor } from '@/state/types';
 
 /** How long the fake provider redirect is shown. */
 const OAUTH_MS = 1200;
@@ -28,7 +28,6 @@ export function EscalationPage() {
   const [emailFor, setEmailFor] = React.useState<Vendor | null>(null);
   const [oauthFor, setOauthFor] = React.useState<Vendor | null>(null);
   const [configuring, setConfiguring] = React.useState(false);
-  const [testing, setTesting] = React.useState(false);
 
   // No topbar until escalation actually exists. Figma 43:6580 (the empty state)
   // and 35:3906 (the OAuth beat) are both bare screens with centred content;
@@ -40,6 +39,27 @@ export function EscalationPage() {
   const enable = (v: Vendor, email?: string) => {
     setState({ enabled: true, vendor: v, supportEmail: email ?? null });
     toast({ type: 'positive', title: 'Escalation enabled successfully' });
+  };
+
+  // No confirmation step: the toolbar button IS the send. The toast carries the
+  // widget link, because watching it happen live is the point of a test.
+  const sendTest = () => {
+    const name = vendor ? VENDOR_LABEL[vendor] : 'your support tool';
+    toast({
+      type: 'positive',
+      title: `Test escalation sent to ${name}`,
+      body:
+        vendor === 'email'
+          ? 'Look for a new email carrying the brief and the transcript.'
+          : 'Look for a conversation tagged “test” — the private note is attached, invisible to the user.',
+      secondaryAction: (
+        <span className="inline-flex items-center gap-[var(--space-2)]">
+          <Export size={16} variant="Linear" color="currentColor" />
+          Open widget
+        </span>
+      ),
+      onSecondaryAction: openWidget,
+    });
   };
 
   const pick = (v: Vendor) => {
@@ -73,7 +93,7 @@ export function EscalationPage() {
               {
                 label: 'Send a test escalation',
                 leftIcon: vendor ? <VendorMark vendor={vendor} size={20} /> : undefined,
-                onClick: () => setTesting(true),
+                onClick: sendTest,
               },
               {
                 label: 'Configure',
@@ -107,7 +127,6 @@ export function EscalationPage() {
         />
       )}
       {configuring && <ConfigureModal onClose={() => setConfiguring(false)} />}
-      {testing && <TestEscalationModal onClose={() => setTesting(false)} />}
     </Subpage>
   );
 }

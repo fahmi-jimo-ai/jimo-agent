@@ -34,9 +34,6 @@ export const NotEnabled = page(SEEDS.notEnabled, '43-6580');
 export const EnabledEmpty = page(SEEDS.enabledEmpty, '10-4841');
 export const WithData = page(SEEDS.withData, '29-7085');
 export const DirtyTriggers = page(SEEDS.dirtyTriggers, '29-17917');
-export const TopicsGenerating = page(SEEDS.generating, '29-18613');
-export const TopicsSuggested = page(SEEDS.suggestions, '29-19103');
-export const TopicsStaged = page(SEEDS.suggestionsStaged, '29-19716');
 export const TopicsAdded = page(SEEDS.topicsAdded, '34-3082');
 
 export const Playground = {

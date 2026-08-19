@@ -16,17 +16,17 @@ const hit = (text: string, phrases: readonly string[]) => {
 };
 
 /**
- * Which frustration phrases count at a given sensitivity. `subtle` is the most
- * eager setting, so it accepts every tier; `furious` accepts only the loudest.
+ * Which frustration phrases count at a given sensitivity. `mild` is the most
+ * eager setting, so it accepts every tier; `strong` accepts only the loudest.
  */
 function frustrationHit(text: string, level: FrustrationLevel) {
   const f = MATCHERS.frustration;
   const pools =
-    level === 'subtle'
-      ? [f.subtle, f.slight, f.furious]
-      : level === 'slight'
-        ? [f.slight, f.furious]
-        : [f.furious];
+    level === 'mild'
+      ? [f.mild, f.clear, f.strong]
+      : level === 'clear'
+        ? [f.clear, f.strong]
+        : [f.strong];
   return pools.some((p) => hit(text, p));
 }
 

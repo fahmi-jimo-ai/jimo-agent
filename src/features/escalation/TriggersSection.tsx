@@ -16,15 +16,16 @@ const COUNT_OPTIONS: TokenOption<FailedCount>[] = [
 /** The pill wears a compact form of the option; the menu wears the full one. */
 const COUNT_TOKEN: Record<FailedCount, string> = { 1: 'once', 2: 'twice', 3: 'three times' };
 
+/** Ordered mildest -> loudest; the menu shows them in exactly this order. */
 const LEVEL_OPTIONS: TokenOption<FrustrationLevel>[] = [
-  { value: 'subtle', label: 'Subtle annoyance', severity: 1 },
-  { value: 'slight', label: 'Slight frustration', severity: 2 },
-  { value: 'furious', label: 'Furious', severity: 3 },
+  { value: 'mild', label: 'Mild frustration', severity: 1 },
+  { value: 'clear', label: 'Clear frustration', severity: 2 },
+  { value: 'strong', label: 'Strong frustration', severity: 3 },
 ];
 const LEVEL_TOKEN: Record<FrustrationLevel, string> = {
-  subtle: 'subtle annoyance',
-  slight: 'slight frustration',
-  furious: 'furious',
+  mild: 'mild frustration',
+  clear: 'clear frustration',
+  strong: 'strong frustration',
 };
 
 const sameTriggers = (a: Triggers, b: Triggers) => JSON.stringify(a) === JSON.stringify(b);
@@ -53,7 +54,7 @@ export function TriggersSection() {
       <div className="flex items-stretch gap-[var(--space-4)]">
         <TriggerCard
           tone="green"
-          icon={<Personalcard size={18} variant="Bold" color="currentColor" />}
+          icon={<Personalcard size={24} variant="Bold" color="currentColor" />}
           title="On explicit request"
           description="Escalate as soon as the user asks for a person, however they word it."
           checked={draftTriggers.explicit.on}
@@ -62,7 +63,7 @@ export function TriggersSection() {
 
         <TriggerCard
           tone="purple"
-          icon={<MessageRemove size={18} variant="Bold" color="currentColor" />}
+          icon={<MessageRemove size={24} variant="Bold" color="currentColor" />}
           title={
             <>
               <span>User says it didn&apos;t work</span>
@@ -84,10 +85,10 @@ export function TriggersSection() {
 
         <TriggerCard
           tone="red"
-          icon={<EmojiSad size={18} variant="Bold" color="currentColor" />}
+          icon={<EmojiSad size={24} variant="Bold" color="currentColor" />}
           title={
             <>
-              <span>User shows a</span>
+              <span>User shows</span>
               <InlineTokenSelect
                 value={draftTriggers.frustration.level}
                 options={LEVEL_OPTIONS}

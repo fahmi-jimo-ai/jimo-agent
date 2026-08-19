@@ -1,7 +1,6 @@
 import React from 'react';
 import { SupportEmailModal } from '../../src/features/escalation/SupportEmailModal';
 import { ConfigureModal } from '../../src/features/escalation/ConfigureModal';
-import { TestEscalationModal } from '../../src/features/escalation/TestEscalationModal';
 import { ToastProvider } from '../../src/features/escalation/toast';
 import { SEEDS } from '../../src/state/seed';
 
@@ -29,9 +28,6 @@ export const Configure = {
   render: host(<ConfigureModal onClose={noop} />),
   parameters: { design: { type: 'figma', url: FIGMA + '35-5642' } },
 };
-
-/** No Figma artboard — the agreed stand-in for "Send a test escalation". */
-export const TestEscalation = { render: host(<TestEscalationModal onClose={noop} />) };
 
 export const Playground = {
   render: host(<ConfigureModal onClose={noop} />),

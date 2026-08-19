@@ -4,18 +4,22 @@ import { Checkbox } from '@/components/ui/Checkbox/Checkbox';
 
 export type ChipTone = 'green' | 'purple' | 'red';
 
+/** Tinted chip: the tone's 100 as the fill, its 400 as the glyph. */
 const CHIP_ON: Record<ChipTone, string> = {
-  green: 'bg-[var(--color-green-400)]',
-  purple: 'bg-[var(--color-purple-500)]',
-  red: 'bg-[var(--color-red-400)]',
+  green: 'bg-[var(--color-green-100)] text-[var(--color-green-400)]',
+  purple: 'bg-[var(--color-purple-100)] text-[var(--color-purple-400)]',
+  red: 'bg-[var(--color-red-100)] text-[var(--color-red-400)]',
 };
+/** Off keeps the same recipe on the neutral ramp, one step darker on the glyph
+ *  so a 400 icon does not vanish into a 100 fill. */
+const CHIP_OFF = 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)]';
 
 /**
  * One escalation-trigger card. Figma 29:7085 (on) and 29:17917 (off).
  *
- * Off state, read off the artboard rather than assumed: the card loses its blue
- * border and picks up a subtle grey fill, and the icon chip goes neutral — but
- * the title and description keep their normal colour.
+ * The card surface is fixed: white fill, neutral-300 border, in both states.
+ * Only the icon chip and the checkbox carry the on/off difference — the title
+ * and description keep their normal colour either way.
  */
 export function TriggerCard({
   icon,
@@ -38,20 +42,17 @@ export function TriggerCard({
       data-slot="trigger-card"
       data-on={checked}
       className={cn(
-        'flex flex-1 flex-col gap-[var(--space-3)] rounded-[var(--radius-xl)] border p-[var(--space-4)]',
-        '[transition:background-color_var(--transition-base),border-color_var(--transition-base)]',
-        checked
-          ? 'border-[var(--color-blue-200)] bg-[var(--color-neutral-white)]'
-          : 'border-[var(--color-border-default)] bg-[var(--color-bg-subtle)]'
+        'flex flex-1 flex-col gap-[var(--space-3)] rounded-[var(--radius-xl)] p-[var(--space-4)]',
+        'border border-[var(--color-border-default)] bg-[var(--color-neutral-white)]'
       )}
     >
       <div className="flex items-start justify-between">
         <span
           aria-hidden="true"
           className={cn(
-            'flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-inverse)]',
-            '[transition:background-color_var(--transition-base)]',
-            checked ? CHIP_ON[tone] : 'bg-[var(--color-neutral-400)]'
+            'flex shrink-0 items-center justify-center rounded-[var(--radius-md)] p-[var(--space-2)]',
+            '[transition:background-color_var(--transition-base),color_var(--transition-base)]',
+            checked ? CHIP_ON[tone] : CHIP_OFF
           )}
         >
           {icon}

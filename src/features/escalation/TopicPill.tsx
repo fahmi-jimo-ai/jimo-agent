@@ -26,6 +26,7 @@ export function TopicPill({
   action,
   selected = false,
   onAction,
+  onEdit,
   className,
 }: {
   label: string;
@@ -35,6 +36,8 @@ export function TopicPill({
   /** Suggestion staged for adding — navy fill, and the + becomes a ×. */
   selected?: boolean;
   onAction?: () => void;
+  /** When set, the label area re-opens the pill for editing. */
+  onEdit?: () => void;
   className?: string;
 }) {
   const [hoverLabel, setHoverLabel] = React.useState(false);
@@ -69,7 +72,7 @@ export function TopicPill({
         data-category={category}
         data-selected={selected ? '' : undefined}
         className={cn(
-          'inline-flex items-center overflow-hidden rounded-[var(--radius-full)] border',
+          'inline-flex items-stretch overflow-hidden rounded-[var(--radius-full)] border',
           '[transition:background-color_var(--transition-fast),border-color_var(--transition-fast)]',
           selected
             ? 'border-[var(--color-neutral-800)] bg-[var(--color-neutral-800)]'
@@ -77,11 +80,28 @@ export function TopicPill({
         )}
       >
         <span
+          role={onEdit ? 'button' : undefined}
+          tabIndex={onEdit ? 0 : undefined}
+          // Swallow the browser's focus-on-mousedown: this span is about to be
+          // replaced by TopicInput, and a focus that lands here first bounces to
+          // <body> on unmount — a blur the fresh input would read as "commit".
+          onMouseDown={onEdit && ((e: React.MouseEvent) => e.preventDefault())}
+          onClick={onEdit}
+          onKeyDown={
+            onEdit &&
+            ((e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onEdit();
+              }
+            })
+          }
           onMouseEnter={() => setHoverLabel(true)}
           onMouseLeave={() => setHoverLabel(false)}
           className={cn(
             'flex items-center gap-[var(--space-2)] py-[var(--space-2)] pl-[var(--space-3)] pr-[var(--space-3)]',
             '[font:var(--text-body-3)] [transition:background-color_var(--transition-fast)]',
+            onEdit && 'cursor-text outline-none',
             selected
               ? 'text-[var(--color-text-inverse)]'
               : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)]'
@@ -102,7 +122,7 @@ export function TopicPill({
 
         <span
           aria-hidden="true"
-          className={cn('h-6 w-px shrink-0', selected ? 'bg-[var(--color-neutral-700)]' : 'bg-[var(--color-border-default)]')}
+          className={cn('w-px shrink-0 self-stretch', selected ? 'bg-[var(--color-neutral-700)]' : 'bg-[var(--color-border-default)]')}
         />
 
         <button
@@ -110,11 +130,12 @@ export function TopicPill({
           onClick={onAction}
           aria-label={`${trailing === 'add' ? 'Add' : 'Remove'} ${label}`}
           className={cn(
-            'flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent',
-            '[transition:background-color_var(--transition-fast)]',
+            'flex w-9 shrink-0 cursor-pointer items-center justify-center self-stretch border-0 bg-transparent',
+            '[transition:background-color_var(--transition-fast),color_var(--transition-fast)]',
             selected
               ? 'text-[var(--color-text-inverse)] hover:bg-[var(--color-neutral-700)]'
-              : 'text-[var(--color-blue-400)] hover:bg-[var(--color-bg-muted)]'
+              // Idle sits at N700; blue is reserved for the hover/active affordance.
+              : 'text-[var(--color-neutral-700)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-blue-400)]'
           )}
         >
           {trailing === 'add' ? (

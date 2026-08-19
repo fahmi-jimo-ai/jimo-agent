@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Calendar } from 'iconsax-react';
 import { Section } from '@/components/ui/Section/Section';
+import { DropdownSelector } from '@/components/ui/DropdownSelector/DropdownSelector';
 import { Menu, MenuItem } from './Menu';
 import { buildChartDays, REASON_SERIES, HANDOFF_TOTAL, type ReasonKey } from '@/data/fixtures';
 import { useEscalation, setState } from '@/state/useEscalation';
@@ -52,19 +53,14 @@ export function HandoffsChart() {
           onClose={() => setOpen(false)}
           align="right"
           trigger={
-            <button
-              type="button"
-              aria-haspopup="listbox"
-              aria-expanded={open}
+            <DropdownSelector
+              size="big"
+              text={RANGE_LABEL[range]}
+              isOpen={open}
+              withIcon
+              icon={<Calendar size={20} variant="Linear" color="currentColor" />}
               onClick={() => setOpen((o) => !o)}
-              className="flex cursor-pointer items-center gap-[var(--space-2)] rounded-[var(--radius-full)] border border-[var(--color-border-default)] bg-[var(--color-neutral-white)] px-[var(--space-4)] py-[var(--space-2)] [font:var(--text-subtitle-4)] text-[var(--color-text-primary)] shadow-[var(--shadow-elevation-01)] [transition:border-color_var(--transition-fast)] hover:border-[var(--color-neutral-400)]"
-            >
-              <Calendar size={18} variant="Linear" color="currentColor" />
-              {RANGE_LABEL[range]}
-              <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+            />
           }
         >
           {(Object.keys(RANGE_LABEL) as Range[]).map((r) => (

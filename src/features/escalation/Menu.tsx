@@ -53,7 +53,7 @@ export function Menu({
       {trigger}
       <div
         className={cn(
-          'absolute top-[calc(100%+4px)] z-[var(--z-dropdown)]',
+          'absolute top-[calc(100%+var(--space-1))] z-[var(--z-dropdown)]',
           align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left',
           '[transition:opacity_150ms_ease,scale_150ms_cubic-bezier(.16,1,.3,1)]',
           open ? 'scale-100 opacity-100' : 'pointer-events-none scale-[.85] opacity-0',
