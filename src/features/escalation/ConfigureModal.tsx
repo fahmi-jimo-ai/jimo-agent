@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Switch } from '@/components/ui/Toggle/switch';
 import { Badge } from '@/components/ui/Chip/badge';
+import { DropdownSelector } from '@/components/ui/DropdownSelector/DropdownSelector';
 import { ModalCard } from './ModalCard';
 import { Menu, MenuItem } from './Menu';
 import { VendorMark } from './VendorMark';
@@ -49,19 +50,23 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
             onClose={() => setOpen(false)}
             align="right"
             trigger={
-              <button
-                type="button"
-                aria-haspopup="listbox"
-                aria-expanded={open}
+              <DropdownSelector
+                size="big"
+                // Moji's own placeholder markup, with this page's copy: the component only
+                // applies its tertiary placeholder colour when `text` is empty, and an empty
+                // `text` would swap the wording to "Select…".
+                text={
+                  vendor ? (
+                    VENDOR_LABEL[vendor]
+                  ) : (
+                    <span className="text-[var(--color-text-tertiary)]">Select a tool</span>
+                  )
+                }
+                isOpen={open}
+                withIcon={!!vendor}
+                icon={vendor ? <VendorMark vendor={vendor} size={20} /> : undefined}
                 onClick={() => setOpen((o) => !o)}
-                className="flex cursor-pointer items-center gap-[var(--space-2)] rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-neutral-white)] px-[var(--space-3)] py-[var(--space-2)] [font:var(--text-body-3)] text-[var(--color-text-primary)] [transition:border-color_var(--transition-fast)] hover:border-[var(--color-neutral-400)]"
-              >
-                {vendor && <VendorMark vendor={vendor} size={18} />}
-                {vendor ? VENDOR_LABEL[vendor] : 'Select a tool'}
-                <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+              />
             }
           >
             {VENDORS.map((v) => (

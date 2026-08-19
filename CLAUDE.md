@@ -38,6 +38,33 @@ Storybook 10 + `@storybook/react-vite` · `radix-ui` **1.6 unified package** (no
 `iconsax-react@0.0.8` · cva + clsx + tailwind-merge. Node 22, npm. **No router** — the widget is a
 second Vite entry (`widget.html`).
 
+## Vendored Moji — use it 1:1, never re-draw it
+
+If Moji ships a component for the job, **import it and pass props**. Do not hand-roll a
+`<button>`/`<div>` that approximates its look, and do not restyle it into a different shape with
+`className` overrides. A near-copy always drifts: it silently loses the hover / open / active /
+disabled states, the icon sizing, the chevron rotation and the type ramp, and none of that shows
+up in typecheck or tests.
+
+```jsx
+<DropdownSelector size="big" text={label} isOpen={open} withIcon icon={<Calendar size={20} />} />  // ✅
+<button className="… rounded-[var(--radius-full)] [font:var(--text-subtitle-4)] …">{label}</button> // ❌
+```
+
+Before writing any trigger, pill, row, field or panel: grep `src/components/ui/` for it, and read
+the `.tsx` (not `{Name}.docs.js`). If the component is genuinely missing a capability, the fix is a
+**local wrapper around** the Moji component, or an additive fork — never a parallel implementation.
+Say so in a comment when you do.
+
+Two conversions already made this way, use them as the reference: `HandoffsChart` (date range) and
+`ConfigureModal` (support tool) both render `DropdownSelector` inside the local `Menu` floating
+layer. `Menu` + `MenuItem` are the one sanctioned local pieces here — upstream `DropdownFilter` was
+never vendored and `DropdownMenuList` has no trailing-check row.
+
+Known upstream bug, do not "fix" it locally: `DropdownSelector`'s chevron declares
+`[transition:transform_…]` but `rotate-180` compiles to the standalone `rotate:` property, so the
+flip snaps. That is what Storybook does too, so it stays — matching Moji beats a local improvement.
+
 ## Vendored Moji — do not edit `../../jimo-storybook`
 
 `src/components/ui/*`, `src/styles/*` and `src/lib/utils.ts` are copies. The upstream repo is
