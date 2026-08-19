@@ -80,22 +80,20 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
         }
       />
 
-      {/* Dev only — stripped from the production bundle by Vite's `import.meta.env.DEV`
-          constant folding, so this row cannot leak into a build. */}
-      {import.meta.env.DEV && (
-        <Row
-          title={
-            <span className="flex items-center gap-[var(--space-2)]">
-              Demo data
-              <Badge type="alert" variant="secondary" size="x-small">
-                Dev only
-              </Badge>
-            </span>
-          }
-          description="Fill the page with a workspace that has been running a while — handoffs chart and a full topic list. Turning it off restores your own setup."
-          control={<Switch checked={demo} onCheckedChange={(v) => setDemo(v === true)} />}
-        />
-      )}
+      {/* Ships in the production bundle too: this app is a prototype and the
+          deployed build is what gets demoed, so the row has to be there. */}
+      <Row
+        title={
+          <span className="flex items-center gap-[var(--space-2)]">
+            Demo data
+            <Badge type="alert" variant="secondary" size="x-small">
+              Demo
+            </Badge>
+          </span>
+        }
+        description="Fill the page with a workspace that has been running a while — handoffs chart and a full topic list. Turning it off restores your own setup."
+        control={<Switch checked={demo} onCheckedChange={(v) => setDemo(v === true)} />}
+      />
     </ModalCard>
   );
 }

@@ -91,11 +91,12 @@ background is Blue/50, the same colour Subpage paints, so the flat edges disappe
 hands the content column `min-h-screen justify-center py-0` so the hero is genuinely centred rather
 than pushed down by a min-height. The OAuth beat keeps the header.
 
-## Dev-only demo data
+## Demo data
 
-`src/state/demo.ts` + the third Configuration row, gated on `import.meta.env.DEV` (Vite folds the
-constant, so the row is absent from `npm run build` — verified by grepping `dist/`). Turning it on
-snapshots the real config to `jimo.escalation.demo-snapshot.v1` and restores it on the way out.
+`src/state/demo.ts` + the third Configuration row. It is **not** gated on `import.meta.env.DEV` —
+this repo is a prototype and the deployed Vercel build is what gets demoed, so the row has to
+survive `npm run build`. Turning it on snapshots the real config to
+`jimo.escalation.demo-snapshot.v1` and restores it on the way out.
 
 It deliberately does not use `seed()`: `seed()` calls `resetState()`, which would destroy the
 user's vendor and topics for good.

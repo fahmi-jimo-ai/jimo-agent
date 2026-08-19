@@ -38,9 +38,9 @@ export interface EscalationState {
   suggestions: Suggestions;
   range: Range;
   /**
-   * Dev-only "populated workspace" demo. Toggled from Configuration, which
-   * only renders the row under `import.meta.env.DEV`. See `src/state/demo.ts`
-   * — turning it off restores the snapshot taken when it was turned on.
+   * "Populated workspace" demo. Toggled from the third Configuration row, in
+   * dev and in the deployed build alike. See `src/state/demo.ts` — turning it
+   * off restores the snapshot taken when it was turned on.
    */
   demo: boolean;
 }

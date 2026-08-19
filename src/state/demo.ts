@@ -1,9 +1,10 @@
 /**
- * Dev-only demo state — a workspace that has been running for a while.
+ * Demo state — a workspace that has been running for a while.
  *
  * Exists so the populated page (chart + a full topic list) can be reached in
  * one click instead of by hand-adding a dozen topics. The Configuration row
- * that drives it is gated on `import.meta.env.DEV`, so it never ships.
+ * that drives it ships in the production bundle too — the deployed build is
+ * what gets demoed.
  *
  * Turning it ON snapshots the real config first; turning it OFF restores that
  * snapshot. It deliberately does NOT go through `seed()` — `seed()` calls
