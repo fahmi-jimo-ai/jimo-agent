@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Menu } from './Menu';
+import { Menu } from '@/components/app/Menu';
 import { SeverityIcon } from './SeverityIcon';
 
 export interface TokenOption<T extends string | number> {

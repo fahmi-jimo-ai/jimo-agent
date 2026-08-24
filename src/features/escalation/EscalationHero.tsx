@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/Button/Button';
-import { Menu, MenuItem } from './Menu';
+import { Menu, MenuItem } from '@/components/app/Menu';
 import { VendorMark } from './VendorMark';
 import { HeroArt } from './HeroArt';
 import type { Vendor } from '@/state/types';

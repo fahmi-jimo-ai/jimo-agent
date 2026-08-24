@@ -49,3 +49,14 @@ export const AGENT_NAV_SECTIONS: SidebarSection[] = [
     ],
   },
 ];
+
+/**
+ * Label → route, for the items that actually have a page. Kept as a plain map
+ * beside the sections rather than a `route` field on SidebarItem: that type is
+ * vendored from Moji, and the local SecondaryNavSidebar fork is meant to stay
+ * additive-and-minimal (the `sections` prop and the divider, nothing more).
+ */
+export const NAV_ROUTES: Record<string, string> = {
+  Escalation: '/',
+  Knowledge: '/knowledge',
+};

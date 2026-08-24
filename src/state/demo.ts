@@ -14,7 +14,10 @@ import { getState, setState } from './escalationStore';
 import { makeTopic } from '@/data/fixtures';
 import { DEFAULT_TRIGGERS, type EscalationState } from './types';
 
-const SNAPSHOT_KEY = 'jimo.escalation.demo-snapshot.v1';
+const SNAPSHOT_KEY = 'jimo.agent.escalation.demo-snapshot.v1';
+/* Pre-rename name — migrated on read so a demo left ON across the rename can
+   still be turned OFF back onto the user's real config. See escalationStore. */
+const LEGACY_SNAPSHOT_KEY = 'jimo.escalation.demo-snapshot.v1';
 
 /* Labels only — categories come from classifyChip so the pills stay consistent
    with the spec instead of being hand-assigned here. The mix is intentional:
@@ -86,9 +89,12 @@ export function setDemo(on: boolean) {
 
   let restored: Partial<EscalationState> | null = null;
   try {
-    const raw = window.localStorage.getItem(SNAPSHOT_KEY);
+    const raw =
+      window.localStorage.getItem(SNAPSHOT_KEY) ??
+      window.localStorage.getItem(LEGACY_SNAPSHOT_KEY);
     if (raw) restored = JSON.parse(raw) as Partial<EscalationState>;
     window.localStorage.removeItem(SNAPSHOT_KEY);
+    window.localStorage.removeItem(LEGACY_SNAPSHOT_KEY);
   } catch {
     /* unreadable snapshot — fall through to the empty state below */
   }

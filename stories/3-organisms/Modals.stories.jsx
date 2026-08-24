@@ -1,7 +1,7 @@
 import React from 'react';
 import { SupportEmailModal } from '../../src/features/escalation/SupportEmailModal';
 import { ConfigureModal } from '../../src/features/escalation/ConfigureModal';
-import { ToastProvider } from '../../src/features/escalation/toast';
+import { ToastProvider } from '../../src/components/app/toast';
 import { SEEDS } from '../../src/state/seed';
 
 const FIGMA = 'https://www.figma.com/design/5LL3WooWBeEfjNpUls93Zg/Escalation?node-id=';

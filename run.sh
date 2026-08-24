@@ -1,5 +1,5 @@
 #!/bin/bash
-# run — start agent-escalation.
+# run — start jimo-agent.
 #   ./run.sh            dashboard (Vite)      -> http://localhost:5174
 #   ./run.sh storybook  component library     -> http://localhost:6007
 # Idempotent: frees a stale port, installs deps if missing, then starts.
@@ -20,7 +20,7 @@ lsof -tiTCP:$PORT -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null || true
 
 [ -d node_modules ] || npm install
 
-echo "=> agent-escalation -> $URL"
+echo "=> jimo-agent -> $URL"
 [ "$MODE" = "dev" ] && echo "   widget preview  -> $URL/widget.html"
 ( sleep 3; command -v open >/dev/null && open "$URL" ) &
 exec "${CMD[@]}"

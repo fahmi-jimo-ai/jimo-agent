@@ -9,15 +9,30 @@
  */
 import { INITIAL_STATE, type EscalationState } from './types';
 
-const KEY = 'jimo.escalation.v1';
+const KEY = 'jimo.agent.escalation.v1';
+/* The pre-`jimo-agent` name. Read once, on the first hydrate that finds no new
+   key, so an existing demo config survives the project rename instead of being
+   silently wiped. Safe to delete once nobody is running a pre-rename build. */
+const LEGACY_KEY = 'jimo.escalation.v1';
 
 let state: EscalationState = hydrate();
 const listeners = new Set<() => void>();
 
+/** Move a pre-rename blob onto the current key. Returns the raw string, if any. */
+function readWithMigration(): string | null {
+  const raw = window.localStorage.getItem(KEY);
+  if (raw !== null) return raw;
+  const legacy = window.localStorage.getItem(LEGACY_KEY);
+  if (legacy === null) return null;
+  window.localStorage.setItem(KEY, legacy);
+  window.localStorage.removeItem(LEGACY_KEY);
+  return legacy;
+}
+
 function hydrate(): EscalationState {
   if (typeof window === 'undefined') return INITIAL_STATE;
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = readWithMigration();
     if (!raw) return INITIAL_STATE;
     // Merge over INITIAL_STATE so a stored blob written by an older build
     // never leaves a newly-added key undefined.

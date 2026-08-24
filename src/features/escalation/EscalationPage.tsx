@@ -1,10 +1,7 @@
 import * as React from 'react';
 import { Setting2, Export } from 'iconsax-react';
-import { Subpage } from '@/components/ui/Subpage/Subpage';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
-import { PrimaryNavSidebar } from '@/components/ui/PrimaryNavSidebar/PrimaryNavSidebar';
-import { SecondaryNavSidebar } from '@/components/ui/SecondaryNavSidebar/SecondaryNavSidebar';
-import { AGENT_NAV_SECTIONS } from './navConfig';
+import { AppShell } from '@/app/AppShell';
 import { EscalationHero } from './EscalationHero';
 import { OAuthPlaceholder } from './OAuthPlaceholder';
 import { SupportEmailModal } from './SupportEmailModal';
@@ -13,7 +10,7 @@ import { HandoffsChart } from './HandoffsChart';
 import { TriggersSection } from './TriggersSection';
 import { TopicsSection } from './TopicsSection';
 import { VendorMark } from './VendorMark';
-import { useToast } from './toast';
+import { useToast } from '@/components/app/toast';
 import { openWidget } from './openWidget';
 import { useEscalation, setState } from '@/state/useEscalation';
 import { VENDOR_LABEL, type Vendor } from '@/state/types';
@@ -76,10 +73,8 @@ export function EscalationPage() {
   };
 
   return (
-    <Subpage
-      maxWidth={1064}
-      primaryNav={<PrimaryNavSidebar collapsed activeItem="Agent" />}
-      secondaryNav={<SecondaryNavSidebar sections={AGENT_NAV_SECTIONS} activeItem="Escalation" />}
+    <AppShell
+      activeItem="Escalation"
       // py-0 + min-h-screen: `page-main` is the full viewport tall once the
       // header is gone, so this makes the content column exactly as tall and
       // `justify-center` can do real vertical centring.
@@ -127,6 +122,6 @@ export function EscalationPage() {
         />
       )}
       {configuring && <ConfigureModal onClose={() => setConfiguring(false)} />}
-    </Subpage>
+    </AppShell>
   );
 }

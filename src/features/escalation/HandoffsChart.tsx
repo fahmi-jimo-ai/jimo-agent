@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Calendar } from 'iconsax-react';
 import { Section } from '@/components/ui/Section/Section';
 import { DropdownSelector } from '@/components/ui/DropdownSelector/DropdownSelector';
-import { Menu, MenuItem } from './Menu';
+import { Menu, MenuItem } from '@/components/app/Menu';
 import { buildChartDays, REASON_SERIES, HANDOFF_TOTAL, type ReasonKey } from '@/data/fixtures';
 import { useEscalation, setState } from '@/state/useEscalation';
 import type { Range } from '@/state/types';

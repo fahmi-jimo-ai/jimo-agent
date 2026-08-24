@@ -1,6 +1,7 @@
-# agent-escalation — Claude Code reference
+# jimo-agent — Claude Code reference
 
-The Jimo Agent Escalation page, built 1:1 from Figma, plus a widget simulator.
+The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Two pages today:
+**Escalation** (`/`) and **Knowledge** (`/knowledge`).
 Read `README.md` first for what the app is; this file is the working rules.
 
 ## Run
@@ -35,8 +36,13 @@ token strings (`style={{ gap: 'var(--space-3)' }}`).
 
 Vite 6 · React 18.3.1 (**not** 19) · TS non-strict · Tailwind v4 (CSS-first, no config file) ·
 Storybook 10 + `@storybook/react-vite` · `radix-ui` **1.6 unified package** (not `@radix-ui/react-*`) ·
-`iconsax-react@0.0.8` · cva + clsx + tailwind-merge. Node 22, npm. **No router** — the widget is a
-second Vite entry (`widget.html`).
+`iconsax-react@0.0.8` · `react-router-dom` · cva + clsx + tailwind-merge. Node 22, npm.
+
+The dashboard is a **single SPA** (`index.html` → `BrowserRouter`) with one route per page; the
+widget is still a **second Vite entry** (`widget.html`) and is deliberately outside the router,
+because it is opened in its own tab. `vercel.json` carries the SPA rewrite, and its negative
+lookahead is what keeps `/widget.html` and `/assets/*` serving as themselves — do not simplify it
+to a blanket `/(.*) -> /index.html`.
 
 ## Vendored Moji — use it 1:1, never re-draw it
 
@@ -123,7 +129,7 @@ than pushed down by a min-height. The OAuth beat keeps the header.
 `src/state/demo.ts` + the third Configuration row. It is **not** gated on `import.meta.env.DEV` —
 this repo is a prototype and the deployed Vercel build is what gets demoed, so the row has to
 survive `npm run build`. Turning it on snapshots the real config to
-`jimo.escalation.demo-snapshot.v1` and restores it on the way out.
+`jimo.agent.escalation.demo-snapshot.v1` and restores it on the way out.
 
 It deliberately does not use `seed()`: `seed()` calls `resetState()`, which would destroy the
 user's vendor and topics for good.

@@ -1,6 +1,7 @@
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { EscalationPage } from '../../src/features/escalation/EscalationPage';
-import { ToastProvider } from '../../src/features/escalation/toast';
+import { ToastProvider } from '../../src/components/app/toast';
 import { SEEDS } from '../../src/state/seed';
 
 const FIGMA = 'https://www.figma.com/design/5LL3WooWBeEfjNpUls93Zg/Escalation?node-id=';
@@ -21,9 +22,12 @@ const page = (seedFn, node) => ({
     seedFn();
     return (
       <ToastProvider>
-        <div style={{ height: '810px' }}>
-          <EscalationPage />
-        </div>
+        {/* AppShell calls useNavigate, so a page needs a router ancestor. */}
+        <MemoryRouter initialEntries={['/']}>
+          <div style={{ height: '810px' }}>
+            <EscalationPage />
+          </div>
+        </MemoryRouter>
       </ToastProvider>
     );
   },

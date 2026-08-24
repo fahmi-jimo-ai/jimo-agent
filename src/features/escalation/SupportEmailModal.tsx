@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
-import { ModalCard } from './ModalCard';
+import { ModalCard } from '@/components/app/ModalCard';
 
 /** Figma 35:4224 — "What's your team support email?" */
 export function SupportEmailModal({

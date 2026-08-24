@@ -4,7 +4,7 @@ import { Section } from '@/components/ui/Section/Section';
 import { Button } from '@/components/ui/Button/Button';
 import { TriggerCard } from './TriggerCard';
 import { InlineTokenSelect, type TokenOption } from './InlineTokenSelect';
-import { useToast } from './toast';
+import { useToast } from '@/components/app/toast';
 import { useEscalation, setState } from '@/state/useEscalation';
 import type { FailedCount, FrustrationLevel, Triggers } from '@/state/types';
 

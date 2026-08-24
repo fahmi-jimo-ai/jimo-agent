@@ -218,13 +218,13 @@
   cursor: not-allowed;
 }
 
-/* agent-escalation — suggestion skeleton (Figma 29:18613). */
+/* jimo-agent — suggestion skeleton (Figma 29:18613). */
 @keyframes skel-pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.45; }
 }
 
-/* agent-escalation — the pills arriving once generating finishes. Staggered by
+/* jimo-agent — the pills arriving once generating finishes. Staggered by
    an inline animation-delay per pill, so they land as a wave rather than a
    single block swap. `both` holds the 0% frame through that delay. */
 @keyframes suggest-appear {

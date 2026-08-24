@@ -6,7 +6,7 @@ import { TopicPill } from './TopicPill';
 import { TopicInput } from './TopicInput';
 import { setState, useEscalation } from '@/state/useEscalation';
 import { makeTopic } from '@/data/fixtures';
-import { useToast } from './toast';
+import { useToast } from '@/components/app/toast';
 
 export function TopicsSection() {
   const { topics } = useEscalation();
