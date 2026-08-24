@@ -1,7 +1,7 @@
 # jimo-agent — Claude Code reference
 
 The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Two pages today:
-**Escalation** (`/`) and **Knowledge** (`/knowledge`).
+**Escalation** (`/escalation`) and **Knowledge** (`/knowledge`); `/` redirects to Escalation.
 Read `README.md` first for what the app is; this file is the working rules.
 
 ## Run

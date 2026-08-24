@@ -23,7 +23,7 @@ const page = (seedFn, node) => ({
     return (
       <ToastProvider>
         {/* AppShell calls useNavigate, so a page needs a router ancestor. */}
-        <MemoryRouter initialEntries={['/']}>
+        <MemoryRouter initialEntries={['/escalation']}>
           <div style={{ height: '810px' }}>
             <EscalationPage />
           </div>

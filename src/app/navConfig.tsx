@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Book, Flash, Chart, DeviceMessage, MessageQuestion, Bubble } from 'iconsax-react';
+import { Book, Flash, Chart, Lifebuoy, MessageQuestion, Bubble } from 'iconsax-react';
 import { AgentIcon } from '@/components/ui/Icon/Icon';
 import type { SidebarSection } from '@/components/ui/SecondaryNavSidebar/SecondaryNavSidebar';
 
@@ -15,8 +15,9 @@ const pair = (Ico: React.ElementType) => ({
  *   Chat       → Group 46993 (the Jimo face)  → AgentIcon
  *   Knowledge  → vuesax/linear/book           → Book
  *   Skills     → vuesax/bold/flash            → Flash
- *   Escalation → vuesax/linear/device-message → DeviceMessage
  *   Statistics → vuesax/linear/chart          → Chart
+ * Escalation deliberately departs from Figma (43:7182 shows device-message):
+ * Lifebuoy reads as "get help from a human", which is what the page is about.
  * Launcher and Conversations are new to the IA and have no Figma instance yet:
  * Bubble reads as the floating widget launcher, and MessageQuestion is what
  * upstream Moji's own sidebar uses for Conversations.
@@ -38,7 +39,7 @@ export const AGENT_NAV_SECTIONS: SidebarSection[] = [
     items: [
       { label: 'Knowledge', ...pair(Book) },
       { label: 'Skills', ...pair(Flash) },
-      { label: 'Escalation', ...pair(DeviceMessage) },
+      { label: 'Escalation', ...pair(Lifebuoy) },
     ],
   },
   {
@@ -57,6 +58,6 @@ export const AGENT_NAV_SECTIONS: SidebarSection[] = [
  * additive-and-minimal (the `sections` prop and the divider, nothing more).
  */
 export const NAV_ROUTES: Record<string, string> = {
-  Escalation: '/',
+  Escalation: '/escalation',
   Knowledge: '/knowledge',
 };

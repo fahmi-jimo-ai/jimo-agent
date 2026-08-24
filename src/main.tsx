@@ -16,9 +16,12 @@ createRoot(document.getElementById('root')!).render(
     <ToastProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<EscalationPage />} />
+          {/* Every page has its own path — the index is a redirect, not a
+              page, so no page is privileged by being "the" root. */}
+          <Route path="/" element={<Navigate to="/escalation" replace />} />
+          <Route path="/escalation" element={<EscalationPage />} />
           <Route path="/knowledge" element={<KnowledgePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/escalation" replace />} />
         </Routes>
       </BrowserRouter>
     </ToastProvider>
