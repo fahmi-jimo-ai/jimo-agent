@@ -117,7 +117,18 @@ function SecondaryNavSidebar({
     >
       {sections.map((section, idx) => (
         <React.Fragment key={section.title ?? idx}>
-          {idx > 0 && <div className="my-[var(--space-2)] h-px shrink-0 bg-[var(--color-border-default)]" />}
+          {/*
+            FORK vs Moji: the divider is the Copilot-Widget `Item/Navigation/TabLine`
+            (42KccejbNYeHc3EP5P8vHd, 892:12023) — 12px of horizontal padding either
+            side, and a 1px Neutral/300 rule at 50% opacity. `--color-border-default`
+            already resolves to Neutral/300 (#e5e5e5); the inset and the opacity are
+            what the node adds.
+          */}
+          {idx > 0 && (
+            <div className="shrink-0 px-[var(--space-3)] py-[var(--space-2)]">
+              <div className="h-px w-full bg-[var(--color-border-default)] opacity-50" />
+            </div>
+          )}
           <SecondaryNavGroup
             title={section.disabled && section.title ? `${section.title} (Coming Soon)` : section.title}
           >

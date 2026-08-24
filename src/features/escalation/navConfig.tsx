@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Book, Flash, Chart, DeviceMessage, MessageNotif, BoxSearch } from 'iconsax-react';
+import { Book, Flash, Chart, DeviceMessage, MessageQuestion, Bubble } from 'iconsax-react';
 import { AgentIcon } from '@/components/ui/Icon/Icon';
 import type { SidebarSection } from '@/components/ui/SecondaryNavSidebar/SecondaryNavSidebar';
 
@@ -10,15 +10,16 @@ const pair = (Ico: React.ElementType) => ({
 });
 
 /**
- * The agent sidebar exactly as drawn in Figma (43:7182). Icon choices are the
- * Figma instance names, not guesses:
- *   Chat                → Group 46993 (the Jimo face)  → AgentIcon
- *   Knowledge / Trigger → vuesax/linear/book           → Book
- *   Skills              → vuesax/bold/flash            → Flash
- *   Analyze             → vuesax/linear/chart          → Chart
- *   Escalation          → vuesax/linear/device-message → DeviceMessage
- *   Contextual Triggers → vuesax/linear/message-notif  → MessageNotif
- *   Observe             → vuesax/linear/box-search     → BoxSearch
+ * The agent sidebar. Icons follow the Figma instance names where the item
+ * already existed in 43:7182:
+ *   Chat       → Group 46993 (the Jimo face)  → AgentIcon
+ *   Knowledge  → vuesax/linear/book           → Book
+ *   Skills     → vuesax/bold/flash            → Flash
+ *   Escalation → vuesax/linear/device-message → DeviceMessage
+ *   Statistics → vuesax/linear/chart          → Chart
+ * Launcher and Conversations are new to the IA and have no Figma instance yet:
+ * Bubble reads as the floating widget launcher, and MessageQuestion is what
+ * upstream Moji's own sidebar uses for Conversations.
  */
 export const AGENT_NAV_SECTIONS: SidebarSection[] = [
   {
@@ -29,20 +30,22 @@ export const AGENT_NAV_SECTIONS: SidebarSection[] = [
         icon: <AgentIcon size={S} variant="Linear" />,
         iconActive: <AgentIcon size={S} variant="Bold" />,
       },
+      { label: 'Launcher', ...pair(Bubble) },
+    ],
+  },
+  {
+    title: 'Train',
+    items: [
       { label: 'Knowledge', ...pair(Book) },
       { label: 'Skills', ...pair(Flash) },
-      { label: 'Trigger', ...pair(Book) },
-      { label: 'Analyze', ...pair(Chart) },
       { label: 'Escalation', ...pair(DeviceMessage) },
     ],
   },
   {
-    // Not `disabled: true` on the section — that would render the title as
-    // "Coming Soon (Coming Soon)". The items carry the disabled state instead.
-    title: 'Coming Soon',
+    title: 'Analyze',
     items: [
-      { label: 'Contextual Triggers', ...pair(MessageNotif), disabled: true },
-      { label: 'Observe', ...pair(BoxSearch), disabled: true },
+      { label: 'Statistics', ...pair(Chart) },
+      { label: 'Conversations', ...pair(MessageQuestion) },
     ],
   },
 ];
