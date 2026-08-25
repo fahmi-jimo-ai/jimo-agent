@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>Escalation from Jimo AI — Marie Dubois</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  ─────────────────────────────────────────────────────────────────────────────
+  WHAT THIS IS
+  The email the support team receives when the agent escalates a conversation
+  and the workspace picked "Support Email" as its support tool
+  (`vendor: 'email'`, `supportEmail` from SupportEmailModal).
+
+  Payload it renders, 1:1 with the app:
+    Decision.reason    → asked_for_human | agent_stuck | frustration | topic_rule
+    Decision.behaviour → immediate (opens at once) | card (asks the user first)
+    Decision.topic     → the matched Topic pill, if any
+    brief              → the user's own summary of the problem (SAMPLE_BRIEF)
+    SAMPLE_NOTE        → user / page / reason / topic / transcript
+    SAMPLE_TRANSCRIPT  → the timestamped turns
+
+  Merge fields are marked {{like_this}} in comments beside the sample values,
+  so this doubles as the template spec.
+
+  SUBJECT LINE (not renderable in the body — set it on the send)
+    default   {{user.name}} needs a person — “{{first_user_message}}”
+    The verb carries Decision.reason; all four are in VARIANTS at the bottom.
+    Truncate the quote at 60 chars: Gmail shows ~70 desktop, ~35 iOS.
+
+  ── MOJI FIDELITY ───────────────────────────────────────────────────────────
+  Every value below is lifted from ../../jimo-storybook, named in a comment:
+
+    canvas        Subpage main            → Blue/50 #F7F9FE
+    cards         Section, `bordered`     → white · radius-xl 16 · space-6 24
+                                            border-default #E5E5E5 · elevation-01
+    card title    Section title           → subtitle-3  600 16/1.25 Montserrat
+    headline      PageHeader <h2>         → subtitle-1  600 24/1.25 Montserrat, ls 0
+    body          Section description     → body-3      500 14/1.5  Inter
+    labels        PropertySection label   → body-4      500 12/1.5  Inter, secondary
+    chips         Chip small, secondary   → radius-full · px-3 py-1 · body-4
+                                            bg-100 / border-300 / text-500
+    CTA           Button default/big      → NAVY neutral-800 #071331 fill, white text
+                                            radius-lg 12 · min-h 44 · px-4 py-2.5
+                                            subtitle-3 · elevation-01
+    brief block   Infobox (Alert) brand   → bg blue-100 · border blue-300 · radius-lg
+    bubbles       widget.css              → user  --agent-primary #1260EB / white
+                                            agent --agent-surface-hover #F0F2F4
+                                            --agent-radius-row 12px
+    mark          jimo-storybook/public/Jimo Logo.png, inlined as a data URI
+
+  Deviations, all deliberate:
+  • Section's default `shadow` variant (elevation-05, for the Blue/50 body) is
+    swapped for `bordered`: Outlook drops box-shadow, and a shadowless white
+    card on #F7F9FE has no edge at all. `bordered` is a real Moji variant.
+  • Chip has five types and none is purple, but the chart's wrong-answer series
+    is Purple/300. The purple chip below follows Chip's own 100/300/500 formula
+    on existing purple tokens — additive, not invented.
+  • Infobox's 24px bold iconsax icon is dropped: Gmail strips inline SVG.
+  • Montserrat and Inter load from Google Fonts; Apple Mail and Outlook-for-Mac
+    honour it, Gmail does not, so every stack ends in a real system fallback.
+
+  WHY THERE ARE NO TOKENS IN HERE
+  The repo's one rule is `var(--token)` only. It does not apply to this file:
+  Gmail, Outlook and Yahoo strip <style> blocks and do not resolve CSS custom
+  properties, so an email must carry inline hex. Change a token, change it here.
+
+  THE VARIANT TOGGLE IS NOT PART OF THE EMAIL
+  Mail clients strip <script>, so the toggle is a preview harness wrapped around
+  the message. Everything between the ✂ fences is delete-before-send; what
+  survives is the asked_for_human variant, static and complete.
+  ─────────────────────────────────────────────────────────────────────────────
+-->
+<style>
+  /* Progressive enhancement only. Everything load-bearing is also inline. */
+  body { margin:0; padding:0; width:100% !important; }
+  table { border-collapse:collapse; }
+  img { border:0; line-height:100%; outline:none; text-decoration:none; }
+  @media only screen and (max-width:620px) {
+    .sp        { width:16px !important; }
+    .stack     { display:block !important; width:100% !important; }
+    .stack-lbl { padding-bottom:0 !important; }
+    .h1        { font-size:20px !important; line-height:28px !important; }
+    .gutter    { width:0 !important; }
+  }
+
+  /* ── Preview harness only. Delete with the ✂ chrome. ──────────────────── */
+  .pv{position:sticky;top:0;z-index:9;background:#071331;color:#fff;
+      font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+  .pv-in{max-width:840px;margin:0 auto;padding:14px 20px 16px;}
+  .pv-eyebrow{font:500 12px/1.5 'Inter',sans-serif;color:#7c8a99;}
+  .pv-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0;}
+  /* Chip small geometry, dark-surface colours */
+  .pv-tab{appearance:none;border:1px solid rgba(255,255,255,.18);background:transparent;color:#cccccc;
+          font:500 12px/1.5 'Inter',sans-serif;padding:5px 12px;border-radius:9999px;cursor:pointer;
+          display:inline-flex;align-items:center;gap:7px;}
+  .pv-tab:hover{border-color:rgba(255,255,255,.45);color:#fff;}
+  .pv-tab[aria-selected="true"]{background:#fff;color:#071331;border-color:#fff;font-weight:600;}
+  .pv-dot{width:7px;height:7px;border-radius:9999px;background:currentColor;flex:none;}
+  .pv-subj{margin:12px 0 0;font:500 12px/1.6 'Inter',sans-serif;color:#9ca1ad;
+           border-top:1px solid rgba(255,255,255,.12);padding-top:11px;overflow-wrap:anywhere;}
+  .pv-subj b{color:#fff;font-weight:600;font-family:'Montserrat',sans-serif;}
+  .pv-subj em{color:#85b1ff;font-style:normal;}
+</style>
+</head>
+
+<!-- Blue/50 #F7F9FE — the colour Subpage paints behind every Section -->
+<body style="margin:0;padding:0;background:#F7F9FE;">
+
+<!-- ✂ PREVIEW CHROME START — delete this block before sending ─────────────── -->
+<div class="pv">
+  <div class="pv-in">
+    <div class="pv-eyebrow">Preview only · not part of the email</div>
+    <div class="pv-tabs" role="tablist" aria-label="Escalation reason">
+      <button class="pv-tab" role="tab" data-variant="asked_for_human" aria-selected="true"><span class="pv-dot" style="color:#159201"></span>Explicit request</button>
+      <button class="pv-tab" role="tab" data-variant="agent_stuck"     aria-selected="false"><span class="pv-dot" style="color:#bb68ff"></span>Wrong answer</button>
+      <button class="pv-tab" role="tab" data-variant="frustration"     aria-selected="false"><span class="pv-dot" style="color:#ff4646"></span>Frustration</button>
+      <button class="pv-tab" role="tab" data-variant="topic_rule"      aria-selected="false"><span class="pv-dot" style="color:#1260eb"></span>Specific topic</button>
+    </div>
+    <p class="pv-subj">Subject: <b id="pv-subject"></b><br><em id="pv-behaviour"></em></p>
+  </div>
+</div>
+<!-- ✂ PREVIEW CHROME END ───────────────────────────────────────────────────── -->
+
+<!-- Inbox preview text, then filler so the client doesn't pull body copy in -->
+<div id="preheader" style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;height:0;width:0;">
+  Asked for a human · SSO login failing for the whole team — full transcript inside.
+  &#8202;&#847; &#8202;&#847; &#8202;&#847; &#8202;&#847; &#8202;&#847; &#8202;&#847; &#8202;&#847; &#8202;&#847;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F9FE;">
+<tr><td align="center" style="padding:32px 12px 40px;">
+
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;">
+
+    <!-- ── Sender row ────────────────────────────────────────────────── -->
+    <tr><td style="padding:0 4px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+        <td width="28" style="width:28px;">
+          <img src="data:image/png;base64,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" width="28" height="28" alt="Jimo"
+               style="display:block;width:28px;height:28px;border-radius:8px;">
+          <!-- jimo-storybook/public/Jimo Logo.png. Data URIs are blocked by Gmail —
+               swap for a hosted CDN url before this goes near a real send. -->
+        </td>
+        <td style="padding-left:10px;font:600 14px/1.25 'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#071331;">
+          Jimo AI Agent<br>
+          <span style="font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#7c8a99;">
+            escalated to support@acme.com <!-- {{support_email}} -->
+          </span>
+        </td>
+      </tr></table>
+    </td></tr>
+
+    <!-- ══ Section 1 — the hand-off ═══════════════════════════════════
+         Section, `bordered`: white · radius-xl · space-6 · border-default -->
+    <tr><td style="background:#ffffff;border:1px solid #E5E5E5;border-radius:16px;box-shadow:0px 2px 2px rgba(0,0,0,0.04);">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td class="sp" width="24" style="width:24px;">&nbsp;</td>
+        <td style="padding:24px 0;">
+
+          <!-- Chip · small · secondary — {{reason_label}} = REASON_COPY[reason] -->
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td id="reason-pill" style="background:#e6fde8;border:1px solid #98d28f;border-radius:9999px;padding:4px 12px;font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#167322;white-space:nowrap;">
+              Asked for a human
+            </td>
+            <td id="topic-gap" style="width:8px;display:none;">&nbsp;</td>
+            <td id="topic-pill" style="display:none;background:#ffffff;border:1px solid #E5E5E5;border-radius:9999px;padding:4px 12px;font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;white-space:nowrap;">
+              <!-- {{topic.label}} — cell omitted when Decision.topic is null.
+                   Colours are the page's own TopicPill (white / border-default /
+                   text-primary), not Chip brand, so it reads as the same object the
+                   team added on the Escalation page. Geometry stays Chip small so the
+                   two chips in this row share a shape. -->
+            </td>
+          </tr></table>
+
+          <!-- PageHeader <h2>: subtitle-1, letter-spacing 0 -->
+          <h1 id="headline" class="h1" style="margin:14px 0 0;font:600 24px/1.25 'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;color:#071331;">
+            Marie Dubois needs a person <!-- {{user.name}} -->
+          </h1>
+          <p id="subhead" style="margin:8px 0 0;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#4d637b;">
+            <!-- {{escalated_at}} + why this trigger fired -->
+            Marie asked to speak to someone. The agent handed over at <strong style="font-weight:600;color:#071331;">14:06 CET</strong>, today, and told her a person would pick it up.
+          </p>
+
+          <!-- Infobox / Alert, type="brand". The user already wrote the problem
+               down — nobody has to make them repeat it. -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0;">
+          <tr><td style="background:#f3f7fe;border:1px solid #85b1ff;border-radius:12px;padding:12px 16px;">
+            <div style="font:600 14px/1.25 'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1260eb;">In their words</div>
+            <p id="brief" style="margin:8px 0 0;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#071331;">
+              <!-- {{brief}} -->
+              “I’ve connected Okta twice but my teammates still can’t log in. The assistant walked me through the SSO guide and domain verification — the error is still there.”
+            </p>
+          </td></tr>
+          </table>
+
+          <!-- Button, variant=default size=big. Navy, not blue: Moji's primary
+               button is neutral-800. mailto, because the point of the email
+               option is that the team answers from the inbox they live in.
+               Subject must be "Re: " + this email's subject, or it won't thread. -->
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0;">
+          <tr><td style="background:#071331;border-radius:12px;box-shadow:0px 2px 2px rgba(0,0,0,0.04);">
+            <a id="cta" href="mailto:marie.dubois@acme.com?subject=Re%3A%20Marie%20Dubois%20needs%20a%20person%20%E2%80%94%20%E2%80%9CSSO%20login%20is%20failing%20for%20my%20team%E2%80%9D"
+               style="display:inline-block;padding:12px 16px;min-height:20px;font:600 16px/1.25 'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#ffffff;text-decoration:none;">
+              Reply to Marie <!-- {{user.email}} · {{subject}} -->
+            </a>
+          </td></tr>
+          </table>
+          <p style="margin:10px 0 0;font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#9ca1ad;">
+            Replying goes straight to Marie. She never sees this email.
+          </p>
+
+        </td>
+        <td class="sp" width="24" style="width:24px;">&nbsp;</td>
+      </tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="gutter" style="height:16px;line-height:16px;font-size:0;">&nbsp;</td></tr>
+
+    <!-- ══ Section 2 — Context ════════════════════════════════════════ -->
+    <tr><td style="background:#ffffff;border:1px solid #E5E5E5;border-radius:16px;box-shadow:0px 2px 2px rgba(0,0,0,0.04);">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td class="sp" width="24" style="width:24px;">&nbsp;</td>
+        <td style="padding:24px 0;">
+
+          <div style="font:600 16px/1.25 'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#071331;padding-bottom:14px;">Context</div>
+
+          <!-- PropertySection rows: body-4 secondary label, body-3 primary value -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td class="stack stack-lbl" width="116" valign="top" style="width:116px;padding:5px 0;font:500 12px/1.7 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#7c8a99;">User</td>
+              <td class="stack" valign="top" style="padding:5px 0;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;">Marie Dubois · marie.dubois@acme.com</td> <!-- {{user}} -->
+            </tr>
+            <tr>
+              <td class="stack stack-lbl" valign="top" style="padding:5px 0;font:500 12px/1.7 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#7c8a99;">Account</td>
+              <td class="stack" valign="top" style="padding:5px 0;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;">Acme Corp · Scale plan · 412 seats</td> <!-- {{account}} -->
+            </tr>
+            <tr>
+              <td class="stack stack-lbl" valign="top" style="padding:5px 0;font:500 12px/1.7 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#7c8a99;">Last page</td>
+              <td class="stack" valign="top" style="padding:5px 0;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;">
+                <a id="page-link" href="https://app.acme.com/settings/sso" style="color:#1260eb;text-decoration:none;font-weight:600;">/settings/sso</a>
+                <span style="color:#7c8a99;"> · Chrome 128 · macOS 15</span> <!-- {{page}} -->
+              </td>
+            </tr>
+            <tr>
+              <td class="stack stack-lbl" valign="top" style="padding:5px 0;font:500 12px/1.7 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#7c8a99;">Trigger</td>
+              <td class="stack" valign="top" style="padding:5px 0;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;">
+                <span id="trigger-label">Explicit request</span>
+                <span id="trigger-enum" style="color:#9ca1ad;">(asked_for_human)</span> <!-- {{decision.reason}} -->
+              </td>
+            </tr>
+            <tr id="topic-row" style="display:none;">
+              <td class="stack stack-lbl" valign="top" style="padding:5px 0;font:500 12px/1.7 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#7c8a99;">Topic rule</td>
+              <td class="stack" valign="top" style="padding:5px 0;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;"><span id="topic-cell"></span></td>
+              <!-- {{topic.label}} · row omitted when no topic matched -->
+            </tr>
+          </table>
+
+        </td>
+        <td class="sp" width="24" style="width:24px;">&nbsp;</td>
+      </tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="gutter" style="height:16px;line-height:16px;font-size:0;">&nbsp;</td></tr>
+
+    <!-- ══ Section 3 — Conversation ═══════════════════════════════════
+         Bubbles mirror the widget: user = --agent-primary, agent =
+         --agent-surface-hover, both at --agent-radius-row 12px. Sides are
+         held by spacer cells, not floats, so Outlook keeps the alignment. -->
+    <tr><td style="background:#ffffff;border:1px solid #E5E5E5;border-radius:16px;box-shadow:0px 2px 2px rgba(0,0,0,0.04);">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td class="sp" width="24" style="width:24px;">&nbsp;</td>
+        <td style="padding:24px 0;">
+
+          <div style="font:600 16px/1.25 'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#071331;padding-bottom:16px;">
+            Conversation <span style="color:#9ca1ad;font-weight:500;">· <span id="turn-count">6</span> turns</span> <!-- {{transcript.length}} -->
+          </div>
+
+          <!-- {{#each transcript}} — the preview script rewrites this table per
+               variant, emitting markup byte-identical to what is authored here. -->
+          <table id="transcript" role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td valign="top" style="padding:0 0 14px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td width="20%" style="width:20%;">&nbsp;</td>
+                <td align="right" style="text-align:right;">
+                  <div style="font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#9ca1ad;padding:0 2px 4px;">Marie · 14:02</div>
+                  <div style="display:inline-block;background:#1260EB;border-radius:12px;padding:10px 14px;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#ffffff;text-align:left;">SSO login is failing for my team</div>
+                </td>
+              </tr></table>
+            </td></tr>
+            <tr><td valign="top" style="padding:0 0 14px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td align="left" style="text-align:left;">
+                  <div style="font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#9ca1ad;padding:0 2px 4px;">Jimo AI · 14:02</div>
+                  <div style="display:inline-block;background:#F0F2F4;border-radius:12px;padding:10px 14px;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;text-align:left;">Let me check the SSO setup guide for you…</div>
+                </td>
+                <td width="20%" style="width:20%;">&nbsp;</td>
+              </tr></table>
+            </td></tr>
+            <tr><td valign="top" style="padding:0 0 14px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td width="20%" style="width:20%;">&nbsp;</td>
+                <td align="right" style="text-align:right;">
+                  <div style="font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#9ca1ad;padding:0 2px 4px;">Marie · 14:04</div>
+                  <div style="display:inline-block;background:#1260EB;border-radius:12px;padding:10px 14px;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#ffffff;text-align:left;">I’ve already followed that, it didn’t work</div>
+                </td>
+              </tr></table>
+            </td></tr>
+            <tr><td valign="top" style="padding:0 0 14px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td align="left" style="text-align:left;">
+                  <div style="font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#9ca1ad;padding:0 2px 4px;">Jimo AI · 14:04</div>
+                  <div style="display:inline-block;background:#F0F2F4;border-radius:12px;padding:10px 14px;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;text-align:left;">Have you verified your domain in Okta?</div>
+                </td>
+                <td width="20%" style="width:20%;">&nbsp;</td>
+              </tr></table>
+            </td></tr>
+            <tr><td valign="top" style="padding:0 0 14px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td width="20%" style="width:20%;">&nbsp;</td>
+                <td align="right" style="text-align:right;">
+                  <div style="font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#9ca1ad;padding:0 2px 4px;">Marie · 14:06</div>
+                  <div style="display:inline-block;background:#1260EB;border-radius:12px;padding:10px 14px;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#ffffff;text-align:left;">Verified twice, still the same error. Can I talk to a human?</div>
+                </td>
+              </tr></table>
+            </td></tr>
+            <tr><td valign="top" style="padding:0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td align="left" style="text-align:left;">
+                  <div style="font:500 12px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#9ca1ad;padding:0 2px 4px;">Jimo AI · 14:06</div>
+                  <div style="display:inline-block;background:#F0F2F4;border-radius:12px;padding:10px 14px;font:500 14px/1.5 'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;color:#071331;text-align:left;">Of course — I’m bringing in the team now.</div>
+                </td>
+                <td width="20%" style="width:20%;">&nbsp;</td>
+              </tr></table>
+            </td></tr>
+          </table>
+          <!-- {{/each}} -->
+
+        </td>
+        <td class="sp" width="24" style="width:24px;">&nbsp;</td>
+      </tr>
+      </table>
+    </td></tr>
+
+    <!-- ── Footer ────────────────────────────────────────────────────── -->
+    <tr><td style="padding:24px 24px 0;text-align:center;font:500 12px/1.6 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#9ca1ad;">
+      Sent by the <strong style="color:#7c8a99;font-weight:600;">Jimo AI Agent</strong> because escalation is on for Acme Corp.<br>
+      <a href="https://app.usejimo.com/agent/escalation" style="color:#7c8a99;text-decoration:underline;">Change triggers, topics or the support email</a>
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+
+<!-- ✂ PREVIEW SCRIPT START — delete this block before sending ───────────────
+     Mail clients strip <script>, so nothing below reaches a real inbox. It
+     exists so the team can see all four Decision.reason variants — and their
+     subject lines — without four separate files. The asked_for_human variant
+     is what the static markup above already says, so deleting this leaves a
+     complete, correct email.
+────────────────────────────────────────────────────────────────────────────-->
+<script>
+(function () {
+  var INTER = "'Inter',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif";
+
+  /* One entry per Decision.reason. Chip colours follow Moji's Chip secondary
+     formula: bg-100 / border-300 / text-500. `behaviour` is the engine's own:
+     'immediate' opens the hand-off at once, 'card' asks the user first — which
+     is why those two transcripts carry an extra accept turn. */
+  var VARIANTS = {
+    asked_for_human: {
+      pill: 'Asked for a human',                                   /* REASON_COPY[reason] */
+      pillBg: '#e6fde8', pillBd: '#98d28f', pillFg: '#167322',     /* Chip positive */
+      trigger: 'Explicit request',
+      behaviour: 'immediate',
+      headline: 'Marie Dubois needs a person',
+      subhead: 'Marie asked to speak to someone. The agent handed over at <strong style="font-weight:600;color:#071331;">14:06 CET</strong>, today, and told her a person would pick it up.',
+      brief: '“I’ve connected Okta twice but my teammates still can’t log in. The assistant walked me through the SSO guide and domain verification — the error is still there.”',
+      topic: null,
+      page: '/settings/sso',
+      preheader: 'Asked for a human · SSO login failing for the whole team — full transcript inside.',
+      subject: 'Marie Dubois needs a person — “SSO login is failing for my team”',
+      turns: [
+        ['user',  '14:02', 'SSO login is failing for my team'],
+        ['agent', '14:02', 'Let me check the SSO setup guide for you…'],
+        ['user',  '14:04', 'I’ve already followed that, it didn’t work'],
+        ['agent', '14:04', 'Have you verified your domain in Okta?'],
+        ['user',  '14:06', 'Verified twice, still the same error. Can I talk to a human?'],
+        ['agent', '14:06', 'Of course — I’m bringing in the team now.']
+      ]
+    },
+
+    agent_stuck: {
+      pill: 'Jimo couldn’t answer',
+      /* Chip has no purple type, but Purple/300 is the chart's wrong-answer
+         series. Same 100/300/500 formula, existing purple tokens. */
+      pillBg: '#f5f2fe', pillBd: '#ceb1e5', pillFg: '#590e95',
+      trigger: 'Failed answers · 2 in a row',                      /* triggers.failedAnswers.count */
+      behaviour: 'card',
+      headline: 'Jimo couldn’t answer Marie Dubois',
+      subhead: 'Two answers in a row missed — your <strong style="font-weight:600;color:#071331;">Failed answers</strong> trigger is set to 2. Marie accepted the hand-off at <strong style="font-weight:600;color:#071331;">14:07 CET</strong>, today.',
+      brief: '“I’ve connected Okta twice and verified the domain. The assistant’s two suggestions were both things I’d already tried — my teammates still can’t log in.”',
+      topic: null,
+      page: '/settings/sso',
+      preheader: 'Two answers missed · SSO login failing for the whole team — full transcript inside.',
+      subject: 'Jimo couldn’t answer Marie Dubois — “SSO login is failing for my team”',
+      turns: [
+        ['user',  '14:02', 'SSO login is failing for my team'],
+        ['agent', '14:02', 'Let me check the SSO setup guide for you…'],
+        ['user',  '14:04', 'I’ve already followed that, it didn’t work'],
+        ['agent', '14:04', 'Have you verified your domain in Okta?'],
+        ['user',  '14:06', 'Verified twice. Still failing.'],
+        ['agent', '14:06', 'I haven’t been able to fix this — want me to bring in someone from the team?'],
+        ['user',  '14:07', 'Yes please']
+      ]
+    },
+
+    frustration: {
+      pill: 'This is taking too long',
+      pillBg: '#fcf5f7', pillBd: '#fa7575', pillFg: '#b90808',     /* Chip negative */
+      trigger: 'Frustration · Clear',                              /* triggers.frustration.level */
+      behaviour: 'card',
+      headline: 'Marie Dubois is losing patience',
+      subhead: 'The agent read clear frustration — your sensitivity is set to <strong style="font-weight:600;color:#071331;">Clear</strong>. Marie accepted the hand-off at <strong style="font-weight:600;color:#071331;">14:07 CET</strong>, today.',
+      brief: '“Six messages in and I’m back where I started. Okta is connected, the domain is verified, and my teammates still can’t log in.”',
+      topic: null,
+      page: '/settings/sso',
+      preheader: 'Clear frustration · six turns on SSO with no fix — full transcript inside.',
+      subject: 'Marie Dubois is stuck — “SSO login is failing for my team”',
+      turns: [
+        ['user',  '14:02', 'SSO login is failing for my team'],
+        ['agent', '14:02', 'Let me check the SSO setup guide for you…'],
+        ['user',  '14:04', 'I’ve already followed that, it didn’t work'],
+        ['agent', '14:04', 'Have you verified your domain in Okta?'],
+        ['user',  '14:06', 'We’re going in circles here, this is really frustrating.'],
+        ['agent', '14:06', 'This is taking too long — shall I get someone from the team to take over?'],
+        ['user',  '14:07', 'Yes, please do.']
+      ]
+    },
+
+    topic_rule: {
+      pill: 'Better handled by a person',
+      pillBg: '#f3f7fe', pillBd: '#85b1ff', pillFg: '#012abb',     /* Chip brand */
+      trigger: 'Topic rule',
+      behaviour: 'immediate',
+      headline: 'Team invites — Marie Dubois',
+      subhead: 'This matched your <strong style="font-weight:600;color:#071331;">team invites</strong> topic, so the agent handed over without attempting an answer, at <strong style="font-weight:600;color:#071331;">09:12 CET</strong>, today.',
+      brief: '“Three of my colleagues can’t accept their invites — the link 404s for all of them. I was sent straight here.”',
+      topic: 'team invites',                                       /* Decision.topic.label */
+      page: '/settings/members',
+      preheader: 'Topic rule: team invites · invite links 404 for three colleagues.',
+      subject: 'Team invites — Marie Dubois: “team invites are failing for 3 of my colleagues”',
+      turns: [
+        ['user',  '09:12', 'team invites are failing for 3 of my colleagues'],
+        ['agent', '09:12', 'That one’s better handled by a person — I’m bringing in the team now.']
+      ]
+    }
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* Emits exactly the markup authored in the static transcript above. */
+  function turnRow(t, last) {
+    var isUser = t[0] === 'user';
+    var meta = '<div style="font:500 12px/1.5 ' + INTER + ';color:#9ca1ad;padding:0 2px 4px;">' +
+                 (isUser ? 'Marie' : 'Jimo AI') + ' · ' + t[1] + '</div>';
+    var bubble = '<div style="display:inline-block;background:' + (isUser ? '#1260EB' : '#F0F2F4') +
+                 ';border-radius:12px;padding:10px 14px;font:500 14px/1.5 ' + INTER +
+                 ';color:' + (isUser ? '#ffffff' : '#071331') + ';text-align:left;">' + t[2] + '</div>';
+    var spacer = '<td width="20%" style="width:20%;">&nbsp;</td>';
+    var content = '<td align="' + (isUser ? 'right' : 'left') + '" style="text-align:' +
+                  (isUser ? 'right' : 'left') + ';">' + meta + bubble + '</td>';
+    return '<tr><td valign="top" style="padding:0 0 ' + (last ? '0' : '14px') + ';">' +
+             '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+               (isUser ? spacer + content : content + spacer) +
+             '</tr></table>' +
+           '</td></tr>';
+  }
+
+  function apply(key) {
+    var v = VARIANTS[key];
+
+    var pill = $('reason-pill');
+    pill.textContent = v.pill;
+    pill.style.background = v.pillBg;
+    pill.style.borderColor = v.pillBd;
+    pill.style.color = v.pillFg;
+
+    $('headline').textContent = v.headline;
+    $('subhead').innerHTML = v.subhead;
+    $('brief').textContent = v.brief;
+    $('preheader').textContent = v.preheader;
+
+    /* Topic chip and topic row exist only when Decision.topic is set. */
+    $('topic-pill').style.display = v.topic ? '' : 'none';
+    $('topic-gap').style.display  = v.topic ? '' : 'none';
+    $('topic-row').style.display  = v.topic ? '' : 'none';
+    if (v.topic) { $('topic-pill').textContent = v.topic; $('topic-cell').textContent = v.topic; }
+
+    $('trigger-label').textContent = v.trigger;
+    $('trigger-enum').textContent = '(' + key + ')';
+
+    $('page-link').textContent = v.page;
+    $('page-link').href = 'https://app.acme.com' + v.page;
+
+    $('cta').href = 'mailto:marie.dubois@acme.com?subject=' + encodeURIComponent('Re: ' + v.subject);
+
+    $('turn-count').textContent = v.turns.length;
+    $('transcript').innerHTML = v.turns.map(function (t, i) {
+      return turnRow(t, i === v.turns.length - 1);
+    }).join('');
+
+    $('pv-subject').textContent = v.subject;
+    $('pv-behaviour').textContent =
+      'Decision.reason: ' + key + '  ·  behaviour: ' + v.behaviour +
+      (v.behaviour === 'card' ? '  (agent asks first, so the user accepts on the last turn)'
+                              : '  (hand-off opens at once)');
+  }
+
+  var tabs = document.querySelectorAll('.pv-tab');
+  Array.prototype.forEach.call(tabs, function (tab) {
+    tab.addEventListener('click', function () {
+      Array.prototype.forEach.call(tabs, function (t) { t.setAttribute('aria-selected', String(t === tab)); });
+      apply(tab.getAttribute('data-variant'));
+    });
+  });
+
+  apply('asked_for_human');
+})();
+</script>
+<!-- ✂ PREVIEW SCRIPT END ──────────────────────────────────────────────────── -->
+
+</body>
+</html>
