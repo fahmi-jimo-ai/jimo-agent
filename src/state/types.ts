@@ -5,6 +5,18 @@ export type FailedCount = 1 | 2 | 3;
 export type FrustrationLevel = 'mild' | 'clear' | 'strong';
 export type Range = 'this-month' | 'last-30-days' | 'last-7-days';
 
+/**
+ * Crisp's API credentials. Crisp is the one vendor here that is NOT an OAuth
+ * redirect — its hand-off integration is a workspace token pair you paste in,
+ * so it needs somewhere to live. Intercom and Zendesk keep nothing locally:
+ * their placeholder redirect stands in for a real authorisation.
+ */
+export interface CrispCredentials {
+  websiteId: string;
+  tokenIdentifier: string;
+  tokenKey: string;
+}
+
 export interface Topic {
   id: string;
   label: string;
@@ -30,6 +42,8 @@ export interface EscalationState {
   hasHandoffs: boolean;
   vendor: Vendor | null;
   supportEmail: string | null;
+  /** Set once the Crisp credentials form has been submitted. */
+  crisp: CrispCredentials | null;
   /** Committed triggers — what the agent actually runs on. */
   triggers: Triggers;
   /** Edited by the trigger cards. `Confirm` copies draft -> triggers. */
@@ -63,6 +77,7 @@ export const INITIAL_STATE: EscalationState = {
   hasHandoffs: false,
   vendor: null,
   supportEmail: null,
+  crisp: null,
   triggers: DEFAULT_TRIGGERS,
   draftTriggers: DEFAULT_TRIGGERS,
   topics: [],

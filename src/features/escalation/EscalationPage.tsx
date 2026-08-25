@@ -5,6 +5,7 @@ import { AppShell } from '@/app/AppShell';
 import { EscalationHero } from './EscalationHero';
 import { OAuthPlaceholder } from './OAuthPlaceholder';
 import { SupportEmailModal } from './SupportEmailModal';
+import { CrispConnectModal } from './CrispConnectModal';
 import { ConfigureModal } from './ConfigureModal';
 import { HandoffsChart } from './HandoffsChart';
 import { TriggersSection } from './TriggersSection';
@@ -13,7 +14,7 @@ import { VendorMark } from './VendorMark';
 import { useToast } from '@/components/app/toast';
 import { openWidget } from './openWidget';
 import { useEscalation, setState } from '@/state/useEscalation';
-import { VENDOR_LABEL, type Vendor } from '@/state/types';
+import { VENDOR_LABEL, type CrispCredentials, type Vendor } from '@/state/types';
 
 /** How long the fake provider redirect is shown. */
 const OAUTH_MS = 1200;
@@ -23,6 +24,7 @@ export function EscalationPage() {
   const toast = useToast();
 
   const [emailFor, setEmailFor] = React.useState<Vendor | null>(null);
+  const [crispOpen, setCrispOpen] = React.useState(false);
   const [oauthFor, setOauthFor] = React.useState<Vendor | null>(null);
   const [configuring, setConfiguring] = React.useState(false);
 
@@ -64,7 +66,13 @@ export function EscalationPage() {
       setEmailFor(v);
       return;
     }
-    // The three chat vendors go through the provider redirect placeholder.
+    // Crisp is credentials, not a redirect: its hand-off integration is a
+    // workspace token pair you paste in, so it gets a form of its own.
+    if (v === 'crisp') {
+      setCrispOpen(true);
+      return;
+    }
+    // Intercom and Zendesk go through the provider redirect placeholder.
     setOauthFor(v);
     window.setTimeout(() => {
       setOauthFor(null);
@@ -118,6 +126,16 @@ export function EscalationPage() {
           onEnable={(email) => {
             setEmailFor(null);
             enable('email', email);
+          }}
+        />
+      )}
+      {crispOpen && (
+        <CrispConnectModal
+          onCancel={() => setCrispOpen(false)}
+          onConnected={(creds: CrispCredentials) => {
+            setCrispOpen(false);
+            setState({ crisp: creds });
+            enable('crisp');
           }}
         />
       )}
