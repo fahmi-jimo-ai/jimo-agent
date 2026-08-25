@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils"
 
 // Moji Design System — SecondaryNavGroup.
 // Foundation: .tsx + cn + data-slot. Visuals: verbatim port of SecondaryNavGroup.css.
-// Optional title above a rounded, clipped column of SecondaryNavItems.
+// Optional title above a rounded, clipped column of SecondaryNavItems, spaced 2px apart
+// (2px has no --space token — the ramp starts at 4px — so the literal stands).
 
 type SecondaryNavGroupProps = React.ComponentProps<"div"> & {
   title?: React.ReactNode
@@ -18,7 +19,7 @@ function SecondaryNavGroup({ title, children, className, ...rest }: SecondaryNav
           {title}
         </span>
       )}
-      <div className="flex flex-col overflow-hidden rounded-[var(--radius-xl)]">{children}</div>
+      <div className="flex flex-col gap-[2px] overflow-hidden rounded-[var(--radius-xl)]">{children}</div>
     </div>
   )
 }

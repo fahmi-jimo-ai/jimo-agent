@@ -8,13 +8,31 @@ import { cn } from "@/lib/utils"
 // Visuals: every class maps to a Moji token; no .css. Columns are min 180px and the scroll wrapper
 // scrolls in both axes, so the table fits its content and never collapses a column.
 
-type TableProps = React.ComponentProps<"table"> & { divider?: boolean }
+type TableProps = React.ComponentProps<"table"> & {
+  divider?: boolean
+  /**
+   * ADDITIVE FORK (see CLAUDE.md, same shape as SecondaryNavSidebar's `sections`).
+   * Default `true` keeps the original overflow wrapper verbatim.
+   *
+   * `overflow: auto` is not free: it makes the wrapper a clipping box AND a
+   * scroll container, so a table that fits its column widths still (a) clips
+   * anything a cell floats outward and (b) becomes scrollable — and therefore
+   * scroll-into-view-able — the instant a descendant paints past its content
+   * box. Pass `scroll={false}` when the table is known to fit its container and
+   * must not clip; the columns then reflow instead of scrolling.
+   */
+  scroll?: boolean
+}
 
-function Table({ className, divider, ...props }: TableProps) {
+function Table({ className, divider, scroll = true, ...props }: TableProps) {
   return (
     <div
       data-slot="table-scroll"
-      className="w-full overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      data-scroll={scroll ? "true" : "false"}
+      className={cn(
+        "w-full",
+        scroll && "overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+      )}
     >
       <table
         data-slot="table"
@@ -112,6 +130,19 @@ type TableUserCellProps = Omit<TableCellProps, "title"> & {
   avatar?: React.ReactNode
   title?: React.ReactNode
   subtitle?: React.ReactNode
+  /**
+   * ADDITIVE FORK (see CLAUDE.md). Merged onto the title / subtitle spans, whose
+   * defaults are unchanged: subtitle-4 + text-primary, and body-3 + text-tertiary.
+   *
+   * The title's Montserrat subtitle is right for a *person* row, which is what
+   * this variant was drawn for. A row naming a thing — a property, a source, a
+   * segment — sets it to body-3 so it matches the same row rendered anywhere
+   * else. A prop rather than a descendant selector because the avatar slot can
+   * itself contain spans (the "Aa" type tile does), so `[&_span:first-of-type]`
+   * would silently retarget depending on which row it landed on.
+   */
+  titleClassName?: string
+  subtitleClassName?: string
 }
 
 // The "avatar + title + subtitle" column variant. The consumer supplies the avatar element
@@ -121,6 +152,8 @@ function TableUserCell({
   avatar,
   title,
   subtitle,
+  titleClassName,
+  subtitleClassName,
   ...props
 }: TableUserCellProps) {
   return (
@@ -128,11 +161,23 @@ function TableUserCell({
       <div className="flex items-center gap-[var(--space-3)]">
         {avatar}
         <div className="flex min-w-0 flex-col">
-          <span className="[font:var(--text-subtitle-4)] text-[var(--color-text-primary)]">
+          <span
+            data-slot="table-user-title"
+            className={cn(
+              "[font:var(--text-subtitle-4)] text-[var(--color-text-primary)]",
+              titleClassName,
+            )}
+          >
             {title}
           </span>
           {subtitle != null && (
-            <span className="[font:var(--text-body-3)] text-[var(--color-text-tertiary)]">
+            <span
+              data-slot="table-user-subtitle"
+              className={cn(
+                "[font:var(--text-body-3)] text-[var(--color-text-tertiary)]",
+                subtitleClassName,
+              )}
+            >
               {subtitle}
             </span>
           )}

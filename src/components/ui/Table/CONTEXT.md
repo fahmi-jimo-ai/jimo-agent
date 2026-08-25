@@ -12,6 +12,30 @@ works); columns have a **180px minimum width** so they never collapse, and the t
 inset. Cell *content* is composed from existing Moji atoms — only the avatar+title+subtitle pattern
 gets a dedicated helper (`TableUserCell`).
 
+### `TableUserCell.titleClassName` / `subtitleClassName` (additive fork)
+
+Both default to the original classes — subtitle-4 + text-primary for the title, body-3 +
+text-tertiary for the subtitle. The Montserrat subtitle is right for a *person* row, which is what
+this variant was drawn for; a row naming a thing (a property, a source, a segment) passes
+`titleClassName="[font:var(--text-body-3)]"` so it matches the same row rendered elsewhere — see
+`PropertyTable`, which has to agree with `PickerDialog`'s rows.
+
+Props rather than a descendant selector on purpose: the `avatar` slot can itself contain spans (the
+"Aa" type tile is one), so `[&_span:first-of-type]` would retarget depending on the row.
+
+### `scroll` (additive fork)
+
+`scroll` defaults to `true` — the wrapper described above, verbatim. Pass `scroll={false}` when the
+table is known to fit its container and must not clip.
+
+`overflow: auto` is not free: it makes the wrapper both a clipping box **and** a scroll container,
+so a table that fits its columns still (a) clips anything a cell floats outward — a row action menu
+is the usual casualty — and (b) becomes scrollable, and therefore scroll-into-view-able, the moment
+a descendant paints past its content box. That is how a table with room to spare ends up scrolled
+to a half-row with its header hidden. With `scroll={false}` the columns reflow instead.
+
+(Floating panels should not rely on this either way — see `Foundations/Floating Layers`.)
+
 When a `Table` is the body of a `Section`, set `Section`'s `flushBody` prop: it reduces the card's
 horizontal padding to 8px and insets the header 16px so the title aligns with the table's first cell
 content (8 + 16 = the normal 24px content line).

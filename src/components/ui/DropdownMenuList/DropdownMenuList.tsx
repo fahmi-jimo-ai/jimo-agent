@@ -6,6 +6,18 @@ import { cn } from "@/lib/utils"
 // Moji Design System — DropdownMenuList (menu row).
 // Foundation: .tsx + cn + data-slot. Visuals: verbatim port of DropdownMenuList.css.
 // Presentational: `state` forces a visual state for documentation; real :hover also applies.
+//
+// ONE DELIBERATE FORK of the .css (CLAUDE.md's additive-fork rule — named here so
+// it is not mistaken for drift): `selected` now also paints --color-brand-subtle,
+// where the .css left it blue text on a white row.
+//
+// A menu and the DropdownSelector that opens it are one control. The selector's
+// has-a-value / is-open state is border-focus + brand-subtle + brand-default, so
+// a selected row that only recoloured its text read as a weaker, different kind
+// of selection sitting directly beneath a filled trigger. The row now carries the
+// same brand-subtle / brand-default pair — which is also what :hover already
+// resolved to, since blue-100 IS brand-subtle. Selected and hover therefore agree
+// here exactly as they do on the selector.
 
 function CheckboxUnchecked() {
   return (
@@ -77,7 +89,7 @@ function DropdownMenuList({
   const stateText = danger
     ? "text-[var(--color-red-400)]"
     : isSelected || isHover
-      ? "text-[var(--color-blue-400)]"
+      ? "text-[var(--color-brand-default)]"
       : "text-[var(--color-neutral-800)]"
 
   return (
@@ -93,13 +105,15 @@ function DropdownMenuList({
         isDisabled
           ? "cursor-not-allowed bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)]"
           : cn("cursor-pointer bg-[var(--color-neutral-white)]", stateText),
-        // forced hover bg
-        isHover && !isDisabled && (danger ? "bg-[var(--color-red-100)]" : "bg-[var(--color-blue-100)]"),
+        // selected / forced-hover bg — the DropdownSelector's own active fill
+        (isSelected || isHover) &&
+          !isDisabled &&
+          (danger ? "bg-[var(--color-red-100)]" : "bg-[var(--color-brand-subtle)]"),
         // real :hover
         !isDisabled &&
           (danger
             ? "hover:bg-[var(--color-red-100)]"
-            : "hover:bg-[var(--color-blue-100)] hover:text-[var(--color-blue-400)]"),
+            : "hover:bg-[var(--color-brand-subtle)] hover:text-[var(--color-brand-default)]"),
         className
       )}
     >
@@ -122,9 +136,9 @@ function DropdownMenuList({
             danger
               ? "text-[var(--color-red-400)]"
               : isSelected || isHover
-                ? "text-[var(--color-blue-400)]"
+                ? "text-[var(--color-brand-default)]"
                 : "text-[var(--color-neutral-700)]",
-            !isDisabled && !danger && "group-hover/row:text-[var(--color-blue-400)]"
+            !isDisabled && !danger && "group-hover/row:text-[var(--color-brand-default)]"
           )}
         >
           {icon ?? <HambergerMenu size={16} variant="Linear" />}

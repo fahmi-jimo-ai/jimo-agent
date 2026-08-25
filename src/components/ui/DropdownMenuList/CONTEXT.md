@@ -25,6 +25,17 @@ A single row/item inside a dropdown menu. Handles selection, hover, disabled, an
 `state` forces a visual state; the live `:hover` style still applies on top.
 default → hover → selected → hover-selected → disabled (also: list-header, danger)
 
+### Fork from the .css: `selected` is filled
+
+`selected` paints `--color-brand-subtle` with `--color-brand-default` text, where the original
+`.css` gave it blue text on a white row. A menu and the `DropdownSelector` that opens it are one
+control, and the selector's has-a-value / is-open state is `border-focus` + `brand-subtle` +
+`brand-default` — so an unfilled selected row read as a weaker, different kind of selection sitting
+directly under a filled trigger. `:hover` already resolved to the same pair (blue-100 **is**
+brand-subtle), so selected and hover now agree here exactly as they do on the selector.
+
+Held still by `Molecules/DropdownMenu` → `Open` / `OpenWithValue` / `RowStates`.
+
 ## Dependencies
 None — renders its own checkbox SVGs inline.
 
