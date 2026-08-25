@@ -71,6 +71,23 @@ Known upstream bug, do not "fix" it locally: `DropdownSelector`'s chevron declar
 `[transition:transform_…]` but `rotate-180` compiles to the standalone `rotate:` property, so the
 flip snaps. That is what Storybook does too, so it stays — matching Moji beats a local improvement.
 
+## Floating layers are portaled — never clip a menu
+
+Every dropdown, popover and menu goes through `src/components/app/Menu.tsx`, which portals its
+panel to `document.body` and positions it from the trigger's rect. An absolutely-positioned panel
+is clipped by any ancestor `overflow`, and captured by any ancestor that ends on a `transform` —
+`Table`'s scroll wrapper and `ModalOverlay`'s content animation are both already in that category,
+and neither is near the menu in the source.
+
+Do not fix a clipped menu by adding `overflow-visible` to whatever ancestor clipped it this time.
+The full rule, the four requirements for any new floating layer, and how to assert it, live in
+Storybook: **Foundations/Floating Layers** (`stories/0-foundations/FloatingLayers.mdx`).
+
+Two consequences that bite: a body-level panel is a *sibling* of `ModalOverlay`, so it needs
+`z-[calc(var(--z-modal)+1)]`, not `--z-dropdown`; and outside-click detection must test the panel
+as well as the trigger. Also — never put a value in a positioning layout effect's dep array that is
+a fresh object each render (`children` is), or the effect re-measures, re-renders and loops.
+
 ## Vendored Moji — do not edit `../../jimo-storybook`
 
 `src/components/ui/*`, `src/styles/*` and `src/lib/utils.ts` are copies. The upstream repo is
@@ -88,7 +105,12 @@ read-only for this project. Traps that already bit once:
   which does not exist in the 993 exports.
 
 `SecondaryNavSidebar` is forked to take a `sections` prop (upstream hardcodes its IA). Keep the
-fork additive.
+fork additive. Two more forks exist, both documented in the component's own `CONTEXT.md`:
+`Table` takes `scroll` (default `true` = unchanged), and `DropdownMenuList`'s `selected` is filled
+with `--color-brand-subtle` so a selected row matches the `DropdownSelector` above it.
+
+These local copies may be forked; `../../jimo-storybook` may not. When a fork lands here, say so in
+the component's header comment AND its `CONTEXT.md`, so the next reader can tell it from drift.
 
 ## Widget CSS
 

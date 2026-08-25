@@ -1,0 +1,74 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Foundations/Floating Layers" />
+
+# Floating layers — a menu is never clipped
+
+**The rule: any floating panel — dropdown menu, popover, tooltip, combobox list — renders in a
+portal on `document.body` and is positioned from its trigger's `getBoundingClientRect()`. It is
+never an absolutely-positioned sibling of its trigger.**
+
+This is not a preference. It is the only formulation that cannot be broken later by a component
+that knows nothing about the menu.
+
+## Why `position: absolute` inside the trigger always breaks eventually
+
+An absolutely-positioned panel is clipped or mispositioned by **any** ancestor between it and the
+viewport that does one of these:
+
+| Ancestor does… | What happens to the panel | Where this already exists here |
+|---|---|---|
+| `overflow: auto / hidden / scroll` | Clipped at the ancestor's padding box | `Table`'s scroll wrapper; `ModalCard`'s `overflow-hidden` |
+| ends on a `transform`, `filter`, `perspective`, `contain: paint`, `backdrop-filter` | Becomes the containing block — **`position: fixed` is captured too** | `ModalOverlay`'s content animation ends on a transform (`animation-fill-mode: both`) |
+| creates a stacking context with a lower `z-index` | Panel is painted under a later sibling | any `z-*` card |
+
+The failure mode is what makes this worth a rule: none of those ancestors is *wrong*, none of them
+is near the menu in the source, and the breakage shows up only in the one state where the panel
+happens to reach past an edge. It is invisible in a typecheck, invisible in a unit test, and
+invisible in the story that renders the menu closed.
+
+Chasing it downstream means adding `overflow-visible` to each new ancestor forever — and
+`overflow-visible` on a scroll container is not a fix, it is a second bug.
+
+## What to use
+
+`src/components/app/Menu.tsx` implements the rule. Use it for every menu:
+
+```jsx
+<Menu open={open} onClose={() => setOpen(false)} align="right" trigger={<DropdownSelector … />}>
+  <DropdownMenuList text="Jimo SDK" … />
+</Menu>
+```
+
+If you write a new floating layer instead of using `Menu`, it must do all four of these:
+
+1. **`createPortal(panel, document.body)`** — not a child of the trigger.
+2. **`position: fixed`, offsets from the trigger's rect** — anchor by `right` for a right-aligned
+   panel so it pins without needing its own width measured first.
+3. **`z-index` above `--z-modal`** — a body-level panel is a *sibling* of `ModalOverlay`, not a
+   child of it, so `--z-dropdown` (100) would paint underneath a dialog. `Menu` uses
+   `z-[calc(var(--z-modal)+1)]`.
+4. **Outside-click detection that tests the panel too** — the panel is no longer a DOM descendant
+   of the trigger, so `wrapper.contains(e.target)` alone will close the menu on its own items.
+
+And reposition on `scroll` (capture: true, so inner scrollers count) and `resize` while open — a
+fixed panel does not follow its trigger for free.
+
+## Checking it
+
+The cheap assertion, from the console or a play function:
+
+```js
+const panel = document.querySelector('[data-slot="menu-panel"]');
+panel.parentElement === document.body;                       // portaled
+const b = panel.getBoundingClientRect();
+document.elementFromPoint(b.left + b.width / 2, b.top + 10)   // nothing painted over it
+  .closest('[data-slot="menu-panel"]') !== null;
+```
+
+Two traps when verifying by hand:
+
+- Measure **after** the 150ms enter transition, or with transitions disabled. Mid-flight the panel
+  is still at `scale(.85)` and every measurement is 15% small.
+- An occluded or background browser window freezes compositor-driven transitions, so the panel can
+  sit at opacity 0 forever with `opacity-100` on it. That is the window, not the code.
