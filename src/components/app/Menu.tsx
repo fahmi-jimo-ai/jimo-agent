@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
+import { TickCircle } from 'iconsax-react';
 import { cn } from '@/lib/utils';
 import { DropdownMenuGroup } from '@/components/ui/DropdownMenuGroup/DropdownMenuGroup';
 
@@ -207,16 +208,12 @@ export function MenuItem({
       )}
       <span className="flex-1 truncate">{label}</span>
       {selected && (
-        <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-[var(--color-blue-400)]" aria-hidden="true">
-          <path
-            d="M20 6L9 17l-5-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        // Figma 105:4515 draws this as vuesax/bold/tick-circle at 20 — a filled
+        // disc, not a bare tick. It reads as a state at a glance where a hairline
+        // check reads as decoration next to the row's own 20px vendor mark.
+        <span aria-hidden="true" className="flex size-5 shrink-0 text-[var(--color-blue-400)]">
+          <TickCircle size={20} variant="Bold" color="currentColor" />
+        </span>
       )}
     </button>
   );
