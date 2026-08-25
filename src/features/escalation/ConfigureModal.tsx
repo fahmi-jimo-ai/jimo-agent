@@ -110,7 +110,16 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
     ) : undefined;
 
   return (
-    <ModalCard title={title} onClose={onClose} footer={footer} step={step} direction={direction}>
+    <ModalCard
+      title={title}
+      onClose={onClose}
+      footer={footer}
+      // The confirm shape (112:4938) is a step like any other, so the card
+      // morphs 560 -> 440 into it rather than a second dialog opening over it.
+      variant={step === 'disable' ? 'confirm' : 'card'}
+      step={step}
+      direction={direction}
+    >
       {step === 'connect-crisp' ? (
         <CrispConnectFields value={crispForm.value} onChange={crispForm.setValue} disabled={crispForm.busy} />
       ) : step === 'oauth' && authing ? (
@@ -123,11 +132,13 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
           }}
         />
       ) : step === 'disable' ? (
-        <p className="m-0 [font:var(--text-body-2)] text-[var(--color-text-secondary)]">
+        // One sentence: the confirm shape centres its body under a 32px
+        // heading, and the paragraph this replaced was written for a
+        // left-aligned 560 card.
+        <p className="m-0">
           Your agent will stop routing requests to{' '}
-          {vendor ? VENDOR_LABEL[vendor] : 'your support tool'} — a user asking for a human gets the
-          agent’s own answer instead. Your triggers, topics and connection stay saved, so turning
-          escalation back on picks up exactly where you left off.
+          {vendor ? VENDOR_LABEL[vendor] : 'your support tool'} — your triggers, topics and
+          connection stay saved.
         </p>
       ) : (
         <>

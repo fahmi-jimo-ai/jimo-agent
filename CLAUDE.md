@@ -88,6 +88,53 @@ Two consequences that bite: a body-level panel is a *sibling* of `ModalOverlay`,
 as well as the trigger. Also — never put a value in a positioning layout effect's dep array that is
 a fresh object each render (`children` is), or the effect re-measures, re-renders and loops.
 
+## A flow is one dialog with steps — never a dialog on a dialog
+
+`ModalCard` takes a `step` string. Changing it cross-slides the card's whole interior and eases the
+height between the two layouts; `direction: 'back'` slides the return leg the other way. Every
+multi-beat flow uses it — Configuration -> Connect Crisp -> back, the re-auth redirect, and the
+disable confirmation are all steps of the ONE card the Configure button opened.
+
+Rendering a second `ModalCard` over the first is the bug: two backdrops darken the page twice,
+Escape gets two targets, and the card underneath stays visible at the wrong size behind the new one.
+
+`ModalCard` draws two shapes, chosen with `variant`. `card` is the form dialog (`43:6997` family:
+header bar, close button, `--space-6` gutters, right-aligned footer, 560 wide). `confirm` is
+`112:4938`: the one-question shape — headerless, no close button, title and body centred, two equal
+buttons filling the row, 440 wide. A step may change the variant, and the card eases its width as
+well as its height, so a flow can stop and ask something mid-way without a second dialog appearing.
+
+That makes `confirm` a variant where `PickerDialog` is a sibling, and the distinction is the rule:
+the picker is opened on its own and never shares a flow with `ModalCard`, so it owns its overlay;
+the confirm is only ever reached from inside a `ModalCard` flow, so it must not own one. Its shell
+radius is `--radius-xxl` (20px) — the artboard says 24 and the ramp ends at 20, and staying on the
+token beat forking `tokens.css` for one dialog. The artboard's navy primary is the default; a
+destructive confirm opts into `Button`'s `danger`.
+
+Two things that follow from the height ease:
+- The card is unconditionally `overflow-hidden`, so `allowOverflow` is gone. That is only safe
+  because `Menu` portals its panel to `<body>` — an in-tree floating panel WOULD be clipped.
+- `AutoHeight` holds a pixel height only for the 200ms of one ease, then drops back to `auto`. It
+  does the measuring in a plain layout effect with no dep array, NOT a ResizeObserver: RO callbacks
+  are driven by the rendering lifecycle, so in a tab that is not painting they never fire and the
+  card sticks at whatever height it last saw. Layout effects run on commit regardless.
+
+## The support tool row owns whatever that tool needs
+
+Figma `105:4515` (Intercom / Zendesk / Crisp) and `105:4514` (Support Email) draw the "Escalation
+Support Tool" row as a card in two parts: the selector on top, and a section under a rule that
+belongs to the chosen tool. The selector itself never opens a flow — switching is instant, and the
+section below then shows what the new tool still needs. Its menu names the SELECTED tool plainly
+and phrases every other row as "Switch to …".
+
+Crisp is the one vendor that is not an OAuth redirect: it takes a workspace token pair, so it has a
+credentials form (`CrispConnectFields`, shared verbatim by the standalone `CrispConnectModal` the
+hero opens and by Configuration's `connect-crisp` step) and the only vendor state persisted locally
+(`crisp` in `EscalationState`).
+
+Turning the Enable switch OFF does not write state — it opens the `disable` step, which is what
+leaves the switch still reading "on" behind the confirmation. Turning it on stays immediate.
+
 ## Vendored Moji — do not edit `../../jimo-storybook`
 
 `src/components/ui/*`, `src/styles/*` and `src/lib/utils.ts` are copies. The upstream repo is

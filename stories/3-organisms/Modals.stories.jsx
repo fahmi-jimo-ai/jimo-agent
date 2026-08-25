@@ -2,6 +2,8 @@ import React from 'react';
 import { SupportEmailModal } from '../../src/features/escalation/SupportEmailModal';
 import { CrispConnectModal } from '../../src/features/escalation/CrispConnectModal';
 import { ConfigureModal } from '../../src/features/escalation/ConfigureModal';
+import { ModalCard } from '../../src/components/app/ModalCard';
+import { Button } from '../../src/components/ui/Button/Button';
 import { ToastProvider } from '../../src/components/app/toast';
 import { SEEDS, seed } from '../../src/state/seed';
 
@@ -60,6 +62,67 @@ export const ConfigureSupportEmailEditing = {
 /** The credentials form, as reached from the hero's enable menu. */
 export const ConnectCrisp = {
   render: host(<CrispConnectModal onCancel={noop} onConnected={noop} />, SEEDS.notEnabled),
+};
+
+/* ----
+ * ModalCard's second shape. `variant="confirm"` is 112:4938 — headerless, no
+ * close button, centred, 440 wide, two equal buttons. It is a variant rather
+ * than a sibling component because it is only ever reached from inside a flow
+ * ModalCard is already running, so the same card morphs into it; see the
+ * component's header comment.
+ * ---- */
+
+/** 112:4938 — the shape itself, with the artboard's own placeholder copy. */
+export const Confirm = {
+  render: host(
+    <ModalCard
+      variant="confirm"
+      title="Question Title?"
+      onClose={noop}
+      footer={
+        <>
+          <Button variant="outline" onClick={noop}>
+            Secondary action
+          </Button>
+          <Button onClick={noop}>Primary action</Button>
+        </>
+      }
+    >
+      Lorem ipsum dolor sir 1 sentence thing
+    </ModalCard>,
+    SEEDS.notEnabled
+  ),
+  parameters: { design: { type: 'figma', url: FIGMA + '112-4938' } },
+};
+
+/**
+ * The real instance, as the Configuration card morphs into it when the Enable
+ * switch is turned off. The artboard's primary is navy, which stays the
+ * variant's default — a destructive confirm opts into `danger` on the button.
+ */
+export const ConfirmDestructive = {
+  render: host(
+    <ModalCard
+      variant="confirm"
+      title="Disable escalation?"
+      onClose={noop}
+      footer={
+        <>
+          <Button variant="outline" onClick={noop}>
+            Cancel
+          </Button>
+          <Button danger onClick={noop}>
+            Disable escalation
+          </Button>
+        </>
+      }
+    >
+      Your agent will stop routing requests to Intercom — your triggers, topics and connection stay
+      saved.
+    </ModalCard>,
+    SEEDS.notEnabled
+  ),
+  parameters: { design: { type: 'figma', url: FIGMA + '112-4938' } },
 };
 
 export const Playground = {
