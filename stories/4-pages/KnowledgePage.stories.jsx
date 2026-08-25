@@ -44,7 +44,7 @@ const page = (seedFn, node, props = {}) => ({
 });
 
 export const Empty = page(seed([]), '892-12055');
-export const AddPropertyDialog = page(seed([]), '901-15549', { initialModalOpen: true });
+export const AddPropertyDialog = page(seed([]), '921-17353', { initialModalOpen: true });
 export const Populated = page(seed(ids()), '887-10867');
 export const NoResultsFromSearch = page(seed(ids()), '892-13280', { initialSearch: 'Role' });
 // The filter frame: only custom attributes are in Agent Context, so filtering

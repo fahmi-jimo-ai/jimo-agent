@@ -1,17 +1,17 @@
 import * as React from 'react';
-import { Add, SearchNormal1, ProfileCircle, Data } from 'iconsax-react';
+import { Add, SearchNormal1, ProfileCircle, DocumentCode } from 'iconsax-react';
 import { Section } from '@/components/ui/Section/Section';
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
 import { DropdownSelector } from '@/components/ui/DropdownSelector/DropdownSelector';
 import { DropdownMenuList } from '@/components/ui/DropdownMenuList/DropdownMenuList';
 import { Menu } from '@/components/app/Menu';
-import { JimoMark } from '@/components/brand/JimoMark';
+import { JimoMarkBoxed } from '@/components/brand/JimoMark';
 import { useToast } from '@/components/app/toast';
 import { PropertyTable } from './PropertyTable';
 import { PropertyEmptyState } from './PropertyEmptyState';
 import { AddPropertyModal } from './AddPropertyModal';
-import { PROPERTY_BY_ID, type PropertySource } from '@/data/userProperties';
+import { USER_PROPERTIES, type PropertySource } from '@/data/userProperties';
 import { useKnowledge, addProperties, removeProperty } from '@/state/useKnowledge';
 
 type Filter = 'all' | PropertySource;
@@ -54,7 +54,10 @@ export function UserContextSection({
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [adding, setAdding] = React.useState(initialModalOpen);
 
-  const added = addedIds.map((id) => PROPERTY_BY_ID[id]).filter(Boolean);
+  // Catalogue order, NOT `addedIds` order: the table has to read the same way
+  // as the modal the rows were picked in. Ordering by when each was added
+  // makes the list reshuffle for reasons the user cannot see.
+  const added = USER_PROPERTIES.filter((p) => addedIds.includes(p.id));
 
   const q = search.trim().toLowerCase();
   const shown = added.filter((p) => {
@@ -81,7 +84,12 @@ export function UserContextSection({
           </Button>
         }
       >
-        {hasAny && (
+        {/* `? :` and not `&&`: `hasAny && …` hands Section the value `false`,
+            and `false != null`, so Section renders an empty content div AND the
+            --space-6 gap above it — the phantom strip under the header on the
+            nothing-added frame (892:12055). `null` is the only falsy value
+            Section treats as "no body". */}
+        {hasAny ? (
           <div className="flex flex-col gap-[var(--space-4)]">
             <div className="flex items-center gap-[var(--space-4)]">
               <Input
@@ -118,12 +126,16 @@ export function UserContextSection({
                       value === 'all' ? (
                         <ProfileCircle size={20} variant="Linear" color="currentColor" />
                       ) : value === 'jimo' ? (
-                        <JimoMark size={20} />
+                        // 887:11711 — the mark inside a rounded-square outline,
+                        // so it reads as a sibling of the two iconsax glyphs
+                        // rather than a bare wordmark floating in the slot.
+                        <JimoMarkBoxed size={20} />
                       ) : (
-                        // Figma names this glyph vuesax/linear/document-code,
-                        // which iconsax-react 0.0.8 does not export. `Data` is
-                        // the nearest shape in the 993 it does.
-                        <Data size={20} variant="Linear" color="currentColor" />
+                        // Figma names this glyph vuesax/linear/document-code.
+                        // iconsax-react 0.0.8 DOES export it (verified against
+                        // the 993 names) — an earlier note here claiming
+                        // otherwise was wrong, and `Data` was standing in.
+                        <DocumentCode size={20} variant="Linear" color="currentColor" />
                       )
                     }
                     onClick={() => {
@@ -156,7 +168,7 @@ export function UserContextSection({
               <PropertyEmptyState />
             )}
           </div>
-        )}
+        ) : null}
       </Section>
 
       {adding && (

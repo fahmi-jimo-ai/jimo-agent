@@ -24,7 +24,22 @@ import { DATA_TYPE_LABEL, type UserProperty } from '@/data/userProperties';
  * deliberate deviations, both resolved in Moji's favour per CLAUDE.md: the cell
  * inset is --space-4 against Figma's 12px, and the row runs slightly taller
  * than the artboard's 61px. No `divider` — these rows carry no rules.
+ *
+ * Two things this table overrides on purpose:
+ *
+ *  - The OUTER cell padding is zeroed. Every other row on the card — the search
+ *    field, the type filter — begins and ends on the Section's content box, and
+ *    a table inset by a further --space-4 on each side reads as a second, wrong
+ *    margin. Only the first and last columns lose padding, so the gutters
+ *    *between* columns are untouched.
+ *  - `scroll={false}`. The card is not a scroll region (887:10867 shows the
+ *    whole table), and the wrapper's `overflow: auto` was also the box that
+ *    clipped the row action menu before `Menu` started portaling.
  */
+const FLUSH_EDGES =
+  '[&_th:first-child]:pl-0 [&_td:first-child]:pl-0 ' +
+  '[&_th:last-child]:pr-0 [&_td:last-child]:pr-0';
+
 export function PropertyTable({
   properties,
   onEdit,
@@ -37,7 +52,7 @@ export function PropertyTable({
   const [openFor, setOpenFor] = React.useState<string | null>(null);
 
   return (
-    <Table>
+    <Table scroll={false} className={FLUSH_EDGES}>
       <TableHeader>
         <TableRow>
           <TableHead>Display Name</TableHead>
@@ -55,6 +70,10 @@ export function PropertyTable({
             <TableUserCell
               avatar={<PropertyTypeTile dataType={property.dataType} source={property.source} />}
               title={property.name}
+              // Body 3, not TableUserCell's Montserrat subtitle: this row names a
+              // property, and it has to read as the same row the add-property
+              // dialog shows for the same thing (921:17353).
+              titleClassName="[font:var(--text-body-3)]"
               subtitle={property.description}
             />
             <TableCell>{DATA_TYPE_LABEL[property.dataType]}</TableCell>
