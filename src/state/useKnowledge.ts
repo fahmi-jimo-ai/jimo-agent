@@ -5,5 +5,16 @@ export function useKnowledge() {
   return useSyncExternalStore(subscribeKnowledge, getKnowledge, getKnowledge);
 }
 
-export { addProperties, removeProperty, resetKnowledge } from './knowledgeStore';
-export type { KnowledgeState } from './knowledgeStore';
+export {
+  addProperties,
+  removeProperty,
+  resetKnowledge,
+  addSource,
+  removeSource,
+  updateSource,
+  retrySource,
+  resumeTraining,
+  setSources,
+  setRetrain,
+} from './knowledgeStore';
+export type { KnowledgeState, RetrainFrequency } from './knowledgeStore';

@@ -211,7 +211,7 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
                   </Badge>
                 </span>
               }
-              description="Fill the page with a workspace that has been running a while — handoffs chart and a full topic list. Turning it off restores your own setup."
+              description="Fill the app with a workspace that has been running a while — handoffs chart, a full topic list, and a trained Knowledge sources table. Turning it off restores your own setup."
               control={<Switch checked={demo} onCheckedChange={(v) => setDemo(v === true)} />}
             />
           </SettingCard>
