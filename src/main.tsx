@@ -5,6 +5,8 @@ import './styles/globals.css';
 import './styles/global.css';
 import { EscalationPage } from './features/escalation/EscalationPage';
 import { KnowledgePage } from './features/knowledge/KnowledgePage';
+import { StatisticsPage } from './features/statistics/StatisticsPage';
+import { ConversationsPage } from './features/conversations/ConversationsPage';
 import { ToastProvider } from './components/app/toast';
 
 // ToastProvider sits OUTSIDE the router so a toast raised just before a nav
@@ -21,6 +23,11 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<Navigate to="/escalation" replace />} />
           <Route path="/escalation" element={<EscalationPage />} />
           <Route path="/knowledge" element={<KnowledgePage />} />
+          {/* Figma draws Statistics and Conversations as two tabs of one
+              "Analyze" page. They are two routes here, because the sidebar has
+              always listed them as two peer items — see StatisticsPage. */}
+          <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/conversations" element={<ConversationsPage />} />
           <Route path="*" element={<Navigate to="/escalation" replace />} />
         </Routes>
       </BrowserRouter>
