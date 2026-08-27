@@ -5,7 +5,7 @@ import { DropdownMenuList } from '@/components/ui/DropdownMenuList/DropdownMenuL
 import { Menu } from '@/components/app/Menu';
 import { Avatar } from '@/components/app/Avatar';
 import { MessageBubble } from './MessageBubble';
-import type { Conversation } from '@/data/analytics';
+import type { Conversation, TriggeredSkill } from '@/data/analytics';
 
 /**
  * The right pane — Figma 934:28534 / 934:29319.
@@ -18,11 +18,17 @@ import type { Conversation } from '@/data/analytics';
 export function ConversationDetail({
   conversation,
   onAction,
+  onSkillClick,
+  traceDefaultOpen = false,
 }: {
   conversation: Conversation;
   onAction: (label: string) => void;
+  onSkillClick: (skill: TriggeredSkill) => void;
+  /** Stories open the first agent turn's trace so it can be diffed. */
+  traceDefaultOpen?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
+  const firstAgentTurn = conversation.transcript.findIndex((t) => t.from === 'agent');
 
   const act = (label: string) => () => {
     setOpen(false);
@@ -84,6 +90,8 @@ export function ConversationDetail({
             userName={conversation.name}
             onAnswerThis={() => onAction('Answer this…')}
             onNewCustomAnswer={() => onAction('New Custom Answer')}
+            onSkillClick={onSkillClick}
+            traceDefaultOpen={traceDefaultOpen && i === firstAgentTurn}
           />
         ))}
       </div>

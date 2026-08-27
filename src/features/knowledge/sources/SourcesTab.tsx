@@ -33,17 +33,24 @@ import type { KindFilter, StatusFilter } from './SourceToolbar';
  * state, not config — persisting them would make a stray search term survive a
  * reload and sync across tabs. The `initial*` props exist so a story can land
  * directly on a filtered frame.
+ *
+ * `initialDetailId` is the same shape, and carries the `?source=` deep link a
+ * conversation's thinking trace links in with (see `KnowledgePage`). It seeds
+ * `detailId` rather than controlling it, so closing the drawer closes it — a
+ * controlled prop would fight the close button on every render.
  */
 export function SourcesTab({
   initialSearch = '',
   initialKind = 'all',
   initialStatus = 'all',
   initialAddKind,
+  initialDetailId,
 }: {
   initialSearch?: string;
   initialKind?: KindFilter;
   initialStatus?: StatusFilter;
   initialAddKind?: SourceKind;
+  initialDetailId?: string;
 }) {
   const { sources, retrain } = useKnowledge();
   const toast = useToast();
@@ -54,7 +61,7 @@ export function SourcesTab({
   const [draft, setDraft] = React.useState<AddSourceDraft | null>(
     initialAddKind ? { kind: initialAddKind } : null,
   );
-  const [detailId, setDetailId] = React.useState<string | null>(null);
+  const [detailId, setDetailId] = React.useState<string | null>(initialDetailId ?? null);
 
   // `training` is persisted but its timer is not, so a reload would strand the
   // pill forever without this. `resumeTraining` is idempotent — arming an id

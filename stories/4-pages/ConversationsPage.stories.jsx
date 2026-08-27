@@ -17,14 +17,14 @@ const meta = {
 };
 export default meta;
 
-const page = (seedFn, node) => ({
+const page = (seedFn, node, props = {}) => ({
   render: () => {
     seedFn();
     return (
       <ToastProvider>
         <MemoryRouter initialEntries={['/conversations']}>
           <div style={{ height: '810px' }}>
-            <ConversationsPage />
+            <ConversationsPage {...props} />
           </div>
         </MemoryRouter>
       </ToastProvider>
@@ -53,6 +53,23 @@ export const Empty = page(ANALYTICS_SEEDS.conversationsEmpty, '934-30359');
 
 /** Figma 934:30109 — "Jim" matches nothing. The toolbar stays; Clear Filters returns. */
 export const NoResults = page(ANALYTICS_SEEDS.conversationsNoResults, '934-30109');
+
+/**
+ * The reasoning trace, expanded — Figma `12983:8096` in Interface-Knowledge.
+ * That frame is the trace ALONE, so diff the card inside the first agent
+ * bubble against it, not the page. Note the trace is collapsed in every other
+ * story, which is how the app opens.
+ */
+export const ThinkingExpanded = {
+  ...page(ANALYTICS_SEEDS.conversations, null, { traceDefaultOpen: true }),
+  parameters: {
+    layout: 'fullscreen',
+    design: {
+      type: 'figma',
+      url: 'https://www.figma.com/design/ZapclwcQZLBxoeYxfo1ms0/Interface-Knowledge?node-id=12983-8096',
+    },
+  },
+};
 
 /** A response filter narrowing the list — no artboard, so no design parameter. */
 export const OnlyNotHelpful = page(() => seedAnalytics({ convoResponse: 'not-helpful' }));

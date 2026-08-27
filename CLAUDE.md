@@ -1,7 +1,9 @@
 # jimo-agent — Claude Code reference
 
-The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Two pages today:
-**Escalation** (`/escalation`) and **Knowledge** (`/knowledge`); `/` redirects to Escalation.
+The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Four pages today:
+**Escalation** (`/escalation`), **Knowledge** (`/knowledge`), **Statistics** (`/statistics`) and
+**Conversations** (`/conversations`); `/` redirects to Escalation. The sidebar lists three more —
+Chat, Launcher, Skills — which are deliberately inert, because nothing is designed behind them.
 Read `README.md` first for what the app is; this file is the working rules.
 
 ## Run
@@ -144,6 +146,43 @@ header comment, never silent: the Added column (`SourceTable`), the token quota
 two different card orders (`SourcesEmptyState`), and Video, which has a dialog in the file but
 no way into it from the newer frames.
 
+**Test Knowledge is a menu now, and the label did not change.** The artboard's 36px secondary
+button with its play glyph is untouched; what changed is that it opens **Preview here** (the
+simulator, `openWidget()`) and **Preview in-app** (a `ModalCard` that asks for the app's URL).
+It goes through `PageHeader`'s `actions` fork rather than `buttons[]`, because `Menu` wraps its own
+trigger in order to measure it. `normalisePreviewUrl` is tested rather than inlined: the value
+reaches `window.open`, and `new URL()` accepts `javascript:` and `mailto:you@acme.com` just as
+happily as `https:`.
+
+**`?source=<id>` opens the Content Detail drawer.** A citation in a conversation's reasoning trace
+links here by source id. `KnowledgePage` reads the param ONCE into `SourcesTab`'s `initialDetailId`
+and then strips it, so the drawer is a destination rather than a mode — reading it on every render
+would fight the close button, and leaving the param would reopen the drawer on reload.
+
+## The reasoning trace is one object drawn on two surfaces
+
+`ThinkingTrace` (`/conversations`) and the widget's `.ag-pill` → `.ag-runlog` are the same idea:
+one line of what the agent did, opening onto the list of what it did. Keep them recognisable as
+each other — a change to one is a question about the other.
+
+Three rules the component's header comment expands on:
+
+- **The rail is drawn by LAYOUT, not by the fixture.** Figma builds it as a rigid second column of
+  16px glyphs and 14.3px connectors whose pitch happens to match the label column's. That desyncs
+  the moment a label wraps, which these labels do at this width. Each step is one row instead: the
+  rail cell stretches, the icon takes the first line's 18px, the connector is `flex-1` through the
+  rest. No magic 14.3.
+- **Open state is local and NOT persisted.** `AnalyticsState` is a config store — range, metric,
+  filters, the selected row. Where a reader is inside a page is not configuration.
+- **`rotate`, not `transform`.** Tailwind v4 compiles `rotate-180` to the standalone `rotate:`
+  property, so a transition naming `transform` never fires. Same trap `Menu` documents for `scale`
+  and `Drawer` for `translate`.
+
+A citation has up to two destinations and they are not the same thing: the Content Detail drawer
+(what the agent indexed) and the resource itself (whether the source is still true). The row prefers
+the drawer, falls back to the resource, and greys out only when neither exists — the answer did use
+it, and a record that quietly drops its sources is worse than one that admits it lost them.
+
 ## A drawer is a sibling of the card, not a third variant
 
 `src/components/app/Drawer.tsx` is the Content Detail panel (`932:18232`). It is NOT a
@@ -188,9 +227,12 @@ read-only for this project. Traps that already bit once:
   which does not exist in the 993 exports.
 
 `SecondaryNavSidebar` is forked to take a `sections` prop (upstream hardcodes its IA). Keep the
-fork additive. Two more forks exist, both documented in the component's own `CONTEXT.md`:
-`Table` takes `scroll` (default `true` = unchanged), and `DropdownMenuList`'s `selected` is filled
-with `--color-brand-subtle` so a selected row matches the `DropdownSelector` above it.
+fork additive. Three more forks exist, each documented in the component's own `CONTEXT.md`:
+`Table` takes `scroll` (default `true` = unchanged); `DropdownMenuList`'s `selected` is filled
+with `--color-brand-subtle` so a selected row matches the `DropdownSelector` above it; and
+`PageHeader` takes `meta` (a passive status line) plus `actions` (a right-cluster slot for an
+action `buttons[]` cannot express — every entry there is rendered as a bare `<Button>`, so a
+`Menu` trigger has nowhere to go).
 
 These local copies may be forked; `../../jimo-storybook` may not. When a fork lands here, say so in
 the component's header comment AND its `CONTEXT.md`, so the next reader can tell it from drift.
@@ -209,6 +251,19 @@ Panel surfaces share a six-property contract (bg / border-width / style / colour
 and there is **exactly one panel radius terminal: 20px**. A new panel that invents its own radius
 is the bug.
 
+**The CSS is ahead of nothing — keep the MARKUP in step instead.** That stylesheet styles all nine
+of the prototype's states, and `AgentWidget.tsx` used to render four, so `.ag-pill`, `.ag-runlog`,
+`.ag-botbar` and the `.ag-opt-*` rows styled nodes that did not exist. The slots now match
+`trigger-demo/builder/src/prototype/prototype.html` one for one, in its order. When that prototype
+moves, the fix is here in the TSX — reach for widget.css only if the two files have genuinely
+diverged, and then re-port it whole rather than patching a rule.
+
+Five of those states — `asking`, the two `guide-*` and the two `execute-*` — are **layout only**.
+`escalationEngine` answers support questions; it has no host app to guide anyone around, so nothing
+produces them. They are reached through `AgentWidget`'s `state` override, which Storybook uses, and
+everything they say is invented (see below). Wiring them means giving the widget a host to act on,
+which is a different piece of work, not a missing `if`.
+
 ## Invented, and labelled as such
 
 `MATCHERS` in `src/data/fixtures.ts` — the phrase lists that decide explicit-ask, rejection and
@@ -219,6 +274,18 @@ and keep the comments saying so.
 The Sources tab adds three more, each commented at its own site: the 2s training delay in
 `src/state/trainingTimers.ts`, the two rules "Regenerate rules with AI" produces in
 `UrlRuleRows.tsx`, and the per-source token cost in `AddSourceModal.tsx`.
+
+The **reasoning trace** adds two, both in `src/data/analytics.ts`. Its SHAPE is transcribed from
+Figma `12983:8096` (Interface-Knowledge) — an icon rail, a hairline connector, one label per step —
+but that frame is a BROWSER agent filling a CRM form ("Go to Deals page", "Fill 12,000 in Amount
+field"), so every step, skill and citation the support transcripts carry is made up. `CitedSource`
+carries its own `label` / `kind` / `href` on purpose: a conversation is a historical record, the
+knowledge store starts EMPTY, and a citation that could only render by finding a live row would
+blank out exactly when the record matters. `sourceId` is a link, never the row's text.
+
+The five undrawn widget states add a third: everything `PILL_FACE`, `BOTBAR_TEXT`, `RUN_LOG` and
+`QUESTION` say in `AgentWidget.tsx`. The prototype's own copy is about a CRM deal pipeline; these
+are the support equivalents, and no artboard or PRD defines them.
 
 `src/lib/classifyChip.ts` is the opposite: transcribed **verbatim** from Figma node `29:12197`.
 Do not "improve" its rules — `classifyChip.test.ts` encodes the spec's own 12 worked examples.

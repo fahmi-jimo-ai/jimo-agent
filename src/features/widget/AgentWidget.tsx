@@ -4,7 +4,64 @@ import { evaluate, isRejection, REASON_COPY, type Decision } from './escalationE
 import { SAMPLE_BRIEF } from '@/data/fixtures';
 import { WidgetIcons, Ico } from './WidgetIcons';
 
-type WState = 'idle' | 'expanded' | 'thinking' | 'response';
+/**
+ * The Jimo agent launcher, in the layout trigger-demo currently ships.
+ *
+ * ## Why the DOM changed and the CSS did not
+ *
+ * `src/styles/widget.css` was ported whole from
+ * `trigger-demo/builder/src/styles/widget.css` and is still in step with it —
+ * same 1705-line generation, only this repo's own port header differs. What was
+ * NOT ported was the markup: this file used to render four of the prototype's
+ * nine states, so roughly a third of that stylesheet — `.ag-pill`,
+ * `.ag-runlog`, `.ag-botbar`, the `.ag-opt-*` rows and the four `s-guide-*` /
+ * `s-execute-*` gates — styled nodes that did not exist.
+ *
+ * The slots below now match `trigger-demo/builder/src/prototype/prototype.html`
+ * one for one, in its order. Nothing in widget.css was touched to make them
+ * render; if a slot looks wrong, the markup is wrong, not the stylesheet.
+ *
+ * ## Which states this widget can actually reach
+ *
+ * `escalationEngine` answers support questions. It drives `idle`, `expanded`,
+ * `thinking` and `response`, exactly as before — those four are the live
+ * widget. The other five are the prototype's CRM-agent flows (asking a
+ * clarifying question, guiding a user through a form, executing steps for
+ * them), and nothing in this repo produces them: there is no host app to guide
+ * anyone around. They are rendered as LAYOUT so the stylesheet has its nodes
+ * and each frame can be shot and diffed, and reached through the `state`
+ * override, which Storybook uses. Wiring them means giving the widget a host to
+ * act on — that is a different piece of work, not a missing `if`.
+ *
+ * ## What is invented here
+ *
+ * Everything the guide / execute / asking slots SAY. The prototype's own copy
+ * is about a CRM deal pipeline; the strings below are the support equivalents.
+ * No artboard and no PRD defines them. Same quarantine as `MATCHERS` in
+ * fixtures.ts.
+ *
+ * ## The run log is the pill's expanded face
+ *
+ * `.ag-pill` collapsed → `.ag-runlog.show` expanded is the widget's own version
+ * of the disclosure `ThinkingTrace` draws on `/conversations`: one line of what
+ * the agent is doing, opening onto the list of what it has done. Same object,
+ * two surfaces — keep them recognisable as each other.
+ */
+
+/** The prototype's nine. `s-{state}` on `.proto` is what widget.css gates on. */
+export type WState =
+  | 'idle'
+  | 'expanded'
+  | 'thinking'
+  | 'response'
+  | 'asking'
+  | 'guide-waiting'
+  | 'guide-checking'
+  | 'execute-action'
+  | 'execute-thinking';
+
+/** The four the escalation engine can actually produce. */
+const LIVE_STATES: WState[] = ['idle', 'expanded', 'thinking', 'response'];
 
 const THINK_MS = 1800;
 const STEP_MS = 1100;
@@ -22,18 +79,83 @@ const STARTERS = [
   'I want to talk to a human',
 ];
 
+/* ── Invented, and labelled as such ────────────────────────────────────────
+   Copy for the five states this repo cannot reach. The prototype fills these
+   from a live CRM run; there is no run here, so they are fixtures. */
+type PillFace = {
+  /** `is-icon` shows a glyph, `is-spin` shows the spinner. */
+  mode: 'icon' | 'spin';
+  icon?: string;
+  warn?: boolean;
+  title: string;
+  sub?: string;
+};
+
+const PILL_FACE: Record<Exclude<WState, 'idle' | 'expanded' | 'thinking' | 'response' | 'asking'>, PillFace> = {
+  'guide-waiting': {
+    mode: 'icon',
+    icon: 'i-mouse-square',
+    title: 'Guiding you to Settings → SSO',
+    sub: 'Step 2 of 4 · waiting for your action...',
+  },
+  'guide-checking': { mode: 'spin', title: 'Checking your action...' },
+  'execute-action': {
+    mode: 'icon',
+    icon: 'i-mouse-square',
+    title: 'Following up — Verify domain',
+    sub: '3 of 5',
+  },
+  'execute-thinking': { mode: 'spin', title: 'Thinking...' },
+};
+
+const BOTBAR_TEXT: Record<string, string> = {
+  'guide-waiting': 'Jimo AI is guiding you...',
+  'guide-checking': 'Jimo AI is guiding you...',
+  'execute-action': 'Jimo AI is doing an action for you...',
+  'execute-thinking': 'Jimo AI is doing an action for you...',
+};
+
+const RUN_LOG = [
+  'Read the current page',
+  'Opened Settings',
+  'Found the SSO section',
+  'Waiting for you to paste the metadata URL',
+];
+
+const QUESTION = {
+  index: 1,
+  total: 4,
+  text: 'Which identity provider are you connecting?',
+  options: ['Okta', 'Microsoft Entra ID', 'Google Workspace', 'Something else'],
+};
+
 interface Reply { title?: string; body: string; handoff?: Decision }
 
-export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: string) => void }) {
+export function AgentWidget({
+  onHandoff,
+  state: stateOverride,
+}: {
+  onHandoff: (d: Decision, brief: string) => void;
+  /**
+   * Forces a state and freezes the engine. Storybook's way into the five
+   * frames this repo has no host app to produce — see the header comment.
+   */
+  state?: WState;
+}) {
   const cfg = useEscalation();
 
-  const [state, setState] = React.useState<WState>('idle');
+  const [live, setLive] = React.useState<WState>('idle');
   const [draft, setDraft] = React.useState('');
   const [echo, setEcho] = React.useState('');
   const [reply, setReply] = React.useState<Reply | null>(null);
   const [step, setStep] = React.useState(0);
   const [failedStreak, setFailedStreak] = React.useState(0);
   const [headOpen, setHeadOpen] = React.useState(false);
+  const [logOpen, setLogOpen] = React.useState(false);
+  const [selected, setSelected] = React.useState(-1);
+
+  const state = stateOverride ?? live;
+  const frozen = stateOverride != null;
 
   const timers = React.useRef<number[]>([]);
   const clearTimers = () => {
@@ -50,16 +172,17 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
   }, [state]);
 
   const send = (text: string) => {
+    if (frozen) return;
     const q = text.trim();
     if (!q) {
-      if (state === 'idle') setState('expanded');
+      if (state === 'idle') setLive('expanded');
       return;
     }
     setEcho(q);
     setDraft('');
     setStep(0);
     setReply(null);
-    setState('thinking');
+    setLive('thinking');
 
     const decision = evaluate(q, cfg, failedStreak);
     setFailedStreak((n) => (isRejection(q) ? n + 1 : 0));
@@ -71,14 +194,14 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
             title: 'Here’s what I found',
             body: 'Single sign-on is configured under **Settings → SSO**. Add your identity provider’s metadata URL, then verify your domain so members can sign in with it.',
           });
-          setState('response');
+          setLive('response');
           return;
         }
 
         if (decision.behaviour === 'immediate') {
           // Stated intent, or the customer's own topic rule: no card, no ask.
           onHandoff(decision, SAMPLE_BRIEF);
-          setState('idle');
+          setLive('idle');
           setEcho('');
           return;
         }
@@ -88,7 +211,7 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
           body: `${REASON_COPY[decision.reason]}, so I can hand this to the support team with everything you've already told me — you won't have to repeat it.`,
           handoff: decision,
         });
-        setState('response');
+        setLive('response');
       }, THINK_MS)
     );
   };
@@ -96,6 +219,9 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
   const [lead, tail, icon] = THINK_CYCLE[step];
   const placeholder =
     state === 'thinking' ? 'Write a follow-up...' : state === 'response' ? 'Write a reply...' : 'Ask Jimo AI...';
+
+  const pill = LIVE_STATES.includes(state) || state === 'asking' ? null : PILL_FACE[state];
+  const asking = state === 'asking';
 
   return (
     <div className={`proto s-${state}`}>
@@ -140,16 +266,28 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
             </div>
           </div>
 
-          {/* Response window */}
+          {/* Response window — and, in `asking`, the question. ONE window, one
+              body: the option rows are children of `.ag-win-body`, never a
+              second panel welded to this one. See widget.css's own note. */}
           <div className="ag-window">
             <div className="ag-win-head" style={{ ['--d' as string]: '.03s' }}>
               <span className="ag-grip"><Ico id="i-grip" /></span>
-              <span className="ag-win-title">Jimo AI</span>
+              {/* One node, two writers: the AI name in `response`, the question
+                  counter in `asking`. */}
+              <span className="ag-win-title">
+                {asking ? `Question ${QUESTION.index} of ${QUESTION.total}` : 'Jimo AI'}
+              </span>
+              {/* Before .ag-win-actions, so reading order is counter → navigate
+                  → window actions. CSS shows it in `asking` only. */}
+              <span className="ag-opt-nav">
+                <button className="ag-chev" title="Previous question"><Ico id="i-chevron-left" /></button>
+                <button className="ag-chev" title="Next question"><Ico id="i-chevron-right" /></button>
+              </span>
               <span className="ag-win-actions">
                 <button
                   className="ag-round-btn"
                   title="Close"
-                  onClick={() => { clearTimers(); setState('idle'); setReply(null); setEcho(''); }}
+                  onClick={() => { clearTimers(); setLive('idle'); setReply(null); setEcho(''); }}
                 >
                   <Ico id="i-close" />
                 </button>
@@ -158,21 +296,29 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
 
             <div className="ag-win-body">
               <div className="ag-md">
-                {reply?.title && <h2 className="ag-md-h2">{reply.title}</h2>}
-                {reply && <Markdown text={reply.body} />}
+                {asking ? (
+                  <p className="ag-md-p">{QUESTION.text}</p>
+                ) : (
+                  <>
+                    {reply?.title && <h2 className="ag-md-h2">{reply.title}</h2>}
+                    {reply && <Markdown text={reply.body} />}
+                  </>
+                )}
               </div>
 
               {/* The hand-off card IS this CTA row — the widget's own grammar,
-                  dark primary + outline secondary, rather than a new surface. */}
+                  dark primary + outline secondary, rather than a new surface.
+                  `:empty` is display:none, which is what keeps it out of the
+                  way in `asking`. */}
               <div className="ag-ctas">
-                {reply?.handoff && (
+                {!asking && reply?.handoff && (
                   <>
                     <button
                       className="ag-cta ag-cta-dark ag-stagger"
                       style={{ ['--d' as string]: '.26s' }}
                       onClick={() => {
                         onHandoff(reply.handoff!, SAMPLE_BRIEF);
-                        setState('idle');
+                        setLive('idle');
                         setReply(null);
                         setEcho('');
                       }}
@@ -190,6 +336,25 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
                 )}
               </div>
 
+              {/* Asking only — gated by widget.css, not by a conditional here,
+                  so the rows keep their entrance animation. */}
+              <div className="ag-opt-list ag-stagger" style={{ ['--d' as string]: '.12s' }}>
+                {QUESTION.options.map((opt, i) => (
+                  <button
+                    key={opt}
+                    className={`ag-opt${i === selected ? ' is-sel' : ''}`}
+                    onClick={() => setSelected(i)}
+                  >
+                    <span className="ag-opt-letter">{String.fromCharCode(65 + i)}</span>
+                    <span className="ag-opt-text">{opt}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="ag-opt-foot ag-stagger" style={{ ['--d' as string]: '.18s' }}>
+                <button className="ag-submit">Submit</button>
+                <button className="ag-skip">Skip</button>
+              </div>
+
               <div className="ag-feedback ag-stagger-fall" style={{ ['--d' as string]: '.34s' }}>
                 <button className="ag-fb-btn" title="Like"><Ico id="i-like" /></button>
                 <button className="ag-fb-btn ag-fb-dislike" title="Dislike"><Ico id="i-like" /></button>
@@ -198,7 +363,41 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
             </div>
           </div>
 
-          {/* Input bar */}
+          {/* Guidance / Execute: run log — the pill's expanded face. It sits
+              ABOVE the pill, as in the prototype, so the pill stays the thing
+              nearest the bar the whole time it is open. */}
+          <div className={`ag-runlog${logOpen ? ' show' : ''}`}>
+            {RUN_LOG.length === 0 ? (
+              <div className="ag-runlog-item is-empty">No steps yet</div>
+            ) : (
+              RUN_LOG.map((l) => (
+                <div key={l} className="ag-runlog-item">
+                  <Ico id="i-check" />
+                  {l}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Guidance / Execute: status pill */}
+          <div
+            className={`ag-pill ag-animborder ${pill?.mode === 'spin' ? 'is-spin' : 'is-icon'}${pill?.warn ? ' is-warn' : ''}`}
+            title={logOpen ? 'Collapse steps' : 'Show steps'}
+            onClick={() => setLogOpen((o) => !o)}
+          >
+            <span className="ag-pill-icon ag-stagger-pop" style={{ ['--d' as string]: '.05s' }}>
+              <Ico id={pill?.icon ?? 'i-mouse-square'} />
+            </span>
+            <span className="ag-pill-spin ag-stagger-pop" style={{ ['--d' as string]: '.05s' }}>
+              <Ico id="i-spinner" />
+            </span>
+            <span className="ag-pill-text ag-stagger" style={{ ['--d' as string]: '.1s' }}>
+              <span className="ag-pill-title">{pill?.title ?? ''}</span>
+              <span className="ag-pill-sub">{pill?.sub ?? ''}</span>
+            </span>
+          </div>
+
+          {/* Input bar (idle / expanded / thinking / response / asking) */}
           <div className="ag-bar">
             <span className="ag-bar-av" aria-hidden="true" />
             <input
@@ -206,15 +405,27 @@ export function AgentWidget({ onHandoff }: { onHandoff: (d: Decision, brief: str
               value={draft}
               placeholder={placeholder}
               autoComplete="off"
-              onFocus={() => state === 'idle' && setState('expanded')}
+              onFocus={() => !frozen && state === 'idle' && setLive('expanded')}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && send(draft)}
             />
             <button className="ag-bar-btn" aria-label="Send" onClick={() => send(draft)}>
               <Ico id="i-arrow-up" />
             </button>
-            <button className="ag-bar-stop" aria-label="Stop" onClick={() => { clearTimers(); setState('expanded'); }}>
+            <button className="ag-bar-stop" aria-label="Stop" onClick={() => { clearTimers(); setLive('expanded'); }}>
               <Ico id="i-stop-round" />
+            </button>
+          </div>
+
+          {/* Bottom bar — in guide / execute it IS the input bar: widget.css
+              hides `.ag-bar` in those four states and shows this in its place. */}
+          <div className="ag-botbar">
+            <span className="ag-bar-av ag-stagger" style={{ ['--d' as string]: '.03s' }} aria-hidden="true" />
+            <span className="ag-botbar-text ag-stagger" style={{ ['--d' as string]: '.08s' }}>
+              {BOTBAR_TEXT[state] ?? ''}
+            </span>
+            <button className="ag-ghost-stop ag-stagger" style={{ ['--d' as string]: '.14s' }}>
+              Stop
             </button>
           </div>
         </div>

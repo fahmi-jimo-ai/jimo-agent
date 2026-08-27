@@ -9,7 +9,7 @@ import { ConversationsToolbar } from './ConversationsToolbar';
 import { ConversationList } from './ConversationList';
 import { ConversationDetail } from './ConversationDetail';
 import { ConversationsEmptyState } from './ConversationsEmptyState';
-import { CONVERSATIONS, filterConversations } from '@/data/analytics';
+import { CONVERSATIONS, filterConversations, type TriggeredSkill } from '@/data/analytics';
 import { useAnalytics, setAnalytics, clearConversationFilters } from '@/state/useAnalytics';
 
 /**
@@ -23,13 +23,17 @@ import { useAnalytics, setAnalytics, clearConversationFilters } from '@/state/us
  *   - filters match nothing (934:30109): toolbar stays — it is the way back out.
  *   - otherwise: toolbar, then the two panes.
  *
+ * `traceDefaultOpen` is a story hook, not a feature: it opens the first agent
+ * turn's `ThinkingTrace` so the expanded frame (Figma `12983:8096`) can be shot
+ * and diffed. It defaults to false, so the app is unaffected.
+ *
  * The two-pane card is not a `Section`. Section always applies --space-6 of
  * padding and a --space-6 gap between header and body, and this card is
  * edge-to-edge with a vertical rule down the middle. It reuses Section's
  * exported `sectionVariants` for the panel contract (bg / radius / shadow) and
  * zeroes the padding, rather than re-drawing a white rounded box by hand.
  */
-export function ConversationsPage() {
+export function ConversationsPage({ traceDefaultOpen = false }: { traceDefaultOpen?: boolean } = {}) {
   const {
     hasConversations,
     convoSearch,
@@ -62,6 +66,17 @@ export function ConversationsPage() {
       type: 'neutral',
       title: `${title} is out of scope`,
       body: 'The artboard draws this affordance but no frame follows it.',
+    });
+
+  // A skill chip in a thinking trace is the one dead end whose destination is
+  // known: `Skills` is already a sidebar item, it just has no page yet. The
+  // toast names the skill rather than claiming the skill itself is out of
+  // scope — the answer really did fire it.
+  const skillOutOfScope = (skill: TriggeredSkill) =>
+    toast({
+      type: 'neutral',
+      title: `${skill.name} fired on this answer`,
+      body: 'Skills has no page yet, so there is nowhere to open it.',
     });
 
   return (
@@ -101,7 +116,12 @@ export function ConversationsPage() {
                 selectedId={selected.id}
                 onSelect={(convoSelectedId) => setAnalytics({ convoSelectedId })}
               />
-              <ConversationDetail conversation={selected} onAction={outOfScope} />
+              <ConversationDetail
+                conversation={selected}
+                onAction={outOfScope}
+                onSkillClick={skillOutOfScope}
+                traceDefaultOpen={traceDefaultOpen}
+              />
             </div>
           ) : (
             <ConversationsEmptyState variant="no-results" onClearFilters={clearConversationFilters} />

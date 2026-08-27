@@ -3,7 +3,8 @@ import { Like1, Dislike, MessageEdit, Additem } from 'iconsax-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Chip/badge';
 import { Avatar } from '@/components/app/Avatar';
-import type { ConversationTurn } from '@/data/analytics';
+import { ThinkingTrace } from './ThinkingTrace';
+import type { ConversationTurn, TriggeredSkill } from '@/data/analytics';
 
 /**
  * One transcript turn — Figma 934:29319.
@@ -15,6 +16,11 @@ import type { ConversationTurn } from '@/data/analytics';
  *
  * The two hover affordances are drawn on the artboard with no frame behind
  * them, so they raise an out-of-scope toast like every other dead end here.
+ *
+ * `ThinkingTrace` sits ABOVE the bubble on an agent turn that carries one. The
+ * order down the column is reasoning → answer → the reader's verdict on it →
+ * what the reader can do about it, which is also the order they are read in.
+ * User turns never carry a trace, so nothing changes on that side.
  */
 const FEEDBACK = {
   helpful: {
@@ -34,11 +40,16 @@ export function MessageBubble({
   userName,
   onAnswerThis,
   onNewCustomAnswer,
+  onSkillClick,
+  traceDefaultOpen = false,
 }: {
   turn: ConversationTurn;
   userName: string;
   onAnswerThis: () => void;
   onNewCustomAnswer: () => void;
+  onSkillClick: (skill: TriggeredSkill) => void;
+  /** Stories open the first trace so the expanded frame can be diffed. */
+  traceDefaultOpen?: boolean;
 }) {
   const isUser = turn.from === 'user';
   const feedback = turn.feedback ? FEEDBACK[turn.feedback] : null;
@@ -54,6 +65,14 @@ export function MessageBubble({
           isUser ? 'items-end' : 'items-start'
         )}
       >
+        {!isUser && (
+          <ThinkingTrace
+            turn={turn}
+            onSkillClick={onSkillClick}
+            defaultOpen={traceDefaultOpen}
+          />
+        )}
+
         <div
           className={cn(
             'rounded-[var(--radius-lg)] px-[var(--space-4)] py-[var(--space-3)] [font:var(--text-body-3)]',

@@ -14,6 +14,7 @@ import type {
   SegmentFilter,
   StatMetric,
 } from '@/state/types';
+import type { SourceKind } from '@/data/knowledgeSources';
 
 /* Same generator as fixtures.ts. Duplicated rather than exported across, so
    changing one chart's silhouette can never silently reshape the other's. */
@@ -166,6 +167,64 @@ export interface ConversationTurn {
   at: string;
   text: string;
   feedback?: 'helpful' | 'not-helpful';
+  /** Agent turns only — see the reasoning-trace block below. */
+  steps?: ThinkingStep[];
+  skills?: TriggeredSkill[];
+  sources?: CitedSource[];
+}
+
+/* ── The reasoning trace ───────────────────────────────────────────────────
+   INVENTED, and labelled as such, in the same spirit as `MATCHERS` in
+   fixtures.ts and the 2s training delay in trainingTimers.ts. No artifact
+   defines what an agent turn recorded while it was answering: the PRD does not
+   model it, the escalation artboards do not draw it, and the one Figma frame
+   that draws a trace — `12983:8096` in Interface-Knowledge — is a BROWSER agent
+   filling a CRM form ("Go to Deals page", "Fill 12,000 in Amount field"), not a
+   support agent answering from a knowledge base.
+
+   So the SHAPE below is transcribed from that frame — an icon rail, a hairline
+   connector, one label per step — and the CONTENT is made up to fit a support
+   answer. `ThinkingStepKind` exists so the rail can pick a glyph without the
+   fixture naming an icon; adding a kind means adding a glyph in
+   `ThinkingTrace`, which is the point.
+
+   `CitedSource` deliberately carries its own `label` / `kind` / `href` rather
+   than being a bare id into `knowledgeSources.ts`. That is not duplication for
+   convenience — a conversation is a HISTORICAL RECORD. The store starts empty
+   (`knowledgeStore.ts` defaults `sources: []`; `DEMO_SOURCES()` only runs under
+   the Demo switch) and a user can delete a source that an old answer used, so a
+   citation that could only render by finding a live row would blank out exactly
+   when the record matters most. `sourceId` is therefore a LINK, resolved at
+   render time to decide whether "open in Knowledge" is offered at all — never
+   the thing the row reads its own text from. */
+export type ThinkingStepKind =
+  | 'read'
+  | 'navigate'
+  | 'search'
+  | 'compare'
+  | 'draft'
+  | 'escalate';
+
+export interface ThinkingStep {
+  kind: ThinkingStepKind;
+  label: string;
+}
+
+/** A skill the turn fired. `/skills` is not built, so the id has nowhere to go
+ *  yet — the chip acknowledges the click with the page's out-of-scope toast,
+ *  the same contract `Test Knowledge` and `Export as CSV` already use. */
+export interface TriggeredSkill {
+  id: string;
+  name: string;
+}
+
+export interface CitedSource {
+  /** Matches a `KnowledgeSource.id` when the store still holds that row. */
+  sourceId: string;
+  /** Snapshot as of answering — see the block comment above. */
+  label: string;
+  kind: SourceKind;
+  href?: string;
 }
 
 export interface Conversation {
@@ -190,21 +249,116 @@ export interface Conversation {
   transcript: ConversationTurn[];
 }
 
-/** 934:28534's transcript, verbatim — the Login Issues thread. */
+/* The source ids below match `DEMO_SOURCES()` in knowledgeSources.ts, so with
+   the Demo data switch on, a citation opens the row it names. With the switch
+   off the store is empty, the citation still renders from its own snapshot, and
+   only the "open in Knowledge" affordance drops away — which is the whole
+   reason `CitedSource` carries its own text. */
+const SRC_HOME: CitedSource = {
+  sourceId: 'demo-url-home',
+  label: 'https://usejimo.com',
+  kind: 'url',
+  href: 'https://usejimo.com',
+};
+const SRC_PRICING_PDF: CitedSource = {
+  sourceId: 'demo-file-pricing',
+  label: 'Jimo Pricing.pdf',
+  kind: 'file',
+};
+const SRC_TOURS: CitedSource = {
+  sourceId: 'demo-url-tours',
+  label: 'https://usejimo.com/product/product-tours',
+  kind: 'url',
+  href: 'https://usejimo.com/product/product-tours',
+};
+const SRC_WHAT_IS_JIMO: CitedSource = {
+  sourceId: 'demo-qa-what-is-jimo',
+  label: 'What is Jimo?',
+  kind: 'qa',
+};
+
+/** 934:28534's transcript, verbatim — the Login Issues thread. The reasoning
+ *  trace on each agent turn is the invention documented above. */
 const LOGIN_ISSUES: ConversationTurn[] = [
   { from: 'user', at: '10:14', text: 'Login Issues' },
-  { from: 'agent', at: '10:14', text: 'I understand. Can you describe the issue youre facing?', feedback: 'not-helpful' },
+  {
+    from: 'agent',
+    at: '10:14',
+    text: 'I understand. Can you describe the issue youre facing?',
+    feedback: 'not-helpful',
+    // The turn that got a thumbs-down found nothing, and the trace says so —
+    // an empty-handed trace is the most useful one on this page.
+    steps: [
+      { kind: 'read', label: 'Read the current page' },
+      { kind: 'search', label: 'Searched knowledge for “login issues”' },
+      { kind: 'compare', label: 'No source scored above the threshold' },
+      { kind: 'draft', label: 'Asked a clarifying question instead' },
+    ],
+    skills: [{ id: 'skill-clarify', name: 'Ask to clarify' }],
+  },
   { from: 'user', at: '10:15', text: 'Every time I try to log in, I get an error saying my password is incorrect.' },
-  { from: 'agent', at: '10:15', text: 'Have you tried using the Forgot Password option to reset your password?', feedback: 'helpful' },
+  {
+    from: 'agent',
+    at: '10:15',
+    text: 'Have you tried using the Forgot Password option to reset your password?',
+    feedback: 'helpful',
+    steps: [
+      { kind: 'search', label: 'Searched knowledge for “password incorrect”' },
+      { kind: 'compare', label: 'Matched 2 sources on account recovery' },
+      { kind: 'draft', label: 'Drafted an answer from the top match' },
+    ],
+    skills: [{ id: 'skill-answer', name: 'Answer from knowledge' }],
+    sources: [SRC_WHAT_IS_JIMO, SRC_HOME],
+  },
   { from: 'user', at: '10:16', text: 'Yes, but I didnt receive the reset email.' },
-  { from: 'agent', at: '10:16', text: 'Thanks — that usually means the address on file differs from the one you are checking. I can raise this with a human so they can confirm it for you.' },
+  {
+    from: 'agent',
+    at: '10:16',
+    text: 'Thanks — that usually means the address on file differs from the one you are checking. I can raise this with a human so they can confirm it for you.',
+    steps: [
+      { kind: 'search', label: 'Searched knowledge for “reset email not received”' },
+      { kind: 'compare', label: 'No source covers mailbox delivery' },
+      { kind: 'escalate', label: 'Matched the Login Issues escalation topic' },
+      { kind: 'draft', label: 'Offered a hand-off to the support team' },
+    ],
+    skills: [
+      { id: 'skill-escalate', name: 'Escalate to a human' },
+      { id: 'skill-summarise', name: 'Summarise the thread' },
+    ],
+  },
 ];
 
 const GENERIC: ConversationTurn[] = [
   { from: 'user', at: '09:02', text: 'How do I get started with this?' },
-  { from: 'agent', at: '09:02', text: 'Happy to help. Which part are you setting up first?' },
+  {
+    from: 'agent',
+    at: '09:02',
+    text: 'Happy to help. Which part are you setting up first?',
+    steps: [
+      { kind: 'read', label: 'Read the current page' },
+      { kind: 'compare', label: 'Question is too broad to answer directly' },
+      { kind: 'draft', label: 'Asked which area to start with' },
+    ],
+    skills: [{ id: 'skill-clarify', name: 'Ask to clarify' }],
+  },
   { from: 'user', at: '09:03', text: 'The segment rules, mostly.' },
-  { from: 'agent', at: '09:03', text: 'Segments are built from user properties you have already shared with the agent. Open Knowledge → User Context to see which ones are available.', feedback: 'helpful' },
+  {
+    from: 'agent',
+    at: '09:03',
+    text: 'Segments are built from user properties you have already shared with the agent. Open Knowledge → User Context to see which ones are available.',
+    feedback: 'helpful',
+    steps: [
+      { kind: 'search', label: 'Searched knowledge for “segment rules”' },
+      { kind: 'compare', label: 'Matched 3 sources on segments and properties' },
+      { kind: 'navigate', label: 'Resolved the Knowledge → User Context path' },
+      { kind: 'draft', label: 'Drafted an answer with the route to follow' },
+    ],
+    skills: [
+      { id: 'skill-answer', name: 'Answer from knowledge' },
+      { id: 'skill-navigate', name: 'Point to a page' },
+    ],
+    sources: [SRC_TOURS, SRC_PRICING_PDF, SRC_HOME],
+  },
 ];
 
 /**

@@ -54,14 +54,17 @@ import { PageHeader } from '../../../src/components/ui/PageHeader/PageHeader';
 }
 ```
 
-## Local fork — `meta`
+## Local forks — `meta` and `actions`
 
-This copy has ONE additive fork on top of upstream Moji (same shape as
+This copy has TWO additive forks on top of upstream Moji (same shape as
 `SecondaryNavSidebar`'s `sections` and `Table`'s `scroll`):
 
 | Prop | Type | Default | Notes |
 |---|---|---|---|
 | `meta` | `React.ReactNode` | — | Passive status line at the right end of the title row. |
+| `actions` | `React.ReactNode` | — | Right-cluster slot for an action `buttons[]` cannot express. |
+
+### `meta`
 
 Figma `934:27942` puts a `⟳ Updated Jan 20, 14:20PM` line there. It could not be
 expressed with the existing API: every `buttons[]` entry is rendered as a
@@ -78,5 +81,30 @@ byte-identically.
   showTabs={false}
   showButtonGroup={false}
   meta={<><Refresh2 size={16} variant="Linear" color="currentColor" /> Updated Jan 20, 14:20PM</>}
+/>
+```
+
+### `actions`
+
+`buttons[]` renders every entry as a bare `<Button>`, which is the whole problem
+when the action is not one. Knowledge's **Test Knowledge** button opens a two-row
+menu, and `Menu` (`src/components/app/Menu.tsx`) has to wrap its own trigger so it
+can measure the trigger's rect and position the portaled panel from it — so the
+trigger cannot be handed over as a config object.
+
+`actions` renders immediately after the button group inside the same right-hand
+cluster, so a page can use both. Undefined by default; every pre-fork call site
+renders byte-identically.
+
+```jsx
+<PageHeader
+  title="Knowledge"
+  showButtonGroup={false}
+  actions={
+    <Menu open={open} onClose={close} align="right" trigger={<Button …>Test Knowledge</Button>}>
+      <MenuItem icon={<Play size={20} variant="Linear" />} label="Preview here" onClick={…} />
+      <MenuItem icon={<Monitor size={20} variant="Linear" />} label="Preview in-app" onClick={…} />
+    </Menu>
+  }
 />
 ```

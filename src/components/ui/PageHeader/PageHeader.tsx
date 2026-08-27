@@ -16,6 +16,13 @@ import { PrimaryHorizontalMenuGroup } from "@/components/ui/PrimaryHorizontalMen
 // so there is no slot to reach. `meta` shares the title row's right cluster
 // with the button group rather than replacing it. Default undefined, so every
 // existing call site renders byte-identically.
+//
+// SECOND ADDITIVE FORK: the `actions` prop. Same argument, opposite problem —
+// `buttons[]` renders every entry as a bare <Button>, so it cannot carry an
+// action that is not one. Knowledge's "Test Knowledge" is now a `Menu` trigger,
+// and `Menu` wraps its own trigger in order to measure it. `actions` renders
+// after the button group in the same cluster, and is likewise undefined by
+// default.
 
 // Adapt PageHeader's legacy button API → shadcn Button props.
 const LEVEL_TO_VARIANT: Record<string, "default" | "outline" | "link"> = {
@@ -42,6 +49,8 @@ type PageHeaderProps = Omit<React.ComponentProps<"div">, "title"> & {
   showTabs?: boolean
   /** ADDITIVE FORK — passive right-hand status line. See the header comment. */
   meta?: React.ReactNode
+  /** ADDITIVE FORK — right-cluster slot for an action `buttons[]` cannot express. */
+  actions?: React.ReactNode
   buttons?: PageHeaderButton[]
   tabs?: PageHeaderTab[]
   activeTab?: string
@@ -59,6 +68,7 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
       buttonSize = "big",
       showTabs = true,
       meta,
+      actions,
       buttons = [],
       tabs = [],
       activeTab,
@@ -112,7 +122,7 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
               </h2>
             </div>
           )}
-          {(meta != null || buttonGroup) && (
+          {(meta != null || actions != null || buttonGroup) && (
             <div className="flex shrink-0 items-center gap-[var(--space-5)]">
               {meta != null && (
                 <div
@@ -123,6 +133,7 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
                 </div>
               )}
               {buttonGroup}
+              {actions}
             </div>
           )}
         </div>

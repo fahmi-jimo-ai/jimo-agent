@@ -3,7 +3,13 @@ import * as React from 'react';
 /**
  * The SVG symbol sprite the widget markup references by id, carried over from
  * the reference prototype's <defs> block. Only the symbols this build actually
- * uses are included.
+ * uses are included — which is why the list grew when `AgentWidget` caught up
+ * with `trigger-demo/builder/src/prototype/prototype.html`: the pill, the run
+ * log and the question navigation reference five more.
+ *
+ * Every path below is VERBATIM from that <defs>. If one looks wrong, diff it
+ * against the prototype rather than redrawing it — these are the same glyphs
+ * the reference renders, and a hand-corrected path is drift.
  */
 export const Ico = ({ id }: { id: string }) => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -53,6 +59,22 @@ export function WidgetIcons() {
         <symbol id="i-message-question" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path d="M17 18.43h-4l-4.45 2.96A.997.997 0 0 1 7 20.56v-2.13c-3 0-5-2-5-5v-6c0-3 2-5 5-5h10c3 0 5 2 5 5v6c0 3-2 5-5 5Z" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M12 11.36v-.21c0-.68.42-1.04.84-1.33.41-.28.82-.64.82-1.3 0-.92-.74-1.66-1.66-1.66-.92 0-1.66.74-1.66 1.66M11.995 13.75h.01" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
+        <symbol id="i-mouse-square" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M22 12V9c0-5-2-7-7-7H9C4 2 2 4 2 9v6c0 5 2 7 7 7h3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="m20.96 17.84-1.63.55c-.45.15-.81.5-.96.96l-.55 1.63c-.47 1.41-2.45 1.38-2.89-.03L13.08 15c-.36-1.18.73-2.28 1.9-1.91l5.96 1.85c1.4.44 1.42 2.43.02 2.9Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
+        <symbol id="i-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M12 3a9 9 0 1 0 9 9" opacity="1" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6L9 17l-5-5" />
+        </symbol>
+        <symbol id="i-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 6l-6 6 6 6" />
+        </symbol>
+        <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 6l6 6-6 6" />
         </symbol>
       </defs>
     </svg>
