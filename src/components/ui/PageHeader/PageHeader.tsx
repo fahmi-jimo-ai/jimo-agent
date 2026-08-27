@@ -7,6 +7,15 @@ import { PrimaryHorizontalMenuGroup } from "@/components/ui/PrimaryHorizontalMen
 // Moji Design System — PageHeader.
 // Foundation: .tsx + cn + data-slot. Visuals: verbatim port of PageHeader.css.
 // `type="main"` and `type="sub"` never render together — swapped conditionally.
+//
+// ADDITIVE FORK (see CLAUDE.md, same shape as SecondaryNavSidebar's `sections`
+// and Table's `scroll`): the `meta` prop. Figma 934:27942 puts a passive
+// "⟳ Updated Jan 20, 14:20PM" status line at the right end of the title row.
+// `buttons[]` cannot carry it — every entry is rendered as a <Button>, so the
+// line would become focusable and clickable — and `children` is never rendered,
+// so there is no slot to reach. `meta` shares the title row's right cluster
+// with the button group rather than replacing it. Default undefined, so every
+// existing call site renders byte-identically.
 
 // Adapt PageHeader's legacy button API → shadcn Button props.
 const LEVEL_TO_VARIANT: Record<string, "default" | "outline" | "link"> = {
@@ -31,6 +40,8 @@ type PageHeaderProps = Omit<React.ComponentProps<"div">, "title"> & {
   showButtonGroup?: boolean
   buttonSize?: "big" | "small"
   showTabs?: boolean
+  /** ADDITIVE FORK — passive right-hand status line. See the header comment. */
+  meta?: React.ReactNode
   buttons?: PageHeaderButton[]
   tabs?: PageHeaderTab[]
   activeTab?: string
@@ -47,6 +58,7 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
       showButtonGroup = true,
       buttonSize = "big",
       showTabs = true,
+      meta,
       buttons = [],
       tabs = [],
       activeTab,
@@ -100,7 +112,19 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
               </h2>
             </div>
           )}
-          {buttonGroup}
+          {(meta != null || buttonGroup) && (
+            <div className="flex shrink-0 items-center gap-[var(--space-5)]">
+              {meta != null && (
+                <div
+                  data-slot="page-header-meta"
+                  className="flex items-center gap-[var(--space-2)] [font:var(--text-body-4)] text-[var(--color-text-tertiary)]"
+                >
+                  {meta}
+                </div>
+              )}
+              {buttonGroup}
+            </div>
+          )}
         </div>
 
         {/* ── Tab bar ── */}

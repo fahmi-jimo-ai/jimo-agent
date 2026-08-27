@@ -85,3 +85,77 @@ export const INITIAL_STATE: EscalationState = {
   range: 'this-month',
   demo: false,
 };
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Analytics — the /statistics and /conversations pages.
+ *
+ * Figma 42KccejbNYeHc3EP5P8vHd section 934:27942 draws these as ONE page called
+ * "Analyze" with a Statistics|Conversations tab bar. They ship as two routed
+ * pages instead, because `AGENT_NAV_SECTIONS` has always listed them as two
+ * peer sidebar items and the tab bar was a second, competing switcher for the
+ * same choice. The artboards are otherwise followed as drawn.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Deliberately NOT escalation's `Range`. That enum has no `all-time`, and the
+ * two pickers are unrelated controls — sharing a type would let one page's
+ * default silently become the other's.
+ */
+export type AnalyticsRange = 'all-time' | 'this-month' | 'last-30-days' | 'last-7-days';
+
+/** Which stat tile is selected. The selection is what the chart plots. */
+export type StatMetric = 'opened' | 'messages' | 'users' | 'success';
+
+export type ResponseFilter = 'all' | 'helpful' | 'not-helpful';
+export type SegmentFilter = 'all' | 'new-users' | 'power-users' | 'trialing';
+
+export interface AnalyticsState {
+  /** Gates the zeroed-tile state — the analytics twin of `hasHandoffs`. */
+  hasData: boolean;
+  range: AnalyticsRange;
+  metric: StatMetric;
+  /** "All Segments" on the Users reached card. */
+  segment: SegmentFilter;
+
+  /** Gates "No conversations yet" (934:30359), which hides the toolbar too. */
+  hasConversations: boolean;
+  convoSearch: string;
+  convoRange: AnalyticsRange;
+  convoResponse: ResponseFilter;
+  convoSegment: SegmentFilter;
+  convoSelectedId: string | null;
+}
+
+export const RANGE_LABEL: Record<AnalyticsRange, string> = {
+  'all-time': 'All Time',
+  'this-month': 'This month',
+  'last-30-days': 'Last 30 days',
+  'last-7-days': 'Last 7 days',
+};
+
+export const RESPONSE_LABEL: Record<ResponseFilter, string> = {
+  all: 'All Responses',
+  helpful: 'Helpful',
+  'not-helpful': 'Not Helpful',
+};
+
+export const SEGMENT_LABEL: Record<SegmentFilter, string> = {
+  all: 'All Segments',
+  'new-users': 'New users',
+  'power-users': 'Power users',
+  trialing: 'Trialing',
+};
+
+export const INITIAL_ANALYTICS: AnalyticsState = {
+  hasData: true,
+  range: 'all-time',
+  // 934:27943 draws the Success Rate tile selected, so that is the default.
+  metric: 'success',
+  segment: 'all',
+  hasConversations: true,
+  convoSearch: '',
+  convoRange: 'all-time',
+  convoResponse: 'all',
+  convoSegment: 'all',
+  convoSelectedId: null,
+};

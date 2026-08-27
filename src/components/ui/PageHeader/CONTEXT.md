@@ -53,3 +53,30 @@ import { PageHeader } from '../../../src/components/ui/PageHeader/PageHeader';
   : <PageHeader type="main" title="Tours" ... />
 }
 ```
+
+## Local fork — `meta`
+
+This copy has ONE additive fork on top of upstream Moji (same shape as
+`SecondaryNavSidebar`'s `sections` and `Table`'s `scroll`):
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `meta` | `React.ReactNode` | — | Passive status line at the right end of the title row. |
+
+Figma `934:27942` puts a `⟳ Updated Jan 20, 14:20PM` line there. It could not be
+expressed with the existing API: every `buttons[]` entry is rendered as a
+`<Button>`, which would make a read-only status line focusable and clickable,
+and `children` is never rendered so there is no slot to reach for.
+
+`meta` shares the title row's right cluster with the button group rather than
+replacing it, and defaults to `undefined` — every pre-fork call site renders
+byte-identically.
+
+```jsx
+<PageHeader
+  title="Statistics"
+  showTabs={false}
+  showButtonGroup={false}
+  meta={<><Refresh2 size={16} variant="Linear" color="currentColor" /> Updated Jan 20, 14:20PM</>}
+/>
+```

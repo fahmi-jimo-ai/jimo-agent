@@ -60,4 +60,6 @@ export const AGENT_NAV_SECTIONS: SidebarSection[] = [
 export const NAV_ROUTES: Record<string, string> = {
   Escalation: '/escalation',
   Knowledge: '/knowledge',
+  Statistics: '/statistics',
+  Conversations: '/conversations',
 };
