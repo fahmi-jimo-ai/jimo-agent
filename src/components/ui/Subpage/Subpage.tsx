@@ -10,6 +10,12 @@ import { Page } from "@/components/ui/Page/Page"
 // `maxWidth` (1000px). The PageHeader scrolls INSIDE that column (first child), unlike `Page` where
 // the header is pinned full-width above the scroll area. Reuses Page's auto ToastContainer +
 // `[&>*]:shrink-0` anti-collapse fix; `subpage-content` repeats it so sections never collapse/clip.
+//
+// FORKED (jimo-agent, additive): `maxWidth` also takes a CSS length string, so a page can opt out of
+// the centred cap with `maxWidth="100%"`. Upstream types it `number` and stamps it straight into
+// `style`, where React appends `px` to a bare number — a string passes through untouched, so the
+// default and every numeric call site are unchanged. `/conversations` needs it: Figma 949:7347
+// annotates the panel "This entire box will fill the viewport". See CONTEXT.md.
 
 type SubpageProps = Omit<React.ComponentProps<"div">, "title"> & {
   /** Left rail — a collapsed <PrimaryNavSidebar collapsed … />. */
@@ -20,8 +26,8 @@ type SubpageProps = Omit<React.ComponentProps<"div">, "title"> & {
   header?: React.ReactNode
   /** Toast node(s); passed through to Page (auto-wrapped in <ToastContainer>). */
   toast?: React.ReactNode
-  /** Content-column max width in px. Default 1000. */
-  maxWidth?: number
+  /** Content-column max width — px number, or a CSS length (`"100%"`) to fill. Default 1000. */
+  maxWidth?: number | string
   /** Override classes on the content area below the header. */
   contentClassName?: string
 }

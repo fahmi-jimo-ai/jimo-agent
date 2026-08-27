@@ -159,6 +159,34 @@ links here by source id. `KnowledgePage` reads the param ONCE into `SourcesTab`'
 and then strips it, so the drawer is a destination rather than a mode — reading it on every render
 would fight the close button, and leaving the param would reopen the drawer on reload.
 
+## Conversations is the one full-bleed page, and the panel owns a ground
+
+`/conversations` was redrawn against Figma `949:7217` (list row) and `949:7347` (panel), which
+supersede `934:28534` / `934:29319` for the two panes. The page states — no data, no results —
+are still the older frames'.
+
+`949:7347` annotates the panel **"This entire box will fill the viewport"**, so the page passes
+`maxWidth="100%"` through `AppShell` into `Subpage`. That is a documented additive fork: upstream
+types `maxWidth` as `number` and stamps it into `style`, where React appends `px` to a bare number,
+so a string passes through untouched and every numeric call site is unchanged. The header and the
+toolbar widen with the card on purpose — widening the card alone leaves them floating over a page
+that is a different width from its own content. The `--space-8` gutters stay.
+
+Two invariants inside the panes:
+
+- **The transcript has a ground of its own** (Blue/100 = `--color-brand-subtle`), with a white
+  header bar above it, and the agent bubble is therefore WHITE. On the old white pane the agent's
+  turns had to be tinted grey to be visible; that inversion is the redesign.
+- **The feedback label straddles the bubble's bottom-left corner**, and that is one negative margin,
+  not absolute positioning: the bubble carries the extra `--space-4` of bottom padding to overlap
+  into, and the label is pulled up `--space-3` from a gapless wrapper. Absolute positioning would
+  need a measured height and would break the moment the label's text changed length.
+
+`Share conversation` is the one kebab row that is not a dead end — `949:7292` annotates it, so it
+raises a positive toast reading "Conversation Link Copied" and takes its own prop. The two hover
+affordances hang off USER turns only, which is where both artboards draw them, and which is how
+they read: you answer a question, and you write a custom answer FOR a question.
+
 ## The reasoning trace is one object drawn on two surfaces
 
 `ThinkingTrace` (`/conversations`) and the widget's `.ag-pill` → `.ag-runlog` are the same idea:

@@ -10,18 +10,21 @@ import { AGENT_NAV_SECTIONS, NAV_ROUTES } from './navConfig';
  *
  * Lives here rather than in a feature folder because the label→route map is an
  * app concern — a page should not have to know how its siblings are addressed.
- * `header` and `contentClassName` stay pass-throughs so EscalationPage keeps
- * owning its own header-less empty state (Figma 43:6580) unchanged.
+ * `header`, `contentClassName` and `maxWidth` stay pass-throughs so EscalationPage
+ * keeps owning its own header-less empty state (Figma 43:6580) unchanged, and
+ * ConversationsPage can widen its column to the full viewport.
  */
 type AppShellProps = {
   /** Matches a SidebarItem label — that is how SecondaryNavSidebar marks active. */
   activeItem: string;
   header?: React.ReactNode;
   contentClassName?: string;
+  /** Content-column cap. Defaults to the 1064 every page but Conversations uses. */
+  maxWidth?: number | string;
   children?: React.ReactNode;
 };
 
-export function AppShell({ activeItem, header, contentClassName, children }: AppShellProps) {
+export function AppShell({ activeItem, header, contentClassName, maxWidth = 1064, children }: AppShellProps) {
   const navigate = useNavigate();
 
   // Labels with no route (Chat, Launcher, Skills) fall through and stay inert,
@@ -34,7 +37,7 @@ export function AppShell({ activeItem, header, contentClassName, children }: App
 
   return (
     <Subpage
-      maxWidth={1064}
+      maxWidth={maxWidth}
       primaryNav={<PrimaryNavSidebar collapsed activeItem="Agent" />}
       secondaryNav={
         <SecondaryNavSidebar

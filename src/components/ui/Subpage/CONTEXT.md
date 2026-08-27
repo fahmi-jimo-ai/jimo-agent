@@ -23,7 +23,7 @@ body, header scrolling inside the column.
 | `header` | node | — | `<PageHeader …/>` — rendered as the first item inside the centered column |
 | `toast` | node | — | Toast node(s); passed to `Page`, **auto-wrapped in `<ToastContainer>`**. Falsy → nothing renders |
 | `children` | node | — | Content below the header (inside the 1000px column). Each direct child is a section (auto `shrink-0`) |
-| `maxWidth` | number | `1000` | Content-column max width in px |
+| `maxWidth` | number \| string | `1000` | Content-column max width. **Forked (additive):** upstream is `number` (px); a CSS length string is passed through to `style` untouched, so `maxWidth="100%"` opts a page out of the centred cap. `/conversations` uses it — Figma 949:7347 annotates the panel *"This entire box will fill the viewport"* |
 | `contentClassName` | string | — | Override classes on the content area below the header (e.g. change `gap`/padding) |
 
 Also accepts native `<div>` props (`className` targets the `Page` root). Exported as `{ Subpage }`.

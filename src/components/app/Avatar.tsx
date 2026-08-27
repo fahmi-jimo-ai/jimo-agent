@@ -19,9 +19,14 @@ const TINTS = [
   'bg-[var(--color-red-100)] text-[var(--color-red-500)]',
 ];
 
+// `medium` (36) and `large` (48) exist because the conversations artboards ask
+// for both: Figma 949:7218 draws a 36px disc in the panel header, and 949:7163
+// a 48px one in the list row.
 const SIZES = {
   small: 'size-8 [font:var(--text-body-4)]',
   regular: 'size-10 [font:var(--text-body-3)]',
+  medium: 'size-9 [font:var(--text-body-3)]',
+  large: 'size-12 [font:var(--text-body-2)]',
 } as const;
 
 export function Avatar({

@@ -13,7 +13,8 @@ import { CONVERSATIONS, filterConversations, type TriggeredSkill } from '@/data/
 import { useAnalytics, setAnalytics, clearConversationFilters } from '@/state/useAnalytics';
 
 /**
- * Conversations — Figma 934:28534 / 934:29319 / 934:30359 / 934:30109.
+ * Conversations — Figma 949:7217 (list) / 949:7347 (panel), over the older
+ * 934:28534 / 934:29319 / 934:30359 / 934:30109 for the page states.
  *
  * The artboards draw this as the second tab of a page called "Analyze". It
  * ships as its own route instead — see StatisticsPage's header comment for why.
@@ -32,6 +33,15 @@ import { useAnalytics, setAnalytics, clearConversationFilters } from '@/state/us
  * edge-to-edge with a vertical rule down the middle. It reuses Section's
  * exported `sectionVariants` for the panel contract (bg / radius / shadow) and
  * zeroes the padding, rather than re-drawing a white rounded box by hand.
+ *
+ * This is the ONE page that opts out of Subpage's centred 1064 column
+ * (`maxWidth="100%"`). Figma 949:7347 annotates the panel "This entire box will
+ * fill the viewport", and it means it: a 400px list beside a transcript does not
+ * fit in 1064 without the bubbles turning into a column of two-word lines. The
+ * header and the toolbar widen with it — widening the card alone would leave
+ * them floating over a page that is a different width from its own content. The
+ * --space-8 gutters stay, so the card still clears the nav rail and the window
+ * edge rather than being flush against both.
  */
 export function ConversationsPage({ traceDefaultOpen = false }: { traceDefaultOpen?: boolean } = {}) {
   const {
@@ -59,8 +69,14 @@ export function ConversationsPage({ traceDefaultOpen = false }: { traceDefaultOp
   // to the first visible row rather than showing an empty pane beside a list.
   const selected = shown.find((c) => c.id === convoSelectedId) ?? shown[0] ?? null;
 
-  // Invented, and labelled as such: none of these has a frame behind it, so the
-  // prototype acknowledges the click and stops.
+  // Share conversation is the one menu row the artboard follows through on:
+  // 949:7292 annotates it "success toast saying 'Conversation Link Copied'".
+  // There is no link to copy in a prototype, so the toast is the whole feature.
+  const shareConversation = () =>
+    toast({ type: 'positive', title: 'Conversation Link Copied' });
+
+  // Invented, and labelled as such: none of the rest has a frame behind it, so
+  // the prototype acknowledges the click and stops.
   const outOfScope = (title: string) =>
     toast({
       type: 'neutral',
@@ -82,6 +98,7 @@ export function ConversationsPage({ traceDefaultOpen = false }: { traceDefaultOp
   return (
     <AppShell
       activeItem="Conversations"
+      maxWidth="100%"
       header={
         <PageHeader title="Conversations" showTabs={false} showButtonGroup={false} meta={<UpdatedMeta />} />
       }
@@ -119,6 +136,7 @@ export function ConversationsPage({ traceDefaultOpen = false }: { traceDefaultOp
               <ConversationDetail
                 conversation={selected}
                 onAction={outOfScope}
+                onShare={shareConversation}
                 onSkillClick={skillOutOfScope}
                 traceDefaultOpen={traceDefaultOpen}
               />
