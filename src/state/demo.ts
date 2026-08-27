@@ -1,20 +1,29 @@
 /**
  * Demo state — a workspace that has been running for a while.
  *
- * Exists so the populated page (chart + a full topic list) can be reached in
- * one click instead of by hand-adding a dozen topics. The Configuration row
- * that drives it ships in the production bundle too — the deployed build is
- * what gets demoed.
+ * Exists so the populated pages — the escalation chart and topic list, and the
+ * Knowledge page's Sources table — can be reached in one click instead of by
+ * hand-adding a dozen rows. The Configuration row that drives it ships in the
+ * production bundle too: the deployed build is what gets demoed.
  *
  * Turning it ON snapshots the real config first; turning it OFF restores that
- * snapshot. It deliberately does NOT go through `seed()` — `seed()` calls
- * `resetState()`, which would wipe the user's vendor and topics for good.
+ * snapshot. Escalation and Knowledge are separate stores under separate keys,
+ * so there are two snapshots — but one switch.
+ *
+ * It deliberately does NOT go through `seed()` — `seed()` calls `resetState()`,
+ * which would wipe the user's vendor and topics for good.
  */
 import { getState, setState } from './escalationStore';
+import { getKnowledge, setSources } from './knowledgeStore';
 import { makeTopic } from '@/data/fixtures';
+import { DEMO_SOURCES, type KnowledgeSource } from '@/data/knowledgeSources';
 import { DEFAULT_TRIGGERS, type EscalationState } from './types';
 
 const SNAPSHOT_KEY = 'jimo.agent.escalation.demo-snapshot.v1';
+/* Sources live in their own store under their own key, so they snapshot
+   separately — but through the SAME switch. A second demo toggle on a page the
+   artboards do not draw would be invention; one prototype, one demo control. */
+const SOURCES_SNAPSHOT_KEY = 'jimo.agent.knowledge.demo-snapshot.v1';
 /* Pre-rename name — migrated on read so a demo left ON across the rename can
    still be turned OFF back onto the user's real config. See escalationStore. */
 const LEGACY_SNAPSHOT_KEY = 'jimo.escalation.demo-snapshot.v1';
@@ -77,6 +86,39 @@ function snapshot(): Partial<EscalationState> {
   return rest;
 }
 
+/** The sources half of the same round trip. Split out so it is unit-testable. */
+export function readSourcesSnapshot(raw: string | null): KnowledgeSource[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as KnowledgeSource[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function snapshotSources() {
+  try {
+    window.localStorage.setItem(SOURCES_SNAPSHOT_KEY, JSON.stringify(getKnowledge().sources));
+  } catch {
+    /* quota / private mode — as above */
+  }
+}
+
+function restoreSources() {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(SOURCES_SNAPSHOT_KEY);
+    window.localStorage.removeItem(SOURCES_SNAPSHOT_KEY);
+  } catch {
+    /* unreadable — fall through to the empty list below */
+  }
+  // No snapshot means there is nothing to go back TO, and Sources starts empty,
+  // so the empty state is the honest landing place. Same call the escalation
+  // branch below makes.
+  setSources(readSourcesSnapshot(raw) ?? [], false);
+}
+
 export function setDemo(on: boolean) {
   if (on) {
     try {
@@ -84,9 +126,13 @@ export function setDemo(on: boolean) {
     } catch {
       /* quota / private mode — the demo still works, it just can't be undone */
     }
+    snapshotSources();
     setState({ ...demoPatch(), demo: true });
+    setSources(DEMO_SOURCES(), true);
     return;
   }
+
+  restoreSources();
 
   let restored: Partial<EscalationState> | null = null;
   try {

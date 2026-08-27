@@ -119,6 +119,42 @@ Two things that follow from the height ease:
   are driven by the rendering lifecycle, so in a tab that is not painting they never fire and the
   card sticks at whatever height it last saw. Layout effects run on commit regardless.
 
+## Sources is a table over a store, and training is faked
+
+`/knowledge` opens on **Sources** (Figma section `932:27941`). Its tab bar — Interface ·
+Sources · Custom Answers — is that section's, and it replaced the older bar that named User
+Context. `UserContextSection` is unchanged and still storied under `Organisms/`; the design
+dropped the tab, not the work. Only Sources is designed, so `PageHeader` still gets no
+`onTabClick`.
+
+Unlike `userProperties`, a knowledge source is created by the user and exists nowhere else, so
+the whole record is persisted (`sources` in `KnowledgeState`) rather than an id into a fixture.
+The store key did not change: `parseKnowledge` merges over `INITIAL_KNOWLEDGE`, so a payload
+written before `sources` existed reads forward with the defaults.
+
+Training is simulated and quarantined in `src/state/trainingTimers.ts`. The pairing that
+matters: `training` **is** persisted — a row that says Training… should still say so after a
+reload rather than claim it finished while the tab was closed — but a timer id means nothing
+across a reload, so `SourcesTab` calls `resumeTraining()` on mount. Drop either half and a
+spinner strands forever.
+
+Where the artboards contradict each other or themselves, the resolution is in the component's
+header comment, never silent: the Added column (`SourceTable`), the token quota
+(`TokenUsageCard`), Cancel-not-Back and the undesigned file dropzone (`AddSourceModal`), the
+two different card orders (`SourcesEmptyState`), and Video, which has a dialog in the file but
+no way into it from the newer frames.
+
+## A drawer is a sibling of the card, not a third variant
+
+`src/components/app/Drawer.tsx` is the Content Detail panel (`932:18232`). It is NOT a
+`ModalCard` variant: a detail panel is not a beat of any flow, it is opened on its own and
+dismissed on its own, which puts it beside `PickerDialog` rather than inside the one-card rule.
+It is still a floating layer, so it meets all four Floating-Layers requirements — and note its
+transition names **`translate`**, not `transform`, for the same reason `Menu` names `scale`.
+
+It paints `--color-blue-50`, the colour `Subpage` paints, because without a ground of its own
+the header row sits on the backdrop and the page shows through it.
+
 ## The support tool row owns whatever that tool needs
 
 Figma `105:4515` (Intercom / Zendesk / Crisp) and `105:4514` (Support Email) draw the "Escalation
@@ -180,6 +216,10 @@ frustration in the simulator, plus the substring topic matcher in
 `src/features/widget/escalationEngine.ts`. No upstream source defines these. Keep them quarantined
 and keep the comments saying so.
 
+The Sources tab adds three more, each commented at its own site: the 2s training delay in
+`src/state/trainingTimers.ts`, the two rules "Regenerate rules with AI" produces in
+`UrlRuleRows.tsx`, and the per-source token cost in `AddSourceModal.tsx`.
+
 `src/lib/classifyChip.ts` is the opposite: transcribed **verbatim** from Figma node `29:12197`.
 Do not "improve" its rules — `classifyChip.test.ts` encodes the spec's own 12 worked examples.
 
@@ -195,7 +235,9 @@ than pushed down by a min-height. The OAuth beat keeps the header.
 
 ## Demo data
 
-`src/state/demo.ts` + the third Configuration row. It is **not** gated on `import.meta.env.DEV` —
+`src/state/demo.ts` + the third Configuration row. One switch fills both pages: escalation and
+knowledge are separate stores under separate keys, so `setDemo` keeps two snapshots. It is
+**not** gated on `import.meta.env.DEV` —
 this repo is a prototype and the deployed Vercel build is what gets demoed, so the row has to
 survive `npm run build`. Turning it on snapshots the real config to
 `jimo.agent.escalation.demo-snapshot.v1` and restores it on the way out.
