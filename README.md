@@ -4,7 +4,7 @@ The Jimo Agent console, built 1:1 from Figma, plus a live end-user widget simula
 Two pages so far:
 
 - **Escalation** (`/escalation`) — [`Escalation`, node 43:6997](https://www.figma.com/design/5LL3WooWBeEfjNpUls93Zg/Escalation?node-id=43-6997)
-- **Knowledge** (`/knowledge`) — [`User Context`, node 901:16049](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=901-16049)
+- **Knowledge** (`/knowledge`) — [`Sources page`, section 932:27941](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=932-27941), plus [`User Context`, node 901:16049](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=901-16049) for the section that tab used to hold
 
 ```sh
 ./run.sh              # dashboard        -> http://localhost:5174
@@ -20,7 +20,7 @@ the two tabs talk to each other through `localStorage`:
 | Surface | Entry | What it does |
 |---|---|---|
 | **Escalation page** | `index.html` at `/escalation` | Configure where hand-offs go, when they fire, and which topics skip the agent. |
-| **Knowledge page** | `index.html` at `/knowledge` | Pick which user properties the agent may read as context. Only the **User Context** tab is built. |
+| **Knowledge page** | `index.html` at `/knowledge` | Add the URLs, files, texts and videos the agent trains on, and watch each one train. Only the **Sources** tab is built — Interface and Custom Answers are drawn but inert. |
 | **Widget simulator** | `widget.html` | A mock customer app with the Jimo agent on it. It runs the rules you just configured, live — change a trigger on the dashboard and this tab reacts without a reload. |
 
 Open the simulator from **Send a test escalation → Open the live widget**.
