@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseKnowledge,
+  parsePage,
   parseSource,
   withSourceAdded,
   withSourcePatched,
@@ -41,6 +42,10 @@ describe('parseKnowledge', () => {
     expect(parseKnowledge(legacy)).toEqual({
       addedIds: ['user_id', 'email'],
       sources: [],
+      // `pages` joined this state later and is seeded populated, so a payload
+      // written before it existed reads forward with the catalogue rather than
+      // an empty grid — see the `pages` block at the bottom of this file.
+      pages: INITIAL_KNOWLEDGE.pages,
       retrain: 'never',
       demoSources: false,
     });
@@ -108,5 +113,52 @@ describe('list helpers', () => {
     const list = [source({ id: 'one' })];
     expect(withSourcePatched(list, 'ghost', { status: 'failed' })).toEqual(list);
     expect(withSourceRemoved(list, 'ghost')).toEqual(list);
+  });
+});
+
+describe('pages', () => {
+  it('reads a pre-pages payload forward with the seeded catalogue, not an empty grid', () => {
+    // The no-migration property this store relies on: `parseKnowledge` spreads
+    // over INITIAL_KNOWLEDGE, and `pages` is the one field there that is seeded
+    // populated. Without this, an existing user's stored payload would open the
+    // Interface tab, the skill page-picker and the skill drawer's `Interface:`
+    // field all blank, with no way to fill them.
+    const legacy = JSON.stringify({ addedIds: [], sources: [], retrain: 'never' });
+    const parsed = parseKnowledge(legacy);
+    expect(parsed.pages.length).toBe(INITIAL_KNOWLEDGE.pages.length);
+    expect(parsed.pages.length).toBeGreaterThan(0);
+  });
+
+  it('lets a stored catalogue replace the seed, including an emptied one', () => {
+    // Deleting every page has to stick — otherwise the seed grows back on reload
+    // and the remove action silently does nothing.
+    expect(parseKnowledge(JSON.stringify({ pages: [] })).pages).toEqual([]);
+  });
+
+  it('coerces an unknown element group rather than dropping the element', () => {
+    const parsed = parsePage({
+      id: 'p1',
+      name: 'Dashboard',
+      elements: [{ id: 'e1', label: 'Thing', group: 'telepathy', tag: 'Div' }],
+    });
+    expect(parsed?.elements[0].group).toBe('contents');
+  });
+
+  it('coerces a missing scan status to ready, never to a stuck spinner', () => {
+    expect(parsePage({ id: 'p1', name: 'Dashboard' })?.status).toBe('ready');
+    expect(parsePage({ id: 'p1', name: 'Dashboard', status: 'scanning' })?.status).toBe('scanning');
+  });
+
+  it('drops a page with no id or no name, and rejects a non-object', () => {
+    expect(parsePage({ name: 'no id' })).toBeNull();
+    expect(parsePage({ id: 'no-name' })).toBeNull();
+    expect(parsePage(null)).toBeNull();
+  });
+
+  it('gives every seeded page at least one element, so no card reads "0 Element"', () => {
+    INITIAL_KNOWLEDGE.pages.forEach((page) => {
+      expect(page.elements.length).toBeGreaterThan(0);
+      expect(page.urlRule).toBeTruthy();
+    });
   });
 });

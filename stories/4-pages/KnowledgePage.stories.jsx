@@ -6,6 +6,8 @@ import { resetKnowledge, setSources } from '../../src/state/knowledgeStore';
 import { DEMO_SOURCES } from '../../src/data/knowledgeSources';
 
 const FIGMA = 'https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=';
+/* The Interface tab is a different file — Interface-Knowledge, 12987:12415. */
+const FIGMA_IK = 'https://www.figma.com/design/ZapclwcQZLBxoeYxfo1ms0/Interface-Knowledge?node-id=';
 
 /**
  * One story per Figma frame in the Sources tab (section 932:27941), each
@@ -14,6 +16,9 @@ const FIGMA = 'https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widge
  *
  * The User Context stories moved to `Organisms/UserContextSection` when the
  * artboard replaced that tab with Interface; they still name their own frames.
+ *
+ * The Interface tab has frames of its own now (Interface-Knowledge 12987:12415)
+ * and its stories are at the bottom, using `FIGMA_IK`.
  */
 const meta = {
   title: 'Pages/KnowledgePage',
@@ -76,3 +81,30 @@ export const Playground = {
   ...page(seed(full()), '899-15214'),
   parameters: { layout: 'fullscreen', chromatic: { disableSnapshot: true } },
 };
+
+/* ── the Interface tab (Interface-Knowledge 12987:12415) ──────────────────── */
+
+const ikPage = (node, props = {}) => ({
+  render: () => {
+    // The page catalogue is seeded by the store, not by the story: unlike
+    // `sources`, `pages` starts populated — see INITIAL_KNOWLEDGE.
+    resetKnowledge();
+    return (
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/knowledge']}>
+          <div style={{ height: '810px' }}>
+            <KnowledgePage initialTab="interface" {...props} />
+          </div>
+        </MemoryRouter>
+      </ToastProvider>
+    );
+  },
+  parameters: { design: { type: 'figma', url: FIGMA_IK + node } },
+});
+
+export const Interface = ikPage('12987-13033');
+export const PageDrawerInterface = ikPage('12987-12416', { initialPageId: 'page-dashboard' });
+export const PageDrawerSkills = ikPage('12987-13517', {
+  initialPageId: 'page-dashboard',
+  initialDrawerTab: 'skills',
+});

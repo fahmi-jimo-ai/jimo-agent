@@ -1,10 +1,12 @@
 # jimo-agent
 
 The Jimo Agent console, built 1:1 from Figma, plus a live end-user widget simulator.
-Two pages so far:
+Five pages so far:
 
 - **Escalation** (`/escalation`) — [`Escalation`, node 43:6997](https://www.figma.com/design/5LL3WooWBeEfjNpUls93Zg/Escalation?node-id=43-6997)
-- **Knowledge** (`/knowledge`) — [`Sources page`, section 932:27941](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=932-27941), plus [`User Context`, node 901:16049](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=901-16049) for the section that tab used to hold
+- **Knowledge** (`/knowledge`) — [`Sources page`, section 932:27941](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=932-27941) and [`Interface Knowledge`, section 12987:12415](https://www.figma.com/design/ZapclwcQZLBxoeYxfo1ms0/Interface-Knowledge?node-id=12987-12415), plus [`User Context`, node 901:16049](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=901-16049) for the section that tab used to hold
+- **Skills** (`/skills`) — [`Building Skill from Dashboard`, section 12987:11525](https://www.figma.com/design/ZapclwcQZLBxoeYxfo1ms0/Interface-Knowledge?node-id=12987-11525)
+- **Statistics** (`/statistics`) and **Conversations** (`/conversations`) — [`Analyze`, section 934:27942](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=934-27942), redrawn for the two panes by [949:7217](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=949-7217) / [949:7347](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=949-7347)
 
 ```sh
 ./run.sh              # dashboard        -> http://localhost:5174
@@ -14,13 +16,16 @@ Two pages so far:
 
 ## What it is
 
-Three surfaces. The dashboard is one SPA with two routes; the widget is a second Vite entry, and
-the two tabs talk to each other through `localStorage`:
+Two surfaces. The dashboard is one SPA with a route per page; the widget is a second Vite entry,
+and the two tabs talk to each other through `localStorage`:
 
 | Surface | Entry | What it does |
 |---|---|---|
 | **Escalation page** | `index.html` at `/escalation` | Configure where hand-offs go, when they fire, and which topics skip the agent. |
-| **Knowledge page** | `index.html` at `/knowledge` | Add the URLs, files, texts and videos the agent trains on, and watch each one train. Only the **Sources** tab is built — Interface and Custom Answers are drawn but inert. |
+| **Knowledge page** | `index.html` at `/knowledge` | Two tabs. **Sources**: add the URLs, files, texts and videos the agent trains on, and watch each one train. **Interface**: the pages the agent has scanned, each opening a drawer of its elements and the skills built on it. Custom Answers is drawn but cut — nothing sits behind it yet. |
+| **Skills page** | `index.html` at `/skills` | The agent's skills, what each one costs and how often it finishes. Add one by picking a mode, then the page it runs on. Open a row for its instructions, its usage, and the real conversations that fired it. |
+| **Statistics page** | `index.html` at `/statistics` | Usage over time, by metric and date range. |
+| **Conversations page** | `index.html` at `/conversations` | Every conversation, with its transcript and the agent's reasoning trace — which skills fired and which sources it cited. Both link out to the page that owns them. |
 | **Widget simulator** | `widget.html` | A mock customer app with the Jimo agent on it. It runs the rules you just configured, live — change a trigger on the dashboard and this tab reacts without a reload. |
 
 Open the simulator from **Send a test escalation → Open the live widget**.

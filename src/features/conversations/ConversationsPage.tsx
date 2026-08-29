@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { sectionVariants } from '@/components/ui/Section/Section';
 import { cn } from '@/lib/utils';
@@ -72,6 +73,8 @@ export function ConversationsPage({ traceDefaultOpen = false }: { traceDefaultOp
   // Share conversation is the one menu row the artboard follows through on:
   // 949:7292 annotates it "success toast saying 'Conversation Link Copied'".
   // There is no link to copy in a prototype, so the toast is the whole feature.
+  const navigate = useNavigate();
+
   const shareConversation = () =>
     toast({ type: 'positive', title: 'Conversation Link Copied' });
 
@@ -84,16 +87,16 @@ export function ConversationsPage({ traceDefaultOpen = false }: { traceDefaultOp
       body: 'The artboard draws this affordance but no frame follows it.',
     });
 
-  // A skill chip in a thinking trace is the one dead end whose destination is
-  // known: `Skills` is already a sidebar item, it just has no page yet. The
-  // toast names the skill rather than claiming the skill itself is out of
-  // scope — the answer really did fire it.
-  const skillOutOfScope = (skill: TriggeredSkill) =>
-    toast({
-      type: 'neutral',
-      title: `${skill.name} fired on this answer`,
-      body: 'Skills has no page yet, so there is nowhere to open it.',
-    });
+  // A skill chip in a thinking trace is no longer a dead end: `/skills` exists,
+  // and `?skill=` opens that row's drawer. The same deep-link shape Knowledge
+  // uses for `?source=`, and for the same reason — the destination reads the
+  // param ONCE and strips it, so the drawer is a place you arrive at rather
+  // than a mode the URL keeps re-asserting.
+  //
+  // Every skill id a trace cites has a seeded row behind it; `skills.test.ts`
+  // asserts that, so this link cannot quietly open a drawer onto nothing.
+  const openSkill = (skill: TriggeredSkill) =>
+    navigate(`/skills?skill=${encodeURIComponent(skill.id)}`);
 
   return (
     <AppShell
@@ -137,7 +140,7 @@ export function ConversationsPage({ traceDefaultOpen = false }: { traceDefaultOp
                 conversation={selected}
                 onAction={outOfScope}
                 onShare={shareConversation}
-                onSkillClick={skillOutOfScope}
+                onSkillClick={openSkill}
                 traceDefaultOpen={traceDefaultOpen}
               />
             </div>

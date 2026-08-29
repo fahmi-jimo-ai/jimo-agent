@@ -1,9 +1,10 @@
 # jimo-agent — Claude Code reference
 
-The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Four pages today:
-**Escalation** (`/escalation`), **Knowledge** (`/knowledge`), **Statistics** (`/statistics`) and
-**Conversations** (`/conversations`); `/` redirects to Escalation. The sidebar lists three more —
-Chat, Launcher, Skills — which are deliberately inert, because nothing is designed behind them.
+The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Five pages today:
+**Escalation** (`/escalation`), **Knowledge** (`/knowledge`), **Skills** (`/skills`),
+**Statistics** (`/statistics`) and **Conversations** (`/conversations`); `/` redirects to
+Escalation. The sidebar lists two more — Chat and Launcher — which are deliberately inert,
+because nothing is designed behind them.
 Read `README.md` first for what the app is; this file is the working rules.
 
 ## Run
@@ -126,8 +127,12 @@ Two things that follow from the height ease:
 `/knowledge` opens on **Sources** (Figma section `932:27941`). Its tab bar — Interface ·
 Sources · Custom Answers — is that section's, and it replaced the older bar that named User
 Context. `UserContextSection` is unchanged and still storied under `Organisms/`; the design
-dropped the tab, not the work. Only Sources is designed, so `PageHeader` still gets no
-`onTabClick`.
+dropped the tab, not the work.
+
+**Interface is designed now** (`12987:12415`) and the tab bar therefore switches: `PageHeader`
+gets a real `onTabClick`, and `activeTab` is component state. Which tab you are on is NOT
+persisted — that is where a reader is inside a page, not configuration, the same line
+`ThinkingTrace` draws for its open state.
 
 Unlike `userProperties`, a knowledge source is created by the user and exists nowhere else, so
 the whole record is persisted (`sources` in `KnowledgeState`) rather than an id into a fixture.
@@ -158,6 +163,72 @@ happily as `https:`.
 links here by source id. `KnowledgePage` reads the param ONCE into `SourcesTab`'s `initialDetailId`
 and then strips it, so the drawer is a destination rather than a mode — reading it on every render
 would fight the close button, and leaving the param would reopen the drawer on reload.
+
+## Skills is the picker plus a form, and the widget builder is not here
+
+`/skills` is Figma section `12987:11525`. Five artboards, all built: the list
+(`12987:11526`), the page picker (`12987:11947`), and the drawer's three views — Description
+(`12987:14597`), Usage (`12987:15826`) and a conversation opened *inside* it (`12987:16446`).
+
+**The flow stops at the form on purpose.** `12544:22994` and `12197:27548` carry it on inside the
+WIDGET: recommended flows, `Record Steps`, a live recorded-step list, lettered A/B clarifying
+questions, an element-picker tray, then a summary card to save. That is a state machine on top of
+`escalationEngine`, which today only answers support questions — the same shape of gap CLAUDE.md
+already records for the widget's five undrawn states. It is a separate project, not a missing `if`.
+Here the picker hands off to `SkillFormModal`, the same card `Edit` opens, so both paths build a
+record the same way. Delete is a `confirm` **step** of that card, never a second dialog.
+
+**The copy is this app's; only the layout is the artboard's.** Every skill Figma names — "Create
+new deal", "Analyze report" — belongs to a CRM, the same frame family the reasoning trace was
+transcribed from. So `DEMO_SKILLS` uses the five ids `analytics.ts` traces ALREADY cite
+(`skill-answer`, `skill-clarify`, `skill-navigate`, `skill-summarise`, `skill-escalate`), and that
+buys something concrete: the Usage tab's conversation list is derived from real `CONVERSATIONS`,
+and the skill chip on `/conversations` deep-links to a row that exists. `skills.test.ts` asserts
+that every cited id resolves, so the link cannot quietly open a drawer onto nothing.
+
+Three artboard contradictions, each resolved in the component's own header:
+
+- **Mode labels.** `Execute` / `Guide` / `Explain` (the newer frames) beat `Agent acts` /
+  `Agent guides` / `Explanation` (`12987:14597`). One label per mode, so the table chip and the
+  drawer's `Mode:` field cannot disagree. The Add Skill menu's long titles are a different
+  register and stay their own map.
+- **The table takes the union of two frames** — `12987:11526` draws Name + description subline /
+  Last updated / Usage / Completion rate; `12987:16031` draws a Mode chip and no subline. Five
+  columns.
+- **The back chevron `12987:15136` draws on the Description tab has nothing behind it** — that tab
+  is the drawer's root. It renders only in the conversation view.
+
+`skillsStore` seeds **populated**, which is the opposite of `knowledgeStore`. A source is something
+the user types, so an empty Sources tab is a true statement about a new workspace; a skill list is
+not, no empty state is designed, and the deployed build is what gets demoed. `SkillsEmptyState` is
+invented and still reachable — delete every row — it just is not where a first visit lands. That is
+also why `demo.ts` is not extended: the Demo data switch fills stores that are empty by default.
+
+## Interface is a page catalogue, and a skill is built on one
+
+`/knowledge`'s **Interface** tab is Figma `12987:12415`. It is what makes the skill page-picker and
+the skill drawer's `Interface: Dashboard` link mean anything, which is why it landed with Skills
+rather than before or after it.
+
+`pages` lives in `KnowledgeState` under the existing key — `parseKnowledge` merges over
+`INITIAL_KNOWLEDGE`, so a payload written before `pages` existed reads forward with the catalogue
+and no migration step. Like skills and unlike sources, it is **seeded populated**: a page catalogue
+is the output of a scanner, and there is no scanner here.
+
+Scanning is faked the same way training is, through the same module: `armTraining(id, finishScan,
+SCAN_MS)` in `src/state/trainingTimers.ts`. The pairing is identical and so is the trap — `status`
+IS persisted, a timer id is not, so `InterfaceTab` calls `resumeScanning()` on mount or a card says
+"Scanning page..." forever. Drop either half and the spinner strands.
+
+The page drawer and the skill drawer are the same shell: `Drawer` with `header` and `footer` slots
+(see below), a `PrimaryHorizontalMenuGroup` tab bar, and view state that is deliberately NOT
+persisted. Its `Details` tab is invented — no frame draws one — and says so in the file.
+
+**Two deep links, one shape.** `/knowledge?page=<id>` opens the page drawer; `/skills?skill=<id>`
+opens the skill drawer. Both round-trip: the skill drawer's `Interface:` field goes one way, the
+page drawer's Skills tab comes back. Each reads its param ONCE and strips it, exactly as
+`?source=` already did — read it every render and it fights the close button, leave it in and a
+reload reopens the drawer.
 
 ## Conversations is the one full-bleed page, and the panel owns a ground
 
@@ -218,6 +289,16 @@ it, and a record that quietly drops its sources is worse than one that admits it
 dismissed on its own, which puts it beside `PickerDialog` rather than inside the one-card rule.
 It is still a floating layer, so it meets all four Floating-Layers requirements — and note its
 transition names **`translate`**, not `transform`, for the same reason `Menu` names `scale`.
+
+**Additive fork for the two new drawers** (skill `12987:15826`, page `12987:12416`): `header`
+replaces the built-in title row wholesale, and `footer` pins below a scrolling body. Both default
+to exactly what the file did before, so `SourceDetailDrawer` is untouched. A caller that passes
+`header` owns its own close button — there is no "title plus extras" mode, because all three
+headers put the close control somewhere different and a prop per placement is a prop per chance to
+render none of them right. Note the consequence: with a `footer`, the BODY scrolls rather than the
+panel, or the footer would slide away with the content. The full-bleed conversation view needs no
+third prop — `cn` is tailwind-merge, so a caller's `className="p-0"` already beats the panel's
+padding.
 
 It paints `--color-blue-50`, the colour `Subpage` paints, because without a ground of its own
 the header row sits on the backdrop and the page shows through it.
@@ -315,6 +396,17 @@ The five undrawn widget states add a third: everything `PILL_FACE`, `BOTBAR_TEXT
 `QUESTION` say in `AgentWidget.tsx`. The prototype's own copy is about a CRM deal pipeline; these
 are the support equivalents, and no artboard or PRD defines them.
 
+**Skills** and the **Interface** tab add the largest batch, each commented at its own site:
+`DEMO_SKILLS`' instructions prose and every figure past the ones the artboards print (`6,248`,
+`5%`, `321`, `193 (82%)`, `42 Conversations`); the `buildSkillUses` / `buildSkillOutcomes` /
+`buildSkillUsageDays` generators; the 50% cut that turns the Completion rate chip red; the option
+sets behind `Default`, `All Skills`, `All time` and `All Responses`, of which only the last
+actually filters; the drawer kebab's `Duplicate` / `Delete` rows; `SkillFormModal`'s field labels;
+`SkillsEmptyState`; `DEMO_PAGES` and every element label in it; `PageThumb`'s wireframe, which is
+drawn from tokens rather than baked as a PNG because the artboard's thumbnails are screenshots of
+somebody else's product; `ScanPageModal` and the 4s `SCAN_MS` behind it; and the page drawer's
+`Details` tab, which no frame draws at all.
+
 `src/lib/classifyChip.ts` is the opposite: transcribed **verbatim** from Figma node `29:12197`.
 Do not "improve" its rules — `classifyChip.test.ts` encodes the spec's own 12 worked examples.
 
@@ -339,6 +431,32 @@ survive `npm run build`. Turning it on snapshots the real config to
 
 It deliberately does not use `seed()`: `seed()` calls `resetState()`, which would destroy the
 user's vendor and topics for good.
+
+## Two REAL vendor scripts run on the dashboard
+
+`src/lib/jimo.ts` and `src/lib/intercom.ts`, both called from `main.tsx` at module scope. These are
+not simulated — they load the live Jimo invader (project `69331a7f…` on
+`testing.undercity.usejimo.com`, `JIMO_DEBUG` on) and the live Intercom messenger (workspace
+`l8fng6ag`). Everything else in this repo fakes its vendors; these two do not, so treat them as
+production surfaces.
+
+Three rules the files' own headers expand on:
+
+- **Dashboard only, never `widget.html`.** That entry is OUR simulated agent widget, and the real
+  Jimo launcher beside it would put two agents on one screen.
+- **Module scope, not a `useEffect`.** No component wraps the SPA — `main.tsx` mounts the router
+  directly — so both installs guard against a second call instead (`window.jimo != null`; Intercom
+  re-`update`s a booted messenger rather than appending its script twice). That is also what makes
+  StrictMode's double invoke a no-op.
+- **Intercom boots ANONYMOUS.** There is no auth and no current user to read. A `user_id` boot
+  would create a real contact in the real workspace, which cannot be undone from this side, and it
+  would need an Identity Verification HMAC from a server this prototype does not have.
+
+`installIntercom` writes out by hand what `@intercom/messenger-js-sdk` does, because
+`npm install` cannot reach the registry from this machine (ENOTFOUND, a local DNS problem). The
+export signature is already the one the package would need, so the body collapses to two lines
+once that is fixed. Known collision, deliberately left alone: Jimo and Intercom both drop a
+bottom-right launcher, so they overlap on `/escalation`.
 
 ## Verify before marking done
 

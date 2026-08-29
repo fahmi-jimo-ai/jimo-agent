@@ -16,5 +16,11 @@ export {
   resumeTraining,
   setSources,
   setRetrain,
+  addPage,
+  removePage,
+  updatePage,
+  rescanPage,
+  resumeScanning,
+  setPages,
 } from './knowledgeStore';
 export type { KnowledgeState, RetrainFrequency } from './knowledgeStore';

@@ -27,7 +27,7 @@ type AppShellProps = {
 export function AppShell({ activeItem, header, contentClassName, maxWidth = 1064, children }: AppShellProps) {
   const navigate = useNavigate();
 
-  // Labels with no route (Chat, Launcher, Skills) fall through and stay inert,
+  // Labels with no route (Chat, Launcher) fall through and stay inert,
   // rather than navigating to a page that is not built yet. The sidebar is
   // honest about what exists.
   const go = (label: string) => {

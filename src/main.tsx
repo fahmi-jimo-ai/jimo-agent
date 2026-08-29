@@ -7,7 +7,15 @@ import { EscalationPage } from './features/escalation/EscalationPage';
 import { KnowledgePage } from './features/knowledge/KnowledgePage';
 import { StatisticsPage } from './features/statistics/StatisticsPage';
 import { ConversationsPage } from './features/conversations/ConversationsPage';
+import { SkillsPage } from './features/skills/SkillsPage';
 import { ToastProvider } from './components/app/toast';
+import { installJimo } from './lib/jimo';
+import { installIntercom } from './lib/intercom';
+
+// Jimo and Intercom, both on the dashboard only — see src/lib/jimo.ts for why
+// neither is in widget.html and why they run here rather than in a useEffect.
+installJimo();
+installIntercom();
 
 // ToastProvider sits OUTSIDE the router so a toast raised just before a nav
 // (e.g. "Escalation enabled") is not unmounted by the route change.
@@ -23,6 +31,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<Navigate to="/escalation" replace />} />
           <Route path="/escalation" element={<EscalationPage />} />
           <Route path="/knowledge" element={<KnowledgePage />} />
+          <Route path="/skills" element={<SkillsPage />} />
           {/* Figma draws Statistics and Conversations as two tabs of one
               "Analyze" page. They are two routes here, because the sidebar has
               always listed them as two peer items — see StatisticsPage. */}

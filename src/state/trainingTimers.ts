@@ -16,6 +16,21 @@
 
 export const TRAINING_MS = 2000;
 
+/**
+ * The same registry now serves a SECOND simulation: the Interface tab's page
+ * scan. Nothing here is training-specific — it is an id -> timeout map, and
+ * `armTraining` already takes its own `delay` — so scanning arms its ids here
+ * rather than forking a parallel module that would need the same
+ * replace-don't-stack and resume-on-mount properties reasoned about twice.
+ *
+ * The two id namespaces cannot collide: sources are `<kind>-<n>-<rand>` from
+ * `makeSourceId`, pages are `page-<n>-<rand>` from `makePageId`.
+ *
+ * Four seconds rather than two, because a scan reads as heavier work than
+ * training one row, and the card has three things to say while it waits.
+ */
+export const SCAN_MS = 4000;
+
 type Timer = ReturnType<typeof setTimeout>;
 
 const timers = new Map<string, Timer>();

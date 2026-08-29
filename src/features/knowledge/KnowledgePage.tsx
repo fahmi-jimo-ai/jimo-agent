@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Play, Monitor, Element4, Firstline } from 'iconsax-react';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { Button } from '@/components/ui/Button/Button';
@@ -8,26 +8,34 @@ import { Menu, MenuItem } from '@/components/app/Menu';
 import { useToast } from '@/components/app/toast';
 import { openWidget } from '@/features/escalation/openWidget';
 import { SourcesTab } from './sources/SourcesTab';
+import { InterfaceTab } from './interface/InterfaceTab';
+import type { PageDrawerTab } from './interface/PageDrawer';
 import { PreviewInAppModal } from './PreviewInAppModal';
 
 /**
- * The Knowledge page — Figma Copilot-Widget, section 932:27941 ("Sources page").
+ * The Knowledge page — Figma Copilot-Widget, section 932:27941 ("Sources page"),
+ * and Interface-Knowledge `12987:12415` for the Interface tab.
  *
  * The tab bar is that section's (932:17526), minus one: **Interface ·
- * Sources**, with Sources active. It replaces the older 901:16049 bar, which
- * named User Context where Interface now sits. `UserContextSection` and its
- * files stay in the repo and keep their Storybook stories — the design
+ * Sources**, with Sources active by default. It replaces the older 901:16049
+ * bar, which named User Context where Interface now sits. `UserContextSection`
+ * and its files stay in the repo and keep their Storybook stories — the design
  * dropped the tab, not the work.
  *
  * **Custom Answers is a deliberate deviation from the artboard**, which draws
  * it third (932:17544). It is cut here because the prototype has nothing
  * behind it, not because the design moved — restore the entry when it does.
  *
- * Only **Sources** is designed, so only it is built, and `PageHeader` still
- * gets no `onTabClick`. Interface renders because the artboard shows it and it
- * is inert, which is the honest state of the design rather than a placeholder
- * panel nobody drew. There is no tab state here for the same reason: with one
- * live tab there is nothing to hold.
+ * ## Interface is live now, so the tab bar finally switches
+ *
+ * This page used to pass no `onTabClick`: only Sources was designed, so a tab
+ * bar that switched would have switched to nothing. `12987:12415` designs
+ * Interface — the scanned-page grid and its three-tab drawer — so the bar is
+ * now a real control and `activeTab` is component state.
+ *
+ * Which tab you are on is deliberately NOT persisted. It is where a reader is
+ * inside a page, not configuration — the same line `ThinkingTrace` draws for its
+ * open state and `SourcesTab` draws for its filters.
  *
  * ## Test Knowledge opens a menu, and that is why `buttons[]` is empty
  *
@@ -43,12 +51,17 @@ import { PreviewInAppModal } from './PreviewInAppModal';
  * usual reason: the panel portals to <body>, so the page header's own stacking
  * context cannot clip it.
  *
- * ## `?source=` opens the Content Detail drawer
+ * ## Two deep links, one shape
  *
- * A citation in a conversation's thinking trace links here by source id (see
- * `ThinkingTrace`). The param is read once into `SourcesTab`'s existing
- * `detailId` state and then stripped, so the drawer is a destination rather
- * than a mode — a reload lands on the table, not back inside the drawer.
+ * `?source=` opens the Content Detail drawer on Sources — a citation in a
+ * conversation's thinking trace links here by source id (see `ThinkingTrace`).
+ * `?page=` opens the page drawer on Interface, which is where a skill's
+ * `Interface: Dashboard ↗` field lands.
+ *
+ * Both are read ONCE into the tab's `initial*` prop and then stripped, so a
+ * drawer is a destination rather than a mode: a reload lands on the grid, not
+ * back inside the drawer, and the close button is not fighting a param that
+ * re-asserts itself on every render.
  */
 const TABS = [
   // Figma glyphs: element-4, firstline (932:17530 / 17537).
@@ -56,19 +69,43 @@ const TABS = [
   { id: 'sources', label: 'Sources', icon: <Firstline size={20} variant="Linear" color="currentColor" /> },
 ];
 
-export function KnowledgePage(props: React.ComponentProps<typeof SourcesTab>) {
+export function KnowledgePage({
+  initialTab,
+  initialPageId: initialPageIdProp,
+  initialDrawerTab,
+  ...props
+}: React.ComponentProps<typeof SourcesTab> & {
+  /** Stories land directly on a tab; the app opens on Sources. */
+  initialTab?: 'interface' | 'sources';
+  /** Stories open the page drawer without a URL. */
+  initialPageId?: string;
+  /** …and land it on one of its three tabs. */
+  initialDrawerTab?: PageDrawerTab;
+} = {}) {
   const toast = useToast();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [previewInApp, setPreviewInApp] = React.useState(false);
   const [params, setParams] = useSearchParams();
 
-  // Read the deep link ONCE. Held in state rather than read on every render so
-  // that stripping the param below cannot also close the drawer it just opened.
-  const [initialDetailId] = React.useState(() => params.get('source'));
+  // Read both deep links ONCE. Held in state rather than read on every render so
+  // that stripping the params below cannot also close the drawer one just opened.
+  const [deepLink] = React.useState(() => ({
+    source: params.get('source'),
+    page: params.get('page'),
+  }));
+
+  // A `?page=` link is also a request to be on the Interface tab — arriving on
+  // Sources with an invisible drawer open would be the worst of both.
+  const [tab, setTab] = React.useState<string>(
+    initialTab ?? (deepLink.page ? 'interface' : 'sources'),
+  );
+
   React.useEffect(() => {
-    if (!params.has('source')) return;
+    if (!params.has('source') && !params.has('page')) return;
     const next = new URLSearchParams(params);
     next.delete('source');
+    next.delete('page');
     setParams(next, { replace: true });
     // `params`/`setParams` are stable enough for this one-shot; re-running on a
     // later param change is harmless because `has` gates it.
@@ -123,11 +160,26 @@ export function KnowledgePage(props: React.ComponentProps<typeof SourcesTab>) {
           }
           showTabs
           tabs={TABS}
-          activeTab="sources"
+          activeTab={tab}
+          onTabClick={setTab}
         />
       }
     >
-      <SourcesTab {...props} initialDetailId={props.initialDetailId ?? initialDetailId ?? undefined} />
+      {tab === 'interface' ? (
+        <InterfaceTab
+          initialPageId={initialPageIdProp ?? deepLink.page ?? undefined}
+          initialDrawerTab={initialDrawerTab}
+          // The page drawer's Skills tab is the other half of the round trip the
+          // skill drawer's `Interface:` field starts.
+          onOpenSkill={(skillId) => navigate(`/skills?skill=${encodeURIComponent(skillId)}`)}
+          onAddSkill={() => navigate('/skills')}
+        />
+      ) : (
+        <SourcesTab
+          {...props}
+          initialDetailId={props.initialDetailId ?? deepLink.source ?? undefined}
+        />
+      )}
 
       {previewInApp && (
         <PreviewInAppModal

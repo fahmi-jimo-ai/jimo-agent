@@ -34,18 +34,53 @@ import { cn } from '@/lib/utils';
  * compiles `translate-x-*` to the standalone `translate:` property, the same
  * trap CLAUDE.md records for `scale`. Naming `transform` here would drop the
  * transition whole and the panel would snap.
+ *
+ * ## ADDITIVE FORK (Skills, `12987:15826` / Interface Knowledge, `12987:12416`)
+ *
+ * Two new drawers need more than a title and a close button: a back chevron, an
+ * `Active` pill fused to a Switch, a kebab, a tab bar under the header, a pinned
+ * footer of two buttons — and in the skill drawer's conversation view,
+ * `ConversationDetail` brings its OWN header and has to go edge to edge.
+ *
+ * So `header` and `footer` were added. Both are optional and both default to
+ * exactly what this file did before, so `SourceDetailDrawer` is untouched:
+ *
+ *   - `header` REPLACES the built-in title row wholesale. A caller that passes it
+ *     owns its own close button — there is deliberately no "title plus extras"
+ *     mode, because every one of the three headers puts the close control in a
+ *     different place, and a prop per placement is a prop per chance to render
+ *     none of them correctly.
+ *   - `footer` pins below the scrolling body. The body — not the panel — is what
+ *     scrolls once a footer exists, or the footer would scroll away with it.
+ *
+ * There is no third prop for the full-bleed conversation view: `cn` is
+ * tailwind-merge, so a caller's `className="p-0"` already beats the panel's
+ * `p-[var(--space-4)]` deterministically.
  */
 export function Drawer({
   title,
   onClose,
   children,
+  header,
+  footer,
   width = 492,
   className,
 }: {
+  /** Ignored when `header` is passed; still the panel's aria-label either way. */
   title: React.ReactNode;
   onClose: () => void;
   children: React.ReactNode;
-  /** 932:18232 measures 492 — the column, not the card inside it. */
+  /**
+   * Replaces the built-in title row; the caller then owns its close button.
+   * Pass `null` for NO header row at all — the skill drawer's conversation view
+   * needs that, because `ConversationDetail` brings a header of its own and two
+   * stacked headers is the bug. `undefined` (the default) keeps the title row,
+   * so `SourceDetailDrawer` is untouched.
+   */
+  header?: React.ReactNode;
+  /** Pinned below the scrolling body. */
+  footer?: React.ReactNode;
+  /** 932:18232 measures 492 — the column, not the card inside it. 12987:15136 is 600. */
   width?: number;
   className?: string;
 }) {
@@ -95,28 +130,43 @@ export function Drawer({
           // else. Without a ground of its own the header row sits on the
           // backdrop and whatever is behind it shows through.
           'bg-[var(--color-blue-50)] [box-shadow:var(--shadow-elevation-04)]',
-          'overflow-y-auto p-[var(--space-4)]',
+          // Without a footer the PANEL scrolls, exactly as before. With one, the
+          // panel must not — the body below takes the scroll instead, or the
+          // pinned footer would slide away with the content.
+          footer ? 'overflow-hidden' : 'overflow-y-auto',
+          'p-[var(--space-4)]',
           // `translate`, not `transform` — see the header comment.
           '[transition:translate_var(--transition-base),opacity_var(--transition-fast)]',
           entered ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0',
           className,
         )}
       >
-        <div className="flex flex-1 flex-col gap-[var(--space-4)]">
-          <div className="flex items-center justify-between px-[var(--space-5)] py-[var(--space-5)]">
-            <p className="m-0 [font:var(--text-subtitle-2)] text-[var(--color-text-primary)]">
-              {title}
-            </p>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="inline-flex size-6 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] [transition:color_var(--transition-fast)] hover:text-[var(--color-text-primary)]"
-            >
-              <CloseIcon size={24} />
-            </button>
-          </div>
-          {children}
+        <div className="flex min-h-0 flex-1 flex-col gap-[var(--space-4)]">
+          {header !== undefined ? (
+            header
+          ) : (
+            <div className="flex shrink-0 items-center justify-between px-[var(--space-5)] py-[var(--space-5)]">
+              <p className="m-0 [font:var(--text-subtitle-2)] text-[var(--color-text-primary)]">
+                {title}
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="inline-flex size-6 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] [transition:color_var(--transition-fast)] hover:text-[var(--color-text-primary)]"
+              >
+                <CloseIcon size={24} />
+              </button>
+            </div>
+          )}
+          {footer ? (
+            <div className="flex min-h-0 flex-1 flex-col gap-[var(--space-4)] overflow-y-auto">
+              {children}
+            </div>
+          ) : (
+            children
+          )}
+          {footer && <div className="shrink-0">{footer}</div>}
         </div>
       </div>
     </>,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { More2, ProfileCircle, DocumentDownload, Link2 } from 'iconsax-react';
+import { More2, ProfileCircle, DocumentDownload, Link2, ArrowLeft2 } from 'iconsax-react';
 import { Button } from '@/components/ui/Button/Button';
 import { DropdownMenuList } from '@/components/ui/DropdownMenuList/DropdownMenuList';
 import { Menu } from '@/components/app/Menu';
@@ -28,18 +28,31 @@ import type { Conversation, TriggeredSkill } from '@/data/analytics';
  * is load-bearing, not habit: this pane is a scroll container, so an in-tree
  * panel would be clipped by it the moment the transcript ran long. Same trap
  * `PropertyTable` hit inside `Table`'s scroll wrapper.
+ *
+ * ## ADDITIVE: `onBack` (Skills, `12987:16446`)
+ *
+ * The skill drawer opens a conversation INSIDE itself, and that artboard draws a
+ * back chevron before the avatar. It is one optional prop rather than a second
+ * component: everything else on `12987:16446` — the identity block, the kebab,
+ * the Blue/100 ground, the bubbles and the reasoning trace — is this pane
+ * already, and a near-copy of it would silently lose one of those the first time
+ * either file moved. Omit `onBack` and nothing renders, so `/conversations` is
+ * byte-identical.
  */
 export function ConversationDetail({
   conversation,
   onAction,
   onShare,
   onSkillClick,
+  onBack,
   traceDefaultOpen = false,
 }: {
   conversation: Conversation;
   onAction: (label: string) => void;
   onShare: () => void;
   onSkillClick: (skill: TriggeredSkill) => void;
+  /** Renders the back chevron of 12987:16446. Omit on /conversations. */
+  onBack?: () => void;
   /** Stories open the first agent turn's trace so it can be diffed. */
   traceDefaultOpen?: boolean;
 }) {
@@ -55,6 +68,16 @@ export function ConversationDetail({
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--color-brand-subtle)]">
       <header className="flex shrink-0 items-center gap-[var(--space-8)] border-b border-[var(--color-border-default)] bg-[var(--color-bg-default)] p-[var(--space-4)]">
         <div className="flex min-w-0 flex-1 items-center gap-[var(--space-3)]">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back"
+              className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[var(--radius-md)] border-0 bg-transparent p-0 text-[var(--color-text-secondary)] [transition:color_var(--transition-fast),background-color_var(--transition-fast)] hover:bg-[var(--color-bg-subtle)] hover:text-[var(--color-text-primary)]"
+            >
+              <ArrowLeft2 size={20} variant="Linear" color="currentColor" />
+            </button>
+          )}
           <Avatar name={conversation.name} seed={conversation.id} size="medium" />
           <div className="flex min-w-0 flex-1 flex-col gap-[var(--space-1)]">
             <span className="truncate [font:var(--text-subtitle-3)] text-[var(--color-text-primary)]">
