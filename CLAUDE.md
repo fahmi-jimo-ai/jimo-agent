@@ -452,11 +452,17 @@ Three rules the files' own headers expand on:
   would create a real contact in the real workspace, which cannot be undone from this side, and it
   would need an Identity Verification HMAC from a server this prototype does not have.
 
-`installIntercom` writes out by hand what `@intercom/messenger-js-sdk` does, because
-`npm install` cannot reach the registry from this machine (ENOTFOUND, a local DNS problem). The
-export signature is already the one the package would need, so the body collapses to two lines
-once that is fixed. Known collision, deliberately left alone: Jimo and Intercom both drop a
-bottom-right launcher, so they overlap on `/escalation`.
+`installIntercom` is now two lines over the real `@intercom/messenger-js-sdk` (0.0.20), and its
+own double-call guard is gone because the SDK has one (a `_intercom_npm_loader` script id, and a
+re-`update` rather than a second script). It used to hand-write what that package does, because
+`npm install` cannot reach the registry from this machine — ENOTFOUND on every host, a broken
+system resolver rather than an npm problem, since the network is fine when given an IP. The
+package was therefore installed from a checksum-verified tarball fetched by IP and unpacked into
+`node_modules`; `package.json` and `package-lock.json` carry the ordinary registry entry, so CI
+and Vercel install it the normal way. **Until that resolver is fixed, a plain `npm install` or
+`npm ci` here fails and will prune the unpacked copy** — re-unpack it rather than assuming the
+dependency was never added. Known collision, deliberately left alone: Jimo and Intercom both drop
+a bottom-right launcher, so they overlap on `/escalation`.
 
 ## Verify before marking done
 
