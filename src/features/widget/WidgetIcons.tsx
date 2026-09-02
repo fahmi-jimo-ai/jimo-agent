@@ -76,6 +76,37 @@ export function WidgetIcons() {
         <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 6l6 6-6 6" />
         </symbol>
+
+        {/* ── Proposal glyphs — NOT from the prototype's <defs> ──────────────
+            The four above this line are verbatim from
+            `trigger-demo/builder/src/prototype/prototype.html`; these four are
+            not, because the slots they sit in do not exist upstream yet. They
+            are drawn in the same grammar — 24px box, currentColor stroke, 1.9
+            weight, round caps — so a future re-port can drop this block
+            wholesale without leaving a hole. Same quarantine as
+            `widget-proposals.css`.
+
+            i-sliders → the chat bar's context control (PRD-589)
+            i-book    → hosted articles (PRD-590)
+            i-lock    → the "not public" line on an article (PRD-590)
+            i-pen     → the "writing the answer" thinking step (PRD-595) */}
+        <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h10M18 18h2" />
+          <circle cx="16" cy="6" r="2" />
+          <circle cx="10" cy="12" r="2" />
+          <circle cx="16" cy="18" r="2" />
+        </symbol>
+        <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H18a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5.5A1.5 1.5 0 0 0 4 19.5v-15Z" />
+          <path d="M4 19.5A1.5 1.5 0 0 1 5.5 18H19v3H5.5A1.5 1.5 0 0 1 4 19.5ZM8 7.5h7M8 11h5" />
+        </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4.5" y="10" width="15" height="10.5" rx="2.5" />
+          <path d="M8 10V7.5a4 4 0 0 1 8 0V10" />
+        </symbol>
+        <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M13.5 5.5 18 10M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4Z" />
+        </symbol>
       </defs>
     </svg>
   );

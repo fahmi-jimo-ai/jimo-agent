@@ -4,6 +4,7 @@ import { ModalCard } from '@/components/app/ModalCard';
 import { Menu } from '@/components/app/Menu';
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
+import { Alert } from '@/components/ui/Infobox/alert';
 import { DropdownMenuList } from '@/components/ui/DropdownMenuList/DropdownMenuList';
 import {
   CURRENT_AUTHOR,
@@ -63,6 +64,9 @@ const TITLE: Record<SourceKind, string> = {
   file: 'Add File Content',
   video: 'Add Video Content',
   qa: 'Add Q&A Content',
+  // Not "Add Article Content": the other five ADD something that exists
+  // elsewhere, this one WRITES it. The verb is the difference PRD-590 is about.
+  hosted: 'Write an article',
 };
 
 /** 932:19941 — the three hosts the supportive line names. */
@@ -121,6 +125,11 @@ export function AddSourceModal({
   const [retrieveOpen, setRetrieveOpen] = React.useState(false);
   const [rules, setRules] = React.useState<UrlRule[]>([makeRule()]);
   const [text, setText] = React.useState(editing?.label ?? '');
+  // `hosted` is the one kind with a title AND a body, so it cannot reuse
+  // `text`'s single field: the title is what a reader picks from a list, the
+  // body is what they then read.
+  const [articleTitle, setArticleTitle] = React.useState(editing?.label ?? '');
+  const [articleBody, setArticleBody] = React.useState(editing?.body ?? '');
   const [video, setVideo] = React.useState('');
   const [files, setFiles] = React.useState<{ id: string; name: string; size: number }[]>([]);
   const [dragging, setDragging] = React.useState(false);
@@ -144,6 +153,8 @@ export function AddSourceModal({
         return video.trim().length > 0 && !videoInvalid;
       case 'file':
         return files.length > 0;
+      case 'hosted':
+        return articleTitle.trim().length > 0 && articleBody.trim().length > 0;
     }
   })();
 
@@ -151,6 +162,17 @@ export function AddSourceModal({
     if (!canTrain) return;
 
     if (editing) {
+      // An article edits both halves; every other editable kind is one field.
+      if (kind === 'hosted') {
+        onUpdate(editing.id, {
+          label: articleTitle.trim(),
+          body: articleBody.trim(),
+          status: 'training',
+          updatedAt: Date.now(),
+          chunks: [{ id: 'c1', text: articleBody.trim() }],
+        });
+        return;
+      }
       onUpdate(editing.id, {
         label: text.trim(),
         status: 'training',
@@ -191,6 +213,14 @@ export function AddSourceModal({
       case 'file':
         onSubmit(files.map((f) => baseSource('file', f.name, '#')));
         break;
+      case 'hosted': {
+        // No href — see SourceKind. The body is both what end users read and
+        // what the agent trains on, which is the point of the kind: one record,
+        // two consumers.
+        const article = baseSource('hosted', articleTitle.trim());
+        onSubmit([{ ...article, body: articleBody.trim(), chunks: [{ id: 'c1', text: articleBody.trim() }] }]);
+        break;
+      }
     }
   };
 
@@ -308,6 +338,38 @@ export function AddSourceModal({
               className="[&_textarea]:min-h-[110px]"
               value={text}
               onChange={(e) => setText(e.target.value)}
+            />
+          </div>
+        );
+
+      case 'hosted':
+        return (
+          <div className="flex flex-col gap-[var(--space-4)]">
+            <Input
+              label="Title"
+              placeholder="How billing works"
+              supportiveText="What end users see in the list before they open it."
+              value={articleTitle}
+              onChange={(e) => setArticleTitle(e.target.value)}
+            />
+            <Input
+              inputType="textarea"
+              label="Article"
+              supportiveText="Written here, stored here. The agent trains on it and your end users read it — the same text, never a public page."
+              placeholder={
+                'Invoices are issued on the first working day of each month.\n\nPayment is due within 30 days.'
+              }
+              className="[&_textarea]:min-h-[180px]"
+              value={articleBody}
+              onChange={(e) => setArticleBody(e.target.value)}
+            />
+            {/* The reassurance IS the feature. Gojob's blocker was never
+                authoring — it was that every route to a reading surface went
+                through a public URL or somebody else's tool. */}
+            <Alert
+              type="neutral"
+              title="Private by construction"
+              body="An article has no public address. It is served inside your product, to users you have already signed in — so there is nothing for a search engine or a competitor to crawl."
             />
           </div>
         );

@@ -64,6 +64,26 @@
 .vp-msg--agent { align-self: flex-start; }
 .vp-msg--agent p { background: var(--color-neutral-100); color: var(--color-text-primary); border-bottom-left-radius: var(--radius-sm); }
 
+/* Custom webhook's hand-off receipt — PRD-591. Not a .vp-msg: it is the
+   delivery record, not a turn in a conversation, so it is full-width and
+   square-shouldered where a bubble is inset and rounded. */
+.vp-receipt {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3); border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-default); background: var(--color-neutral-50);
+}
+.vp-receipt-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.vp-receipt-status {
+  flex: none; padding: 2px var(--space-2); border-radius: var(--radius-full);
+  background: var(--color-green-100); color: var(--color-success-default);
+  font: var(--text-body-5); font-variant-numeric: tabular-nums;
+}
+.vp-receipt code {
+  min-width: 0; overflow-x: auto; white-space: nowrap;
+  font: var(--text-body-5); color: var(--color-text-secondary);
+}
+.vp-receipt p { margin: 0; font: var(--text-body-4); color: var(--color-text-secondary); }
+
 .vp-note { border-top: 1px solid var(--color-border-default); background: var(--color-orange-100); }
 .vp-note-toggle {
   display: flex; align-items: center; gap: var(--space-2); width: 100%;

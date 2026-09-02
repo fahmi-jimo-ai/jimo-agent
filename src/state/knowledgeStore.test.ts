@@ -92,6 +92,25 @@ describe('parseSource', () => {
     expect(parsed?.usedInResponses).toBe(0);
     expect(parsed?.chunks).toEqual([{ id: 'c1', text: 'ok' }]);
   });
+
+  /**
+   * This parser rebuilds the record field by field instead of spreading it, so
+   * a field it forgets is a field that empties on every reload. For a `hosted`
+   * article that is not a lost setting — the body IS the article, and it exists
+   * nowhere else. It shipped broken exactly once; this is why.
+   */
+  it('keeps a hosted article body across a reload', () => {
+    const parsed = parseSource(
+      source({ kind: 'hosted', label: 'How billing works', body: 'Invoices go out monthly.' }),
+    );
+    expect(parsed?.kind).toBe('hosted');
+    expect(parsed?.body).toBe('Invoices go out monthly.');
+  });
+
+  it('leaves body undefined on the kinds that have none', () => {
+    expect(parseSource(source({ kind: 'url' }))?.body).toBeUndefined();
+    expect(parseSource({ id: 'a', label: 'x', body: 42 })?.body).toBeUndefined();
+  });
 });
 
 describe('list helpers', () => {

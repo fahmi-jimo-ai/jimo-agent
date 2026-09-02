@@ -1,0 +1,249 @@
+/* ============================================================================
+   widget-proposals.css — design proposals not yet in the upstream prototype
+   ============================================================================
+
+   WHY THIS FILE EXISTS, AND WHY THESE RULES ARE NOT IN widget.css
+
+   `src/styles/widget.css` is a whole-file port of
+   `trigger-demo/builder/src/styles/widget.css`. CLAUDE.md's rule for it is
+   explicit: keep the MARKUP in step with the prototype, and re-port the
+   stylesheet whole rather than patching a rule. Every rule below styles a slot
+   the upstream prototype does not have yet, so patching them into that file
+   would make the next re-port a merge instead of a copy.
+
+   So they live here. widget.css stays byte-comparable with its source; this
+   file is deletable in one line the day these proposals land upstream (or are
+   rejected). Both are imported by `widget-main.tsx`, this one second.
+
+   The three proposals, and the tickets they answer:
+
+     1. PRD-595 — the thinking panel accumulates its steps instead of replacing
+        one line, and says something after a long wait.
+     2. PRD-589 — a context/skill picker in the chat bar, so the END USER
+        chooses what the agent may read and run.
+     3. PRD-590 — a reader for articles hosted in Jimo, so the knowledge base
+        has a reading surface inside the customer's product.
+
+   Everything here derives from the same --agent-* / --ag-* variables widget.css
+   defines, so a customer's brand colour still recolours it and the panel
+   surfaces still terminate at the ONE panel radius (20px).
+   ========================================================================== */
+
+/* ── 1. PRD-595 · legible thinking ─────────────────────────────────────────
+   The customer's report: "they see it spinning; they think it is spinning for
+   nothing; they close the chat." A single line that replaces itself every
+   second reads as a loop, not as progress — there is no evidence of work DONE.
+   So the steps accumulate: finished ones stay, checked and dimmed, and the
+   live one keeps the spinner. Same object as `ThinkingTrace` on
+   /conversations, which is the point — CLAUDE.md asks that the two surfaces
+   stay recognisable as each other, and this is the widget growing the rail
+   the dashboard already draws. */
+
+.ag-think-steps {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 10px; width: 100%; padding: 4px 0 0;
+}
+.ag-think-row {
+  display: flex; align-items: flex-start; gap: 8px; min-width: 0;
+  font-family: var(--ag-input-family);
+  font-weight: 500;
+  font-size: var(--ag-input-size);
+  line-height: 1.35;
+  letter-spacing: var(--agent-inputbar-input-font-ls, normal);
+  animation: ag-step-in .28s ease both;
+}
+/* Done steps recede but stay READABLE — the evidence is the whole point, so
+   they must not fade to decoration. */
+.ag-think-row.is-done { color: var(--agent-text-muted); }
+.ag-think-row.is-live { color: var(--ag-accent); }
+.ag-think-row-icon {
+  flex: none; width: 16px; height: 16px; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.ag-think-row-icon svg { width: 16px; height: 16px; }
+.ag-think-row.is-live .ag-think-row-icon svg { animation: ag-spin 1s linear infinite; }
+@keyframes ag-spin { to { transform: rotate(360deg); } }
+
+/* The long-wait line. It appears once, after the wait stops being ordinary,
+   and it is the only reassurance in the panel — repeating it per step would be
+   nagging, and saying it immediately would make every answer feel slow. */
+.ag-think-hold {
+  margin: 10px 0 0; padding-top: 10px; width: 100%;
+  border-top: 1px solid var(--agent-border);
+  font-family: var(--ag-input-family);
+  font-size: calc(var(--ag-input-size) * 6 / 7);   /* 12px at the 14px default */
+  font-weight: 400;
+  color: var(--agent-text-muted);
+  text-align: center;
+  animation: ag-step-in .28s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ag-think-row, .ag-think-hold { animation: none; }
+  .ag-think-row.is-live .ag-think-row-icon svg { animation: none; }
+}
+
+/* ── 2. PRD-589 · what the agent may use, chosen from the bar ───────────────
+   v6Protect's argument: the data is the END USER'S, so the decision to let the
+   agent read the page — or run a skill on their behalf — is theirs, not the
+   workspace admin's. Their own words put the control "directly in the chat
+   bar, like the context / tool selection found in several bots", so that is
+   where it goes: a button in `.ag-bar`, opening upward.
+
+   It is a floating panel, so it takes the panel contract (bg / border / radius
+   / shadow) from the same chain every other surface uses, and terminates at
+   the one panel radius. */
+
+.ag-ctx { position: relative; flex: none; display: flex; }
+.ag-ctx-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  height: 28px; padding: 0 8px; flex: none;
+  border: 1px solid var(--agent-border); border-radius: var(--agent-radius-btn);
+  background: transparent; color: var(--agent-text-secondary); cursor: pointer;
+  font-family: var(--ag-input-family); font-size: calc(var(--ag-input-size) * 6 / 7);
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.ag-ctx-btn:hover { background: var(--agent-surface-hover); color: var(--agent-text); }
+.ag-ctx-btn.is-open { border-color: var(--agent-border-accent); color: var(--ag-accent); }
+.ag-ctx-btn svg { width: 16px; height: 16px; flex: none; }
+/* The count, not a dot: "2" answers "how much of me is exposed" at a glance,
+   which a dot cannot. Hidden at zero by the markup, because a badge reading 0
+   is noise. */
+.ag-ctx-count {
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--agent-radius-full, 999px);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--ag-accent); color: var(--ag-accent-fg);
+  font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* PORTALED to <body>, so `position: fixed` and `left`/`bottom` come in as
+   inline styles measured from the trigger. It has to leave the tree: `.ag-bar`
+   is `overflow: hidden` in widget.css, which clips an in-bar panel completely,
+   and that stylesheet is a port this file must not patch. z-index clears the
+   widget host's own layers (`.wp-agent` is 10, the vendor panel 20, and
+   widget.css tops out at 30). */
+.ag-ctx-panel {
+  position: fixed; z-index: 40;
+  width: 288px; max-height: 320px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 2px; padding: 8px;
+  background:    var(--agent-panel-bg,           var(--agent-surface));
+  border-width:  var(--agent-panel-border-width, 1px);
+  border-style:  var(--agent-panel-border-style, solid);
+  border-color:  var(--agent-panel-border-color, var(--agent-border));
+  border-radius: var(--agent-panel-radius,       var(--agent-radius-panel));
+  box-shadow:    var(--agent-panel-shadow,       var(--agent-shadow-panel));
+  /* Named `scale`, not `transform` — the trap CLAUDE.md documents for Tailwind
+     v4 also bites here, and a transition naming only `transform` would leave
+     the panel snapping open while the opacity faded. */
+  transform-origin: bottom left;
+  animation: ag-ctx-in .15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ag-ctx-in {
+  from { opacity: 0; scale: .96; }
+  to   { opacity: 1; scale: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .ag-ctx-panel { animation: none; } }
+
+.ag-ctx-group {
+  padding: 8px 8px 4px;
+  font-family: var(--ag-input-family); font-size: 11px; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--agent-text-muted);
+}
+.ag-ctx-row {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%;
+  padding: 8px; border: 0; border-radius: var(--agent-radius-row);
+  background: transparent; cursor: pointer; text-align: left;
+  transition: background-color .15s ease;
+}
+.ag-ctx-row:hover { background: var(--agent-primary-10); }
+.ag-ctx-row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.ag-ctx-row-title {
+  font-family: var(--ag-input-family); font-size: var(--ag-input-size);
+  font-weight: 500; color: var(--agent-text); line-height: 1.3;
+}
+.ag-ctx-row-sub {
+  font-family: var(--ag-input-family); font-size: 12px; font-weight: 400;
+  color: var(--agent-text-muted); line-height: 1.35;
+}
+/* A checkbox drawn from the panel's own border colour, so it belongs to the
+   widget rather than to the host page's form styles. */
+.ag-ctx-box {
+  flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 6px;
+  border: 1.5px solid var(--agent-border-minimal); background: var(--agent-surface);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: transparent; transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.ag-ctx-row.is-on .ag-ctx-box {
+  background: var(--ag-accent); border-color: var(--ag-accent); color: var(--ag-accent-fg);
+}
+.ag-ctx-box svg { width: 12px; height: 12px; }
+.ag-ctx-note {
+  padding: 8px; margin: 4px 0 0; border-top: 1px solid var(--agent-border);
+  font-family: var(--ag-input-family); font-size: 12px; font-weight: 400;
+  color: var(--agent-text-muted); line-height: 1.4;
+}
+
+/* ── 3. PRD-590 · the reading surface ──────────────────────────────────────
+   Gojob's blocker was never authoring — it was that every route to a reading
+   surface went through a public URL or somebody else's tool. So an article
+   hosted in Jimo is read HERE, in the widget, inside their product: no public
+   address exists for it, which is what makes it non-indexable by construction
+   rather than by robots.txt.
+
+   `.ag-window` already draws the panel this reuses, so the only new rules are
+   the article list on the expanded state and the reader's own type. */
+
+/* The list, under the starter chips on `expanded`. */
+.ag-kb { display: flex; flex-direction: column; gap: 4px; width: var(--agent-width, 495px); box-sizing: border-box; }
+.ag-kb-head {
+  display: flex; align-items: center; gap: 6px; padding: 4px 4px 2px;
+  font-family: var(--ag-input-family); font-size: 11px; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--agent-text-muted);
+}
+.ag-kb-head svg { width: 14px; height: 14px; }
+.ag-kb-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 12px; border: 1px solid var(--agent-border);
+  border-radius: var(--agent-radius-row);
+  background: var(--agent-surface); cursor: pointer; text-align: left;
+  font-family: var(--ag-input-family); font-size: var(--ag-input-size);
+  font-weight: 500; color: var(--agent-text);
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.ag-kb-item:hover { background: var(--agent-primary-10); border-color: var(--agent-border-accent); }
+.ag-kb-item svg { width: 16px; height: 16px; flex: none; color: var(--ag-accent); }
+.ag-kb-item span { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The reader. `s-reading` shows `.ag-window`, so the panel, its header and its
+   close button are all the response window's — only the body differs. */
+.proto.s-reading .ag-window { display: flex; }
+.proto.s-reading .ag-feedback,
+.proto.s-reading .ag-ctas,
+.proto.s-reading .ag-opt-list,
+.proto.s-reading .ag-opt-foot { display: none; }
+
+.ag-read-body { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; }
+.ag-read-p {
+  margin: 0;
+  font-family: var(--agent-response-body-font-family, var(--agent-font-body));
+  font-size: var(--agent-response-body-font-size, var(--agent-panel-font-size, 15px));
+  font-weight: 400; line-height: 1.6; color: var(--agent-text-secondary);
+}
+/* The one line that answers "can my competitors read this". It is a property of
+   the article, so it sits with the article, not in a settings screen nobody
+   opens. */
+.ag-read-private {
+  display: flex; align-items: center; gap: 6px; padding-top: 8px;
+  border-top: 1px solid var(--agent-border);
+  font-family: var(--ag-input-family); font-size: 12px; color: var(--agent-text-muted);
+}
+.ag-read-private svg { width: 14px; height: 14px; flex: none; }
+.ag-read-back {
+  display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
+  padding: 6px 10px 6px 6px; border: 0; border-radius: var(--agent-radius-btn);
+  background: transparent; color: var(--agent-text-secondary); cursor: pointer;
+  font-family: var(--ag-input-family); font-size: 13px; font-weight: 500;
+  transition: background-color .15s ease, color .15s ease;
+}
+.ag-read-back:hover { background: var(--agent-surface-hover); color: var(--agent-text); }
+.ag-read-back svg { width: 16px; height: 16px; }

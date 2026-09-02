@@ -2,7 +2,10 @@ import React from 'react';
 import { WidgetPage } from '../../src/features/widget/WidgetPage';
 import { AgentWidget } from '../../src/features/widget/AgentWidget';
 import { SEEDS } from '../../src/state/seed';
+import { setSources } from '../../src/state/useKnowledge';
+import { DEMO_SOURCES } from '../../src/data/knowledgeSources';
 import '../../src/styles/widget.css';
+import '../../src/styles/widget-proposals.css';
 import '../../src/styles/widget-host.css';
 
 const meta = {
@@ -72,3 +75,56 @@ export const GuideChecking = frame('guide-checking');
 export const ExecuteAction = frame('execute-action');
 
 export const ExecuteThinking = frame('execute-thinking');
+
+/* ── The proposal frames ───────────────────────────────────────────────────
+   Three tickets, three slots that the ported prototype has no equivalent for.
+   Their styles live in `widget-proposals.css`, imported above — see that file's
+   header for why they are not in widget.css. */
+
+/**
+ * PRD-590 — an article hosted in Jimo, read inside the product. Needs sources
+ * in the store, which `SEEDS` does not touch: it seeds escalation, and the
+ * knowledge store starts empty by design.
+ */
+export const ReadingArticle = {
+  render: () => {
+    SEEDS.withData();
+    setSources(DEMO_SOURCES());
+    return (
+      <div className="wp">
+        <div className="wp-agent">
+          <AgentWidget state="reading" onHandoff={() => {}} />
+        </div>
+      </div>
+    );
+  },
+  parameters: { layout: 'fullscreen' },
+};
+
+/**
+ * PRD-590 — the same articles as a list, under the starter chips. This is the
+ * entry point the reader above is reached from, and the reason the knowledge
+ * base is a READING surface rather than only a training one.
+ */
+export const KnowledgeBaseList = {
+  render: () => {
+    SEEDS.withData();
+    setSources(DEMO_SOURCES());
+    return (
+      <div className="wp">
+        <div className="wp-agent">
+          <AgentWidget state="expanded" onHandoff={() => {}} />
+        </div>
+      </div>
+    );
+  },
+  parameters: { layout: 'fullscreen' },
+};
+
+/**
+ * PRD-595 — the thinking panel mid-accumulation. Not reachable as a static
+ * frame through the `state` override alone: the step index advances on a timer,
+ * so this shows the first step and the story is here for the layout, with the
+ * full sequence visible by asking a question in `Live`.
+ */
+export const Thinking = frame('thinking');
