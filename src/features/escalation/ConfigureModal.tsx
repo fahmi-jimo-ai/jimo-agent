@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Export, Edit2, Sms, Key } from 'iconsax-react';
+import { Export, Edit2, Sms, Key, Link21 } from 'iconsax-react';
 import { Switch } from '@/components/ui/Toggle/switch';
 import { Badge } from '@/components/ui/Chip/badge';
 import { Button } from '@/components/ui/Button/Button';
@@ -11,12 +11,23 @@ import { Menu, MenuItem } from '@/components/app/Menu';
 import { VendorMark } from './VendorMark';
 import { OAuthPlaceholder } from './OAuthPlaceholder';
 import { CrispConnectFields, useCrispConnect } from './CrispConnectFields';
+import { WebhookConnectFields, useWebhookConnect } from './WebhookConnectFields';
 import { useToast } from '@/components/app/toast';
 import { useEscalation, setState } from '@/state/useEscalation';
 import { setDemo } from '@/state/demo';
-import { VENDOR_LABEL, type CrispCredentials, type Vendor } from '@/state/types';
+import {
+  VENDOR_LABEL,
+  WEBHOOK_EVENTS,
+  type CrispCredentials,
+  type Vendor,
+  type WebhookConfig,
+} from '@/state/types';
 
-const VENDORS: Vendor[] = ['intercom', 'zendesk', 'crisp', 'email'];
+// `webhook` sits last on purpose: the four before it are tools we integrate
+// with by name, and it is the "none of these" row — PRD-591.
+const VENDORS: Vendor[] = ['intercom', 'zendesk', 'crisp', 'email', 'webhook'];
+/** The two vendors whose Configure is an in-app form, not a redirect. */
+const IN_APP_FORM: Vendor[] = ['crisp', 'webhook'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** How long the fake provider redirect is shown. Matches EscalationPage. */
 const OAUTH_MS = 1200;
@@ -47,10 +58,10 @@ const OAUTH_MS = 1200;
  * selector itself never opens a flow — switching tools is instant, and the
  * section below then shows what the new tool still needs.
  */
-type Step = 'config' | 'connect-crisp' | 'oauth' | 'disable';
+type Step = 'config' | 'connect-crisp' | 'connect-webhook' | 'oauth' | 'disable';
 
 export function ConfigureModal({ onClose }: { onClose: () => void }) {
-  const { enabled, vendor, demo, crisp } = useEscalation();
+  const { enabled, vendor, demo, crisp, webhook } = useEscalation();
   const toast = useToast();
 
   const [step, setStep] = React.useState<Step>('config');
@@ -76,10 +87,26 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
     go('config', 'back');
   });
 
+  // Same hoisting rule as crispForm: leaving the step and coming back keeps
+  // what was typed, and it seeds from the saved endpoint once.
+  const webhookForm = useWebhookConnect(webhook, (cfg: WebhookConfig) => {
+    setState({ webhook: cfg, vendor: 'webhook', enabled: true });
+    toast({
+      type: 'positive',
+      title: `${VENDOR_LABEL.webhook} connected`,
+      body: 'The test call came back 200.',
+    });
+    go('config', 'back');
+  });
+
   const configureTool = () => {
     if (!vendor) return;
     if (vendor === 'crisp') {
       go('connect-crisp');
+      return;
+    }
+    if (vendor === 'webhook') {
+      go('connect-webhook');
       return;
     }
     setAuthing(vendor);
@@ -89,11 +116,13 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
   const title =
     step === 'connect-crisp'
       ? `Connect ${VENDOR_LABEL.crisp}`
-      : step === 'oauth' && authing
-        ? `Connect ${VENDOR_LABEL[authing]}`
-        : step === 'disable'
-          ? 'Disable escalation?'
-          : 'Configuration';
+      : step === 'connect-webhook'
+        ? `Connect ${VENDOR_LABEL.webhook}`
+        : step === 'oauth' && authing
+          ? `Connect ${VENDOR_LABEL[authing]}`
+          : step === 'disable'
+            ? 'Disable escalation?'
+            : 'Configuration';
 
   const footer =
     step === 'connect-crisp' ? (
@@ -103,6 +132,15 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
         </Button>
         <Button disabled={!crispForm.canSubmit} onClick={crispForm.submit}>
           {crispForm.busy ? 'Testing connection…' : 'Connect and test'}
+        </Button>
+      </>
+    ) : step === 'connect-webhook' ? (
+      <>
+        <Button variant="outline" onClick={() => go('config', 'back')} disabled={webhookForm.busy}>
+          Cancel
+        </Button>
+        <Button disabled={!webhookForm.canSubmit} onClick={webhookForm.submit}>
+          {webhookForm.busy ? 'Sending test call…' : 'Connect and test'}
         </Button>
       </>
     ) : step === 'disable' ? (
@@ -122,6 +160,12 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
     >
       {step === 'connect-crisp' ? (
         <CrispConnectFields value={crispForm.value} onChange={crispForm.setValue} disabled={crispForm.busy} />
+      ) : step === 'connect-webhook' ? (
+        <WebhookConnectFields
+          value={webhookForm.value}
+          onChange={webhookForm.setValue}
+          disabled={webhookForm.busy}
+        />
       ) : step === 'oauth' && authing ? (
         <OAuthStep
           vendor={authing}
@@ -178,22 +222,31 @@ export function ConfigureModal({ onClose }: { onClose: () => void }) {
               </SettingExtra>
             ) : vendor ? (
               <SettingExtra>
+                {/* The only vendor whose config is worth reading back at a
+                    glance: an endpoint is something you typed and may have
+                    typo'd, where "Intercom" is just connected or not. Same
+                    reason Support Email shows its address. */}
+                {vendor === 'webhook' && webhook && <WebhookSummary config={webhook} />}
                 <Button
                   variant="outline"
                   size="sm"
                   className="w-full"
                   onClick={configureTool}
-                  // Crisp is a credentials form that never leaves the app, so
-                  // it gets a key rather than 105:4515's leave-the-app glyph.
+                  // Crisp and Custom webhook are forms that never leave the app,
+                  // so they get a key rather than 105:4515's leave-the-app
+                  // glyph. The icon means "credentials, here", not "webhook".
                   rightIcon={
-                    vendor === 'crisp' ? (
+                    IN_APP_FORM.includes(vendor) ? (
                       <Key size={16} variant="Linear" color="currentColor" />
                     ) : (
                       <Export size={16} variant="Linear" color="currentColor" />
                     )
                   }
                 >
-                  {vendor === 'crisp' && !crisp ? 'Connect' : 'Configure'} {VENDOR_LABEL[vendor]}
+                  {(vendor === 'crisp' && !crisp) || (vendor === 'webhook' && !webhook)
+                    ? 'Connect'
+                    : 'Configure'}{' '}
+                  {VENDOR_LABEL[vendor]}
                 </Button>
               </SettingExtra>
             ) : null}
@@ -337,6 +390,29 @@ function EmailSection() {
         {supportEmail ? 'Update email' : 'Save support email'}
       </Button>
     </>
+  );
+}
+
+/**
+ * The connected endpoint, read back on the config step.
+ *
+ * Read-only rather than editable in place: the events belong to the same
+ * decision as the URL, so editing one without the other would need this row to
+ * grow the whole form. The Configure button below opens it.
+ */
+function WebhookSummary({ config }: { config: WebhookConfig }) {
+  const count = config.events.length;
+  return (
+    <Input
+      label="Endpoint"
+      value={config.url}
+      disabled
+      readOnly
+      leftIcon={<Link21 size={24} variant="Linear" color="currentColor" />}
+      supportiveText={`Sending ${count} of ${WEBHOOK_EVENTS.length} events${
+        config.secret ? ', signed' : ''
+      }.`}
+    />
   );
 }
 

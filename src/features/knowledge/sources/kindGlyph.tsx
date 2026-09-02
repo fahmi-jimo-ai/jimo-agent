@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Book1,
   Document,
   Global,
   MessageQuestion,
@@ -34,5 +35,10 @@ export function kindGlyph(kind: SourceKind, size = 20): React.ReactNode {
       return <VideoPlay {...props} />;
     case 'qa':
       return <MessageQuestion {...props} />;
+    // PRD-590. A book, not a document: `file` already owns the document glyph,
+    // and the distinction between the two is exactly readership — a file is
+    // something the agent read, an article is something people read.
+    case 'hosted':
+      return <Book1 {...props} />;
   }
 }

@@ -1,6 +1,6 @@
 import type { TopicCategory } from '@/lib/classifyChip';
 
-export type Vendor = 'intercom' | 'zendesk' | 'crisp' | 'email';
+export type Vendor = 'intercom' | 'zendesk' | 'crisp' | 'email' | 'webhook';
 export type FailedCount = 1 | 2 | 3;
 export type FrustrationLevel = 'mild' | 'clear' | 'strong';
 export type Range = 'this-month' | 'last-30-days' | 'last-7-days';
@@ -15,6 +15,58 @@ export interface CrispCredentials {
   websiteId: string;
   tokenIdentifier: string;
   tokenKey: string;
+}
+
+/**
+ * The events a webhook subscription can carry — PRD-592.
+ *
+ * PRD-591 is the productised hand-off ("create a ticket in MY tool") and
+ * PRD-592 is the raw data path ("push the conversation to my endpoint"). They
+ * are one settings surface here rather than two, because both are the same
+ * missing capability: the agent has no way to talk to a tool we do not ship an
+ * integration for. `escalation` is what PRD-591 needs; the other three are
+ * PRD-592's catalogue.
+ */
+export type WebhookEvent =
+  | 'escalation'
+  | 'unanswered'
+  | 'conversation-started'
+  | 'conversation-ended';
+
+export const WEBHOOK_EVENTS: WebhookEvent[] = [
+  'escalation',
+  'unanswered',
+  'conversation-started',
+  'conversation-ended',
+];
+
+export const WEBHOOK_EVENT_LABEL: Record<WebhookEvent, string> = {
+  escalation: 'Escalation triggered',
+  unanswered: 'Agent could not answer',
+  'conversation-started': 'Conversation started',
+  'conversation-ended': 'Conversation ended',
+};
+
+export const WEBHOOK_EVENT_HINT: Record<WebhookEvent, string> = {
+  escalation: 'The hand-off itself — transcript, the unanswered question, and who asked.',
+  unanswered: 'Fires before any hand-off, so you can catch gaps the agent recovered from.',
+  'conversation-started': 'One call per conversation opened.',
+  'conversation-ended': 'Carries the full transcript and the resolution.',
+};
+
+/**
+ * A customer's own endpoint. Unlike the three chat vendors this is not an
+ * integration we ship — it is the escape hatch for the support tools we do not
+ * (Freshdesk, an in-house desk, a queue).
+ *
+ * Persisted locally for the same reason `crisp` is: there is no OAuth redirect
+ * standing in for it, so the values a user pastes have to live somewhere.
+ */
+export interface WebhookConfig {
+  url: string;
+  /** Optional. Signs the payload so the receiver can verify it came from us. */
+  secret: string;
+  events: WebhookEvent[];
 }
 
 export interface Topic {
@@ -44,6 +96,8 @@ export interface EscalationState {
   supportEmail: string | null;
   /** Set once the Crisp credentials form has been submitted. */
   crisp: CrispCredentials | null;
+  /** Set once the webhook endpoint form has been submitted. */
+  webhook: WebhookConfig | null;
   /** Committed triggers — what the agent actually runs on. */
   triggers: Triggers;
   /** Edited by the trigger cards. `Confirm` copies draft -> triggers. */
@@ -64,6 +118,10 @@ export const VENDOR_LABEL: Record<Vendor, string> = {
   zendesk: 'Zendesk',
   crisp: 'Crisp Chat',
   email: 'Support Email',
+  // Not a brand name, because it is not a vendor: it is whatever desk the
+  // customer already runs. "Custom webhook" says that; "Webhook" alone reads
+  // like a fifth product we integrate with.
+  webhook: 'Custom webhook',
 };
 
 export const DEFAULT_TRIGGERS: Triggers = {
@@ -78,6 +136,7 @@ export const INITIAL_STATE: EscalationState = {
   vendor: null,
   supportEmail: null,
   crisp: null,
+  webhook: null,
   triggers: DEFAULT_TRIGGERS,
   draftTriggers: DEFAULT_TRIGGERS,
   topics: [],

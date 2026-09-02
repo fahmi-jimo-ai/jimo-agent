@@ -11,7 +11,25 @@
  * `DEMO_SOURCES()` exists only for the Demo data switch.
  */
 
-export type SourceKind = 'url' | 'file' | 'text' | 'video' | 'qa';
+/**
+ * `hosted` is PRD-590, and it is the one kind that is not an INPUT.
+ *
+ * Every other kind points at knowledge that already exists somewhere else — a
+ * page to crawl, a file to parse, a paragraph typed to fill a gap — and all of
+ * it is consumed by the agent alone. A hosted page is authored in Jimo and read
+ * BY END USERS, in the customer's own product, through the widget. Jimo is the
+ * host and the reading surface, not just the trainer.
+ *
+ * That is the whole ask: Gojob needs a FAQ their clients can read but search
+ * engines cannot index. A public URL fails the second half, and Notion or
+ * GitBook only solve training — the reading surface would still be somebody
+ * else's private page shared with their customers.
+ *
+ * There is no `href` for a hosted page ON PURPOSE. A URL is exactly the thing
+ * that would make it indexable; it is served inside the product, to a user the
+ * product has already authenticated, or not at all.
+ */
+export type SourceKind = 'url' | 'file' | 'text' | 'video' | 'qa' | 'hosted';
 export type SourceStatus = 'trained' | 'training' | 'failed';
 
 export type SourceChunk = {
@@ -27,8 +45,15 @@ export type KnowledgeSource = {
    * filename for `file`, the body for `text`, the question for `qa`.
    */
   label: string;
-  /** Only the linkable kinds carry one — `text` and `qa` have nothing to open. */
+  /** Only the linkable kinds carry one — `text` and `qa` have nothing to open,
+   *  and `hosted` deliberately has nowhere public to point (see SourceKind). */
   href?: string;
+  /**
+   * The article itself. `hosted` only — it is the one kind whose content is
+   * authored here rather than fetched, so it is the one kind that has to store
+   * the prose it renders to end users. `label` stays the title.
+   */
+  body?: string;
   status: SourceStatus;
   /** Epoch ms. Both columns are relative times, so absolute values would age. */
   addedAt: number;
@@ -46,6 +71,10 @@ export const SOURCE_KIND_LABEL: Record<SourceKind, string> = {
   text: 'Text',
   video: 'Video',
   qa: 'Q&A',
+  // Named for what it is to the reader, not for where it is stored. "Hosted"
+  // alone would say nothing about the half that matters — that end users read
+  // it.
+  hosted: 'Article',
 };
 
 /** The Status pill's text. The ellipsis on Training is the artboard's. */
@@ -71,7 +100,7 @@ export const TOKEN_QUOTA = 100_000;
 /** The one author the artboards name (932:18260). */
 export const CURRENT_AUTHOR = 'Fahmi (You)';
 
-export const SOURCE_KINDS: SourceKind[] = ['url', 'text', 'file', 'video', 'qa'];
+export const SOURCE_KINDS: SourceKind[] = ['url', 'text', 'file', 'video', 'qa', 'hosted'];
 export const SOURCE_STATUSES: SourceStatus[] = ['trained', 'training', 'failed'];
 
 /**
@@ -79,7 +108,7 @@ export const SOURCE_STATUSES: SourceStatus[] = ['trained', 'training', 'failed']
  * Text, File). `qa` is absent because a Q&A is authored on the Custom Answers
  * tab; `video` is the one row the newer frames omit — see SourcesEmptyState.
  */
-export const ADDABLE_KINDS: SourceKind[] = ['url', 'text', 'file', 'video'];
+export const ADDABLE_KINDS: SourceKind[] = ['url', 'text', 'file', 'video', 'hosted'];
 
 export function isSourceKind(value: unknown): value is SourceKind {
   return typeof value === 'string' && (SOURCE_KINDS as string[]).includes(value);
@@ -249,6 +278,30 @@ export function DEMO_SOURCES(): KnowledgeSource[] {
         {
           id: 'c1',
           text: 'Transcript — "In this walkthrough we build a product tour from scratch: pick the element, write the step, then publish to a segment."',
+        },
+      ],
+    }),
+    // PRD-590. The demo needs at least one, because the hosted kind is the only
+    // one whose payoff is visible in the WIDGET rather than in this table — an
+    // empty knowledge base renders no reader to look at.
+    row({
+      id: 'demo-hosted-billing',
+      kind: 'hosted',
+      label: 'How billing works on Connect',
+      status: 'trained',
+      addedAt: now - 5 * HOUR,
+      updatedAt: now - 5 * HOUR,
+      tokens: 640,
+      usedInResponses: 27,
+      body: 'Invoices are issued on the first working day of each month and cover the month just finished.\n\nEach line is one mission, priced at the rate agreed on the assignment. Overtime appears as a separate line at the agreed multiplier, never folded into the base rate.\n\nPayment is due within 30 days. You can download every invoice as a PDF from Billing → History, and a monthly summary is emailed to the address on the account.',
+      chunks: [
+        {
+          id: 'c1',
+          text: 'Invoices are issued on the first working day of each month and cover the month just finished. Each line is one mission, priced at the rate agreed on the assignment.',
+        },
+        {
+          id: 'c2',
+          text: 'Payment is due within 30 days. Invoices download as PDF from Billing → History.',
         },
       ],
     }),

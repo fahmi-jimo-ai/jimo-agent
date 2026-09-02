@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Sms } from 'iconsax-react';
+import { Link21, Sms } from 'iconsax-react';
 import type { Vendor } from '@/state/types';
 
 /**
@@ -13,6 +13,14 @@ import type { Vendor } from '@/state/types';
 export function VendorMark({ vendor, size = 20 }: { vendor: Vendor; size?: number }) {
   if (vendor === 'email') {
     return <Sms size={size} variant="Linear" color="currentColor" />;
+  }
+
+  // Custom webhook is the one row with no brand behind it — it stands for
+  // whatever desk the customer already runs. So it takes a glyph in
+  // currentColor like Support Email, rather than a drawn logo: inventing a mark
+  // would imply we integrate with a product called "Custom webhook".
+  if (vendor === 'webhook') {
+    return <Link21 size={size} variant="Linear" color="currentColor" />;
   }
 
   if (vendor === 'intercom') {

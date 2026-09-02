@@ -319,6 +319,47 @@ hero opens and by Configuration's `connect-crisp` step) and the only vendor stat
 Turning the Enable switch OFF does not write state — it opens the `disable` step, which is what
 leaves the switch still reading "on" behind the confirmation. Turning it on stays immediate.
 
+## Three ticket-driven proposals, and where they are quarantined
+
+Everything above describes the app as drawn. These three answer Linear tickets rather than an
+artboard, so each says so at its own site — treat them as proposals under review, not as transcribed
+design.
+
+**Custom webhook is a fifth escalation vendor** (PRD-591, with PRD-592's event catalogue). It is not
+a fourth integration: it is the escape hatch for the desks we do not ship one for, so its
+`VENDOR_LABEL` is a description rather than a brand and `VendorMark` gives it a currentColor glyph
+instead of a drawn logo. It follows Crisp exactly — the other vendor that is an in-app credentials
+form rather than an OAuth redirect, and therefore the other one with state persisted locally
+(`webhook` in `EscalationState`). `normaliseWebhookUrl` is tested rather than inlined for the same
+reason `normalisePreviewUrl` is, and is **stricter**: https only, because the payload carries a
+transcript and a signature where the preview field only opens a tab. PRD-592's events are a
+checklist inside that one form, not a second surface — one endpoint, configured once.
+
+**`hosted` is a sixth source kind** (PRD-590), and the only one that is not an input. Every other
+kind points at knowledge that exists elsewhere and is read by the agent alone; an article is
+authored in Jimo and read by END USERS through the widget. It has no `href` on purpose — a URL is
+precisely what would make it indexable. Note the trap it walked into once: `parseSource` rebuilds a
+record field by field rather than spreading it, so `body` had to be added there too, or every
+article silently empties on reload. `knowledgeStore.test.ts` now pins that.
+
+**The widget grew a `reading` state, an accumulating think panel and a context picker**
+(PRD-590 / PRD-595 / PRD-589). Their CSS is in `src/styles/widget-proposals.css`, NOT in
+`widget.css`, so that file stays a whole-file port and these are deletable in one line — the same
+quarantine logic the invented copy already gets. Three things worth knowing:
+
+- The think panel now **accumulates** its steps instead of rotating one line, because a line that
+  rewrites itself is indistinguishable from a loop — which is exactly what Altior's users read as
+  "spinning for nothing". That makes it the widget's version of `ThinkingTrace`'s rail, which is
+  the direction the "one object, two surfaces" rule already pointed.
+- The first answer of a session is deliberately the **slow** one (`COLD_THINK_MS`). The ticket is
+  about the startup wait specifically, so the frame it is about has to be the first one a reviewer
+  sees, not something reachable only through a Storybook override.
+- The context picker's panel is **portaled to `<body>`**, because `.ag-bar` is `overflow: hidden`
+  and carries an identity `transform` — so `position: fixed` does not escape it either. That brings
+  a consequence unique to this widget: widget.css scopes `--agent-*` to `#agent`, so a portaled
+  panel resolves none of them and renders unthemed. The variables are read off the trigger and set
+  on the panel (`PANEL_VARS`) rather than re-declared, so a brand override still reaches it.
+
 ## Vendored Moji — do not edit `../../jimo-storybook`
 
 `src/components/ui/*`, `src/styles/*` and `src/lib/utils.ts` are copies. The upstream repo is

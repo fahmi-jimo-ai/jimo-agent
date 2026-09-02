@@ -104,6 +104,11 @@ export function parseSource(value: unknown): KnowledgeSource | null {
     label: raw.label,
     kind: isSourceKind(raw.kind) ? raw.kind : 'text',
     href: typeof raw.href === 'string' ? raw.href : undefined,
+    // `hosted` only, and load-bearing: this parser rebuilds the record field by
+    // field rather than spreading it, so a key missing HERE is a key that
+    // silently empties on every reload. For an article that is not a lost
+    // setting, it is the lost article — the body is the source.
+    body: typeof raw.body === 'string' ? raw.body : undefined,
     status: isSourceStatus(raw.status) ? raw.status : 'trained',
     addedAt: num(raw.addedAt, now),
     updatedAt: num(raw.updatedAt, now),
