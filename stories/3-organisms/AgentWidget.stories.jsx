@@ -3,6 +3,8 @@ import { WidgetPage } from '../../src/features/widget/WidgetPage';
 import { AgentWidget } from '../../src/features/widget/AgentWidget';
 import { SEEDS } from '../../src/state/seed';
 import '../../src/styles/widget.css';
+// After the port, never inside it — see widget-proposal.css's own header.
+import '../../src/styles/widget-proposal.css';
 import '../../src/styles/widget-host.css';
 
 const meta = {
@@ -72,3 +74,11 @@ export const GuideChecking = frame('guide-checking');
 export const ExecuteAction = frame('execute-action');
 
 export const ExecuteThinking = frame('execute-thinking');
+
+/* ── PROPOSAL (PRD-599) ────────────────────────────────────────────────────
+   The tenth state, and the only one here that is NOT in the prototype. A run
+   that stops names the step that stopped it and why; click the pill to open
+   the run log and see the three steps that worked, the one that did not, the
+   cause, and the two ways out. Styled by widget-proposal.css, which is
+   imported above — see that file's header for why it is separate. */
+export const ExecuteFailed = frame('execute-failed');

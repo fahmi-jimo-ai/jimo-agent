@@ -46,9 +46,36 @@ import { WidgetIcons, Ico } from './WidgetIcons';
  * of the disclosure `ThinkingTrace` draws on `/conversations`: one line of what
  * the agent is doing, opening onto the list of what it has done. Same object,
  * two surfaces — keep them recognisable as each other.
+ *
+ * ## PROPOSAL — a tenth state, and why it is not in widget.css
+ *
+ * Everything above describes the port. What follows is new design, proposed
+ * against four tickets, and it is marked at every site it touches:
+ *
+ *   - **PRD-599** — `execute-failed`, a TENTH state the upstream prototype does
+ *     not have. The ticket is a run that reasoned for 72 seconds and then said
+ *     only "Un problème est survenu": generic, in front of the end user, cause
+ *     nowhere. So this state names the step that broke and the reason, and
+ *     offers the two ways out (retry, or a person) instead of re-proposing the
+ *     step that just failed.
+ *   - **PRD-595** — the thinking panel counts its own wait and, past
+ *     `SLOW_AFTER_MS`, says it is still working. Altior's two busiest Skills
+ *     sit at 38% completion because users read a silent wait as a dead chat.
+ *   - **PRD-577** — closing the window no longer discards the conversation, and
+ *     on a narrow viewport the window is a sheet rather than the whole screen.
+ *     Guidance on mobile is unusable today precisely because the two halves —
+ *     read the instruction, perform the action — cannot both be on screen.
+ *   - **PRD-104** — an idle widget with something waiting says so.
+ *
+ * **The CSS for all of that is in `widget-proposal.css`, not in widget.css.**
+ * That file is a port and is still in step with its source, line for line;
+ * patching a rule into it would make the next re-port a merge instead of a
+ * copy. The proposal sheet is loaded after it, adds only new selectors, and
+ * says the same thing at its own top.
  */
 
-/** The prototype's nine. `s-{state}` on `.proto` is what widget.css gates on. */
+/** The prototype's nine, plus `execute-failed` (PROPOSAL, PRD-599 — see above).
+ *  `s-{state}` on `.proto` is what the stylesheets gate on. */
 export type WState =
   | 'idle'
   | 'expanded'
@@ -58,7 +85,8 @@ export type WState =
   | 'guide-waiting'
   | 'guide-checking'
   | 'execute-action'
-  | 'execute-thinking';
+  | 'execute-thinking'
+  | 'execute-failed';
 
 /** The four the escalation engine can actually produce. */
 const LIVE_STATES: WState[] = ['idle', 'expanded', 'thinking', 'response'];
@@ -106,6 +134,17 @@ const PILL_FACE: Record<Exclude<WState, 'idle' | 'expanded' | 'thinking' | 'resp
     sub: '3 of 5',
   },
   'execute-thinking': { mode: 'spin', title: 'Thinking...' },
+  /* PROPOSAL (PRD-599). `warn: true` is what turns the pill amber — the flag
+     has been in `PillFace` and `.ag-pill.is-warn` has been in widget.css since
+     the port, with nothing setting either. The title names the STEP, never the
+     failure in the abstract, because "a problem occurred" is the bug. */
+  'execute-failed': {
+    mode: 'icon',
+    icon: 'i-close',
+    warn: true,
+    title: 'Could not open Settings → Legal notice',
+    sub: 'The link moved — Settings → Compliance now',
+  },
 };
 
 const BOTBAR_TEXT: Record<string, string> = {
@@ -113,14 +152,40 @@ const BOTBAR_TEXT: Record<string, string> = {
   'guide-checking': 'Jimo AI is guiding you...',
   'execute-action': 'Jimo AI is doing an action for you...',
   'execute-thinking': 'Jimo AI is doing an action for you...',
+  'execute-failed': 'Jimo AI stopped on step 3',
 };
 
-const RUN_LOG = [
-  'Read the current page',
-  'Opened Settings',
-  'Found the SSO section',
-  'Waiting for you to paste the metadata URL',
+type RunStep = { label: string; failed?: boolean };
+
+const RUN_LOG: RunStep[] = [
+  { label: 'Read the current page' },
+  { label: 'Opened Settings' },
+  { label: 'Found the SSO section' },
+  { label: 'Waiting for you to paste the metadata URL' },
 ];
+
+/* PROPOSAL (PRD-599). The same run, stopped. The log is what makes the failure
+   legible — three steps that worked and the one that did not, rather than a
+   single generic line standing in for all four. Mirrors the `failed` step
+   `ThinkingTrace` now draws on /conversations: same object, two surfaces. */
+const FAILED_RUN_LOG: RunStep[] = [
+  { label: 'Read the current page' },
+  { label: 'Closed the open dialog' },
+  { label: 'Could not open Settings → Legal notice', failed: true },
+];
+
+/** PROPOSAL (PRD-599) — the cause, and the two ways out of it. */
+const FAILURE = {
+  cause:
+    'The scanned link for this page no longer resolves. The section moved to Settings → Compliance since this page was last scanned.',
+  retry: 'Try again',
+  escalate: 'Get a person',
+};
+
+/** PROPOSAL (PRD-595) — past this, the panel stops being silent about the wait.
+ *  Altior tolerates thinking time BETWEEN steps and not at the start, so this
+ *  is deliberately short. */
+const SLOW_AFTER_MS = 5000;
 
 const QUESTION = {
   index: 1,
@@ -153,6 +218,8 @@ export function AgentWidget({
   const [headOpen, setHeadOpen] = React.useState(false);
   const [logOpen, setLogOpen] = React.useState(false);
   const [selected, setSelected] = React.useState(-1);
+  /** PROPOSAL (PRD-595) — ms spent in `thinking`, so the wait can show itself. */
+  const [elapsed, setElapsed] = React.useState(0);
 
   const state = stateOverride ?? live;
   const frozen = stateOverride != null;
@@ -168,6 +235,21 @@ export function AgentWidget({
   React.useEffect(() => {
     if (state !== 'thinking') return;
     const id = window.setInterval(() => setStep((s) => (s + 1) % THINK_CYCLE.length), STEP_MS);
+    return () => window.clearInterval(id);
+  }, [state]);
+
+  /* PROPOSAL (PRD-595). The wait counts itself. It runs on `state`, not on
+     `live`, so a frozen `thinking` — which is how the preview control and
+     Storybook reach this state — still crosses SLOW_AFTER_MS and shows the
+     reassurance. Resetting on the way out is what keeps a second question from
+     starting at the first one's total. */
+  React.useEffect(() => {
+    if (state !== 'thinking') {
+      setElapsed(0);
+      return;
+    }
+    const started = Date.now();
+    const id = window.setInterval(() => setElapsed(Date.now() - started), 200);
     return () => window.clearInterval(id);
   }, [state]);
 
@@ -223,11 +305,41 @@ export function AgentWidget({
   const pill = LIVE_STATES.includes(state) || state === 'asking' ? null : PILL_FACE[state];
   const asking = state === 'asking';
 
+  /* PROPOSAL (PRD-599) — the failed run reads its own log, not the guiding one. */
+  const failed = state === 'execute-failed';
+  const runLog = failed ? FAILED_RUN_LOG : RUN_LOG;
+
+  /* PROPOSAL (PRD-595) — the wait, in the two forms the panel shows it. */
+  const slow = state === 'thinking' && elapsed >= SLOW_AFTER_MS;
+  const seconds = Math.floor(elapsed / 1000);
+
+  /* PROPOSAL (PRD-577 + PRD-104). Closing the window keeps the conversation, so
+     `reply` outliving `idle` is the normal case now rather than a leak — and an
+     idle widget holding an unread answer is exactly the thing PRD-104 says
+     nobody notices. One flag serves both: it marks the launcher, and it is what
+     `resume` reopens onto. */
+  const waiting = state === 'idle' && reply != null;
+
+  /** PRD-577: close is a collapse. It stops the timers and hides the window,
+   *  and it does NOT throw the thread away — closing was mandatory on mobile to
+   *  reach the UI the agent was pointing at, which is what made the loss a bug
+   *  rather than a preference. `Clear` below is the explicit way out. */
+  const collapse = () => {
+    clearTimers();
+    setLive('idle');
+  };
+
+  /** PRD-577: reopening lands back on the answer, not on an empty bar. */
+  const resume = () => {
+    if (frozen) return;
+    setLive(reply ? 'response' : 'expanded');
+  };
+
   return (
     <div className={`proto s-${state}`}>
       <WidgetIcons />
       <div
-        className={`agent${headOpen ? ' head-open' : ''}`}
+        className={`agent${headOpen ? ' head-open' : ''}${waiting ? ' has-attention' : ''}`}
         id="agent"
         onMouseEnter={() => setHeadOpen(true)}
         onMouseLeave={() => setHeadOpen(false)}
@@ -263,6 +375,16 @@ export function AgentWidget({
                   <span className="dots">...</span>
                 </p>
               </div>
+              {/* PROPOSAL (PRD-595). The counter runs from the first second —
+                  the point is that SOMETHING moves — and the reassurance only
+                  appears once the wait is long enough to be read as a dead
+                  chat. Both are `.ag-prop-*`, styled in widget-proposal.css. */}
+              <p className="ag-prop-elapsed">{seconds}s</p>
+              {slow && (
+                <p className="ag-prop-slow">
+                  Still working — this one is taking longer than usual.
+                </p>
+              )}
             </div>
           </div>
 
@@ -284,11 +406,9 @@ export function AgentWidget({
                 <button className="ag-chev" title="Next question"><Ico id="i-chevron-right" /></button>
               </span>
               <span className="ag-win-actions">
-                <button
-                  className="ag-round-btn"
-                  title="Close"
-                  onClick={() => { clearTimers(); setLive('idle'); setReply(null); setEcho(''); }}
-                >
+                {/* PRD-577: this collapses, it does not discard. The thread is
+                    still there when the bar is clicked again. */}
+                <button className="ag-round-btn" title="Close — your conversation is kept" onClick={collapse}>
                   <Ico id="i-close" />
                 </button>
               </span>
@@ -367,15 +487,31 @@ export function AgentWidget({
               ABOVE the pill, as in the prototype, so the pill stays the thing
               nearest the bar the whole time it is open. */}
           <div className={`ag-runlog${logOpen ? ' show' : ''}`}>
-            {RUN_LOG.length === 0 ? (
+            {runLog.length === 0 ? (
               <div className="ag-runlog-item is-empty">No steps yet</div>
             ) : (
-              RUN_LOG.map((l) => (
-                <div key={l} className="ag-runlog-item">
-                  <Ico id="i-check" />
-                  {l}
+              runLog.map((l) => (
+                <div
+                  key={l.label}
+                  className={`ag-runlog-item${l.failed ? ' ag-prop-failed' : ''}`}
+                >
+                  <Ico id={l.failed ? 'i-close' : 'i-check'} />
+                  {l.label}
                 </div>
               ))
+            )}
+            {/* PROPOSAL (PRD-599). The cause, then the two ways out — never the
+                step that just failed, offered again. These are presentational,
+                like the Submit / Skip rows above: the failed state is reached
+                through the `state` override, which freezes the engine. */}
+            {failed && (
+              <>
+                <p className="ag-prop-cause">{FAILURE.cause}</p>
+                <div className="ag-prop-ctas">
+                  <button className="ag-cta ag-cta-dark">{FAILURE.retry}</button>
+                  <button className="ag-cta ag-cta-outline">{FAILURE.escalate}</button>
+                </div>
+              </>
             )}
           </div>
 
@@ -399,13 +535,19 @@ export function AgentWidget({
 
           {/* Input bar (idle / expanded / thinking / response / asking) */}
           <div className="ag-bar">
-            <span className="ag-bar-av" aria-hidden="true" />
+            <span className="ag-bar-av" aria-hidden="true">
+              {/* PROPOSAL (PRD-104). Rendered always, shown by
+                  widget-proposal.css only under `.has-attention` — the same
+                  always-in-DOM / toggle-by-class rule the tooltips follow, so
+                  it can animate rather than pop in. */}
+              <span className="ag-prop-dot" />
+            </span>
             <input
               className="ag-bar-input"
               value={draft}
-              placeholder={placeholder}
+              placeholder={waiting ? 'Pick up where you left off...' : placeholder}
               autoComplete="off"
-              onFocus={() => !frozen && state === 'idle' && setLive('expanded')}
+              onFocus={() => !frozen && state === 'idle' && resume()}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && send(draft)}
             />

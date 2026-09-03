@@ -2,11 +2,13 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowDown2,
+  CloseCircle,
   Edit2,
   Eye,
   Flash,
   Global,
   Lifebuoy,
+  MouseSquare,
   Routing2,
   SearchNormal1,
   ExportSquare,
@@ -82,34 +84,57 @@ const STEP_GLYPH: Record<ThinkingStepKind, React.ElementType> = {
   compare: Routing2,
   draft: Edit2,
   escalate: Lifebuoy,
+  // `act` borrows the prototype's own cursor glyph (`i-mouse-square` in
+  // widget.css) so an action step reads the same on both surfaces.
+  act: MouseSquare,
+  failed: CloseCircle,
 };
 
+/**
+ * One step. A `failed` step is the only one that changes colour, and it earns
+ * that: PRD-599 is a run that failed silently behind a generic string, so the
+ * failure has to be the thing the eye lands on, and its `detail` — the cause —
+ * sits directly under the label rather than in a log nobody opens.
+ */
 function StepRail({ steps }: { steps: ThinkingStep[] }) {
   return (
     <div className="flex flex-col">
       {steps.map((step, i) => {
         const Glyph = STEP_GLYPH[step.kind];
         const last = i === steps.length - 1;
+        const failed = step.kind === 'failed';
         return (
           <div key={i} className="flex items-stretch gap-[var(--space-2)]">
             <div aria-hidden="true" className="flex w-4 shrink-0 flex-col items-center">
               {/* 18px is one --text-body-4 line, so the glyph centres on the
                   label's FIRST line rather than on the whole wrapped block. */}
-              <span className="flex h-[18px] w-4 items-center justify-center text-[var(--color-neutral-700)]">
-                <Glyph size={16} variant="Linear" color="currentColor" />
+              <span
+                className={cn(
+                  'flex h-[18px] w-4 items-center justify-center',
+                  failed ? 'text-[var(--color-danger-default)]' : 'text-[var(--color-neutral-700)]'
+                )}
+              >
+                <Glyph size={16} variant={failed ? 'Bold' : 'Linear'} color="currentColor" />
               </span>
               {!last && (
                 <span className="my-[var(--space-1)] w-px flex-1 rounded-[var(--radius-full)] bg-[var(--color-neutral-400)]" />
               )}
             </div>
-            <p
-              className={cn(
-                'm-0 [font:var(--text-body-4)] text-[var(--color-neutral-700)]',
-                !last && 'pb-[var(--space-4)]'
+            <div className={cn('flex min-w-0 flex-1 flex-col gap-[var(--space-1)]', !last && 'pb-[var(--space-4)]')}>
+              <p
+                className={cn(
+                  'm-0 [font:var(--text-body-4)]',
+                  failed ? 'text-[var(--color-danger-default)]' : 'text-[var(--color-neutral-700)]'
+                )}
+              >
+                {step.label}
+              </p>
+              {step.detail && (
+                <p className="m-0 rounded-[var(--radius-sm)] bg-[var(--color-danger-subtle)] p-[var(--space-2)] [font:var(--text-body-4)] text-[var(--color-neutral-700)]">
+                  {step.detail}
+                </p>
               )}
-            >
-              {step.label}
-            </p>
+            </div>
           </div>
         );
       })}
@@ -285,6 +310,12 @@ export function ThinkingTrace({
 
   // The collapsed line. Falls back down the list because a turn may carry
   // skills or citations with no step list at all.
+  //
+  // A run that failed says so COLLAPSED. The last step is already the failed
+  // one whenever a run stops on it, so the text needs no special case — but
+  // the whole point of PRD-599 is that a failure was indistinguishable from a
+  // normal ending, so it does not stay the same colour as one.
+  const failedStep = steps.find((s) => s.kind === 'failed');
   const summary =
     steps[steps.length - 1]?.label ??
     (skills.length > 0 ? `${skills.length} skill${skills.length === 1 ? '' : 's'} triggered` : null) ??
@@ -297,8 +328,18 @@ export function ThinkingTrace({
         aria-expanded={open}
         aria-controls={bodyId}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full cursor-pointer items-center gap-[var(--space-2)] border-0 bg-transparent p-0 text-left [font:var(--text-body-4)] text-[var(--color-text-tertiary)] hover:text-[var(--color-neutral-700)]"
+        className={cn(
+          'flex w-full cursor-pointer items-center gap-[var(--space-2)] border-0 bg-transparent p-0 text-left [font:var(--text-body-4)]',
+          failedStep
+            ? 'text-[var(--color-danger-default)]'
+            : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-neutral-700)]'
+        )}
       >
+        {failedStep && (
+          <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center">
+            <CloseCircle size={16} variant="Bold" color="currentColor" />
+          </span>
+        )}
         <span className="min-w-0 flex-1 truncate">{summary}</span>
         <span
           aria-hidden="true"

@@ -29,6 +29,59 @@
 .wp-agent { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 10; }
 .wp-agent .agent { width: 495px; }
 
+/* PROPOSAL (PRD-577). The host's own half of the mobile fix: a 495px widget on
+   a 390px phone is the thing the ticket is describing. The widget's internals
+   are handled in widget-proposal.css; this is only the frame around them, and
+   it lives here because widget-host.css is this repo's file rather than the
+   port. Same 640px line as the proposal sheet. */
+@media (max-width: 640px) {
+  .wp-agent {
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-3);
+    transform: none;
+  }
+  .wp-agent .agent { width: 100%; }
+  .wp-host { padding: var(--space-6) var(--space-4); }
+}
+
+/* ── PROPOSAL — the preview picker ────────────────────────────────────────
+   Simulator chrome. It is deliberately not on the widget's own token scale:
+   this is a tool for reviewing the widget, so it reads as the dashboard
+   (Moji tokens) rather than as anything the end user would be shown. */
+.wp-preview {
+  position: fixed; top: var(--space-4); right: var(--space-4); z-index: 30;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  width: 208px; padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-neutral-white);
+  box-shadow: var(--shadow-elevation-02);
+}
+.wp-preview-title {
+  margin: 0; font: var(--text-body-5); text-transform: uppercase; letter-spacing: .06em;
+  color: var(--color-text-tertiary);
+}
+.wp-preview-list { display: flex; flex-direction: column; gap: 2px; }
+.wp-preview-btn {
+  border: 0; background: transparent; cursor: pointer; text-align: left;
+  padding: var(--space-2); border-radius: var(--radius-sm);
+  font: var(--text-body-4); color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.wp-preview-btn:hover { background: var(--color-neutral-100); color: var(--color-text-primary); }
+.wp-preview-btn.is-on { background: var(--color-brand-subtle); color: var(--color-blue-400); }
+.wp-preview-btn:focus-visible { outline: 2px solid var(--color-blue-400); outline-offset: 1px; }
+.wp-preview-note {
+  margin: 0; padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-default);
+  font: var(--text-body-5); color: var(--color-text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .wp-preview { position: absolute; top: var(--space-3); right: var(--space-3); width: 168px; }
+}
+
 /* ── the mock vendor chat ─────────────────────────────────────────────── */
 .vp {
   position: fixed; right: 24px; bottom: 24px; z-index: 20;
