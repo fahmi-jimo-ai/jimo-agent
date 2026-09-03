@@ -19,8 +19,19 @@ export type Plan = {
   id: PlanId;
   name: string;
   tagline: string;
-  /** USD per month, billed monthly. The yearly figure is DERIVED — see pricing.ts. */
+  /** USD per month, billed monthly. */
   monthly: number;
+  /**
+   * USD per month, billed yearly. STORED, not derived.
+   *
+   * The docs say "-16% on pricing on yearly subscriptions" and the artboards
+   * print $99 / $239 / $389. Those are not `monthly * 0.84` — that gives
+   * 99 / 240 / 391 — they are marketing prices rounded down to end in 9, and
+   * the effective discount is 16.1% / 16.4% / 16.5%. Deriving them would
+   * silently overcharge every yearly customer by a dollar or two a month, so
+   * both figures are stored and the 16% is treated as the rounded claim it is.
+   */
+  yearly: number;
   seats: number;
   mau: number;
   popular?: boolean;
@@ -50,6 +61,7 @@ export const PLANS: Plan[] = [
     name: 'Startup',
     tagline: 'Best for small teams',
     monthly: 118,
+    yearly: 99,
     seats: 2,
     mau: 2500,
     features: [
@@ -68,6 +80,7 @@ export const PLANS: Plan[] = [
     name: 'Growth',
     tagline: 'Best for growing businesses',
     monthly: 286,
+    yearly: 239,
     seats: 5,
     mau: 10000,
     popular: true,
@@ -85,6 +98,7 @@ export const PLANS: Plan[] = [
     name: 'Scale',
     tagline: 'Best for large organizations',
     monthly: 466,
+    yearly: 389,
     seats: 10,
     mau: 50000,
     includesHideLabel: true,
