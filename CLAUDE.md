@@ -464,6 +464,30 @@ and Vercel install it the normal way. **Until that resolver is fixed, a plain `n
 dependency was never added. Known collision, deliberately left alone: Jimo and Intercom both drop
 a bottom-right launcher, so they overlap on `/escalation`.
 
+## The daily triage routine lives in `.claude/skills/`
+
+`.claude/skills/design-triage-prototype/` owns the `Design triage and prototype` routine that fires
+here every morning. It pulls design-blocked Prod-Support tickets out of Linear, groups them into
+executions, publishes ONE artifact that draws each proposal as a token-styled mockup, and then
+**stops** — a hard approval gate. Only once Fahmi accepts does it branch, build, deploy each branch
+to Vercel and comment the link plus test steps on every ticket.
+
+The skill exists because the spec used to live only in the routine's prompt, so the shape of the
+daily output was re-derived every night and drifted. It is repo-scoped rather than personal for the
+same reason `CLAUDE.md` is: the routine clones this repo, so the skill loads with it, and it is
+reviewable in a diff.
+
+Two things there that are this repo's, not the skill's, and go stale silently:
+
+- `references/artifact-template.html` carries a **copy** of the `.mock` palette from
+  `src/styles/tokens.css`. Change a token and the mockups quietly keep drawing last season's blue,
+  which reads as a design decision rather than as drift.
+- `references/mockup-kit.md` names the nav labels and routes from `src/app/navConfig.tsx`. A new
+  page in the sidebar is a change there too.
+
+The routine's own prompt is deliberately thin — it names the window, the workspace and the repo, and
+defers everything else here. Edit the skill, not the prompt.
+
 ## Verify before marking done
 
 ```sh

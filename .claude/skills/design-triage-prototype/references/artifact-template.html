@@ -1,0 +1,316 @@
+<title>Design Triage {DATE}</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700&display=swap">
+
+<style>
+/* ==========================================================================
+   PAGE PALETTE. Theme aware. This is the artifact's own chrome, not Jimo's.
+   Full light palette on bare :root, redefined under both dark selectors.
+   ========================================================================== */
+:root {
+  --page-bg: #f6f7f9;
+  --page-surface: #ffffff;
+  --page-ink: #14181f;
+  --page-ink-soft: #5b6472;
+  --page-line: #e3e6ea;
+  --page-accent: #1260eb;
+  --page-accent-soft: #eef3fe;
+  --page-warn-soft: #fff6e8;
+  --page-warn-line: #f0c98a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: #0e1116;
+    --page-surface: #161a21;
+    --page-ink: #e9edf3;
+    --page-ink-soft: #9aa4b2;
+    --page-line: #262c35;
+    --page-accent: #6ea1ff;
+    --page-accent-soft: #17243b;
+    --page-warn-soft: #2a2214;
+    --page-warn-line: #5c4a24;
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg: #0e1116;
+  --page-surface: #161a21;
+  --page-ink: #e9edf3;
+  --page-ink-soft: #9aa4b2;
+  --page-line: #262c35;
+  --page-accent: #6ea1ff;
+  --page-accent-soft: #17243b;
+  --page-warn-soft: #2a2214;
+  --page-warn-line: #5c4a24;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--page-ink);
+  font: 400 16px/1.6 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 40px 24px 96px;
+}
+.wrap { max-width: 880px; margin: 0 auto; }
+
+h1 { font: 700 30px/1.25 Montserrat, Inter, sans-serif; letter-spacing: -0.5px; margin: 0 0 6px; }
+h2 { font: 700 21px/1.3 Montserrat, Inter, sans-serif; letter-spacing: -0.3px; margin: 0 0 14px; }
+h3 { font: 600 16px/1.4 Montserrat, Inter, sans-serif; margin: 0 0 8px; }
+p  { margin: 0 0 12px; }
+.lede { color: var(--page-ink-soft); margin: 0 0 40px; }
+
+section { margin: 0 0 44px; }
+.panel {
+  background: var(--page-surface);
+  border: 1px solid var(--page-line);
+  border-radius: 14px;
+  padding: 24px;
+}
+.exec { margin-bottom: 32px; }
+.exec > h2 { padding-bottom: 12px; border-bottom: 1px solid var(--page-line); }
+
+/* PRD list. Each row is id + exact title + summary. */
+.prds { list-style: none; counter-reset: p; margin: 0; padding: 0; }
+.prds li { counter-increment: p; position: relative; padding: 14px 0 14px 40px; border-top: 1px solid var(--page-line); }
+.prds li:first-child { border-top: 0; }
+.prds li::before {
+  content: counter(p); position: absolute; left: 0; top: 15px;
+  width: 24px; height: 24px; border-radius: 999px;
+  background: var(--page-accent-soft); color: var(--page-accent);
+  font: 600 12px/24px Inter, sans-serif; text-align: center;
+}
+.prd-id { font: 600 13px/1 Inter, sans-serif; color: var(--page-accent); letter-spacing: 0.02em; }
+.prd-title { font-weight: 600; display: block; margin: 4px 0 4px; }
+.prds p { color: var(--page-ink-soft); margin: 0; font-size: 15px; }
+
+/* Covers strip at the top of an execution. */
+.covers { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
+.covers span {
+  background: var(--page-accent-soft); color: var(--page-accent);
+  border-radius: 999px; padding: 4px 11px; font: 500 12.5px/1.5 Inter, sans-serif;
+}
+
+.field { margin: 0 0 18px; }
+.field > h3 { color: var(--page-ink-soft); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Option A / Option B. */
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 0 0 18px; }
+.opt { border: 1px solid var(--page-line); border-radius: 12px; padding: 16px; }
+.opt.pick { border-color: var(--page-accent); background: var(--page-accent-soft); }
+.opt h3 { display: flex; align-items: center; gap: 8px; }
+.opt .tag { font: 600 10.5px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--page-accent); color: #fff; border-radius: 999px; padding: 4px 8px; }
+.opt p { font-size: 15px; }
+.opt .risk { color: var(--page-ink-soft); font-size: 14px; margin: 0; }
+
+.ask { background: var(--page-warn-soft); border: 1px solid var(--page-warn-line); border-radius: 14px; padding: 20px 24px; }
+
+/* ==========================================================================
+   MOCKUPS. Everything below is a picture of the Jimo product.
+   Locked to the product's light palette in every theme on purpose: the mockup
+   depicts a light UI, so it must not borrow the artifact's dark chrome.
+   Palette copied from src/styles/tokens.css. Keep it in sync with that file.
+   ========================================================================== */
+.mock {
+  --blue-50:#F7F9FE; --blue-100:#f3f7fe; --blue-150:#ddeeff; --blue-200:#bcddff;
+  --blue-300:#85b1ff; --blue-400:#1260eb; --blue-500:#012abb;
+  --n-white:#ffffff; --n-50:#fbfbfb; --n-100:#f0f2f4; --n-200:#ececec; --n-300:#e5e5e5;
+  --n-400:#cccccc; --n-500:#9ca1ad; --n-600:#7c8a99; --n-700:#4d637b; --n-800:#071331;
+  --green-100:#e6fde8; --green-400:#159201;
+  --orange-100:#fff9f3; --orange-500:#e07900;
+  --red-100:#fcf5f7; --red-200:#ffd7d7; --red-400:#ff4646; --red-500:#b90808;
+  --r-sm:4px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-xxl:20px; --r-full:9999px;
+  color-scheme: light;
+  color: var(--n-800);
+  font: 500 12px/1.5 Inter, sans-serif;
+}
+
+/* A labelled chrome box. Every mockup sits in one. */
+.frame { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.frame-label { font: 600 11px/1 Inter, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; color: var(--page-ink-soft); }
+.frame-box {
+  background: var(--blue-50); border: 1px solid var(--n-300); border-radius: var(--r-lg);
+  overflow: hidden; position: relative;
+}
+
+/* Before / After pair. Stacks on narrow viewports.
+   The boxes flex, so the pair is always the same height and neither clips:
+   set min-height on a frame-box, never height. */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.compare .frame-box, .flowstrip .frame-box { flex: 1; }
+@media (max-width: 700px) { .compare { grid-template-columns: 1fr; } }
+
+/* Step-by-step flow. Scrolls inside itself, never the page. */
+.flowstrip { display: flex; gap: 10px; align-items: stretch; overflow-x: auto; padding-bottom: 8px; }
+.flowstrip > .frame { flex: 0 0 236px; }
+.flowstrip .arrow { flex: 0 0 auto; align-self: center; color: var(--page-ink-soft); font-size: 18px; padding-top: 16px; }
+
+/* The dashboard shell: collapsed primary rail, secondary nav, content. */
+.shell { display: flex; height: 100%; background: var(--blue-50); }
+.rail { flex: 0 0 26px; background: var(--n-800); }
+.nav { flex: 0 0 78px; background: var(--n-white); border-right: 1px solid var(--n-300); padding: 8px 6px; }
+.nav b { display: block; font: 600 7.5px/1 Inter, sans-serif; color: var(--n-500);
+  text-transform: uppercase; letter-spacing: 0.06em; margin: 8px 0 4px 4px; }
+.nav i { display: block; font-style: normal; font-size: 9px; color: var(--n-700);
+  padding: 4px 5px; border-radius: var(--r-md); }
+.nav i.on { background: var(--blue-100); color: var(--blue-400); font-weight: 600; }
+.main { flex: 1; padding: 12px; min-width: 0; }
+
+.pagehead { margin-bottom: 10px; }
+.pagehead h4 { font: 700 13px/1.2 Montserrat, sans-serif; margin: 0 0 2px; letter-spacing: -0.2px; }
+.pagehead span { color: var(--n-600); font-size: 9.5px; }
+
+/* Content card, the Subpage surface. */
+.card { background: var(--n-white); border: 1px solid var(--n-300); border-radius: var(--r-lg); padding: 10px; }
+.card + .card { margin-top: 8px; }
+
+/* Table rows. */
+.row { display: flex; align-items: center; gap: 8px; padding: 7px 2px; border-top: 1px solid var(--n-200); font-size: 10px; }
+.row:first-child { border-top: 0; }
+.row.head { color: var(--n-600); font-weight: 600; font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.05em; }
+.row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Controls. */
+.btn { display: inline-block; background: var(--blue-400); color: #fff; border-radius: var(--r-full);
+  padding: 4px 11px; font: 600 9.5px/1.4 Inter, sans-serif; }
+.btn.ghost { background: var(--n-white); color: var(--n-700); border: 1px solid var(--n-300); }
+.seg { display: inline-flex; background: var(--n-100); border-radius: var(--r-full); padding: 2px; gap: 2px; }
+.seg span { padding: 3px 9px; border-radius: var(--r-full); font: 600 9px/1.4 Inter, sans-serif; color: var(--n-600); }
+.seg span.on { background: var(--n-white); color: var(--blue-400); }
+.chip { display: inline-block; background: var(--n-100); color: var(--n-700); border-radius: var(--r-full);
+  padding: 2px 8px; font: 600 9px/1.5 Inter, sans-serif; }
+.chip.ok   { background: var(--green-100); color: var(--green-400); }
+.chip.warn { background: var(--orange-100); color: var(--orange-500); }
+.chip.bad  { background: var(--red-200);   color: var(--red-500); }
+.bar { height: 5px; border-radius: var(--r-full); background: var(--n-200); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--blue-400); }
+
+/* Skeleton lines, for parts of a screen the mockup does not need to spell out. */
+.sk { height: 6px; border-radius: var(--r-full); background: var(--n-200); margin: 5px 0; }
+.sk.w70 { width: 70%; } .sk.w50 { width: 50%; } .sk.w35 { width: 35%; }
+
+/* The agent widget. One panel radius terminal: 20px. Never invent another. */
+.widget { width: 100%; background: var(--n-white); border: 1px solid var(--n-300);
+  border-radius: var(--r-xxl); box-shadow: 0px 5px 15px rgba(0,0,0,0.07); overflow: hidden; }
+.widget .wtop { padding: 8px 10px; border-bottom: 1px solid var(--n-200); font: 600 10px/1.4 Inter, sans-serif; }
+.widget .wbody { padding: 10px; background: var(--blue-100); display: flex; flex-direction: column; gap: 7px; }
+.widget .wbar { padding: 7px 10px; border-top: 1px solid var(--n-200); color: var(--n-500); font-size: 9.5px; }
+.bubble { max-width: 82%; border-radius: var(--r-lg); padding: 6px 9px; font-size: 10px; }
+.bubble.agent { background: var(--n-white); border: 1px solid var(--n-200); align-self: flex-start; }
+.bubble.user  { background: var(--blue-400); color: #fff; align-self: flex-end; }
+.pill { display: inline-flex; align-items: center; gap: 5px; background: var(--n-white);
+  border: 1px solid var(--n-300); border-radius: var(--r-full); padding: 4px 10px;
+  font: 600 9.5px/1.4 Inter, sans-serif; align-self: flex-start; }
+.pill.bad { border-color: var(--red-300, #fa7575); color: var(--red-500); background: var(--red-100); }
+
+/* Numbered pins that mark what changed, plus the legend that reads them out. */
+.pin { position: absolute; width: 17px; height: 17px; border-radius: 999px; background: var(--red-400);
+  color: #fff; font: 700 10px/17px Inter, sans-serif; text-align: center;
+  box-shadow: 0 0 0 3px rgba(255,70,70,0.22); }
+.legend { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: g; }
+.legend li { counter-increment: g; position: relative; padding: 0 0 0 24px; margin: 5px 0;
+  font-size: 14px; color: var(--page-ink-soft); }
+.legend li::before { content: counter(g); position: absolute; left: 0; top: 1px;
+  width: 17px; height: 17px; border-radius: 999px; background: #ff4646; color: #fff;
+  font: 700 10px/17px Inter, sans-serif; text-align: center; }
+</style>
+
+<div class="wrap">
+
+<!-- ==== 1. TITLE ==================================================== -->
+<h1>Design triage, {DATE}</h1>
+<p class="lede">{N} tickets, grouped into {M} executions. Nothing is built yet. Approve what you want
+me to prototype.</p>
+
+<!-- ==== 2. THE PRD LIST ============================================= -->
+<!-- Exact Linear title, verbatim. Never paraphrase it, never shorten it. -->
+<section>
+  <h2>PRDs in this run</h2>
+  <div class="panel">
+    <ol class="prds">
+      <li>
+        <span class="prd-id">{PRD-ID}</span>
+        <span class="prd-title">{EXACT LINEAR TITLE}</span>
+        <p>{One or two sentences on what the ticket actually asks for.}</p>
+      </li>
+      <!-- repeat per ticket -->
+    </ol>
+  </div>
+</section>
+
+<!-- ==== 3. PATTERNS ================================================= -->
+<!-- Sits directly after the list, before any solution. This earns the grouping. -->
+<section>
+  <h2>What these have in common</h2>
+  <div class="panel">
+    <p>{The shared root cause. Why these tickets are not N separate problems.}</p>
+    <p>{How that splits into the executions below, and why that split and not another.}</p>
+  </div>
+</section>
+
+<!-- ==== 4. ONE SECTION PER EXECUTION ================================ -->
+<section class="exec">
+  <h2>{Execution name, written as the outcome}</h2>
+
+  <!-- Every PRD id carries its title. Everywhere. No exceptions. -->
+  <div class="covers">
+    <span>{PRD-ID} · {EXACT LINEAR TITLE}</span>
+  </div>
+
+  <div class="field">
+    <h3>Problem</h3>
+    <p>{What is broken or missing, in the user's terms.}</p>
+  </div>
+
+  <div class="field">
+    <h3>Goal</h3>
+    <p>{What is true after this ships that is not true now. One sentence.}</p>
+  </div>
+
+  <!-- ILLUSTRATION. Required. Before/after for a UI change, flow strip for a flow change.
+       Copy a worked example from references/mockup-kit.md. -->
+  <div class="field">
+    <h3>What it looks like</h3>
+    <div class="mock">
+      <div class="compare">
+        <div class="frame">
+          <div class="frame-label">Before</div>
+          <div class="frame-box">{ ...screen... }</div>
+        </div>
+        <div class="frame">
+          <div class="frame-label">After</div>
+          <div class="frame-box">{ ...screen, with .pin markers... }</div>
+        </div>
+      </div>
+    </div>
+    <ol class="legend">
+      <li>{What pin 1 marks.}</li>
+    </ol>
+  </div>
+
+  <!-- Both options real, both buildable. Mark the recommendation with class="pick". -->
+  <div class="opts">
+    <div class="opt pick">
+      <h3>Option A <span class="tag">Recommended</span></h3>
+      <p>{What it is.}</p>
+      <p class="risk">Risk: {the specific thing that could go wrong.}</p>
+    </div>
+    <div class="opt">
+      <h3>Option B</h3>
+      <p>{What it is.}</p>
+      <p class="risk">Risk: {the specific thing that could go wrong.}</p>
+    </div>
+  </div>
+
+  <p><strong>Where it lands:</strong> <code>{/route}</code></p>
+</section>
+
+<!-- ==== 5. THE ASK ================================================== -->
+<section>
+  <div class="ask">
+    <h3>What I need from you</h3>
+    <p>Approve all {M}, or name the ones you want. Once you say go, each approved execution gets its
+    own branch, its own Vercel deployment and a comment on every ticket it covers.</p>
+  </div>
+</section>
+
+</div>
