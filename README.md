@@ -1,11 +1,12 @@
 # jimo-agent
 
 The Jimo Agent console, built 1:1 from Figma, plus a live end-user widget simulator.
-Five pages so far:
+Five Agent pages, and the six Experiences dashboards beside them:
 
 - **Escalation** (`/escalation`) — [`Escalation`, node 43:6997](https://www.figma.com/design/5LL3WooWBeEfjNpUls93Zg/Escalation?node-id=43-6997)
 - **Knowledge** (`/knowledge`) — [`Sources page`, section 932:27941](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=932-27941) and [`Interface Knowledge`, section 12987:12415](https://www.figma.com/design/ZapclwcQZLBxoeYxfo1ms0/Interface-Knowledge?node-id=12987-12415), plus [`User Context`, node 901:16049](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=901-16049) for the section that tab used to hold
 - **Skills** (`/skills`) — [`Building Skill from Dashboard`, section 12987:11525](https://www.figma.com/design/ZapclwcQZLBxoeYxfo1ms0/Interface-Knowledge?node-id=12987-11525)
+- **Experiences** — six dashboards and six detail pages, from the [index skeleton `6:384`](https://www.figma.com/design/z7EQ0w6HgJkQ80VDck0JaG/Agent-Designer-Sandbox?node-id=6-384) and the [detail skeleton `10:2269`](https://www.figma.com/design/z7EQ0w6HgJkQ80VDck0JaG/Agent-Designer-Sandbox?node-id=10-2269), with everything behind an undrawn affordance taken from the Jimo Help Center
 - **Statistics** (`/statistics`) and **Conversations** (`/conversations`) — [`Analyze`, section 934:27942](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=934-27942), redrawn for the two panes by [949:7217](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=949-7217) / [949:7347](https://www.figma.com/design/42KccejbNYeHc3EP5P8vHd/Copilot-Widget?node-id=949-7347)
 
 ```sh
@@ -26,6 +27,7 @@ and the two tabs talk to each other through `localStorage`:
 | **Skills page** | `index.html` at `/skills` | The agent's skills, what each one costs and how often it finishes. Add one by picking a mode, then the page it runs on. Open a row for its instructions, its usage, and the real conversations that fired it. |
 | **Statistics page** | `index.html` at `/statistics` | Usage over time, by metric and date range. |
 | **Conversations page** | `index.html` at `/conversations` | Every conversation, with its transcript and the agent's reasoning trace — which skills fired and which sources it cited. Both link out to the page that owns them. |
+| **Experiences pages** | `index.html` at `/tours`, `/surveys`, `/banners`, `/hints`, `/checklists`, `/resource-centers` | Each type's dashboard: a mosaic or one of two lists, filtered by context, status, segment and tag. Open a card for its content, its per-type KPIs and whatever the selected KPI drills into. |
 | **Widget simulator** | `widget.html` | A mock customer app with the Jimo agent on it. It runs the rules you just configured, live — change a trigger on the dashboard and this tab reacts without a reload. |
 
 Open the simulator from **Send a test escalation → Open the live widget**.

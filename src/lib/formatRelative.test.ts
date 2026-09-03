@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatRelative, formatAbsolute } from './formatRelative';
+import { formatRelativeLong, formatRelative, formatAbsolute } from './formatRelative';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -33,5 +33,30 @@ describe('formatAbsolute', () => {
     expect(out).toContain('March');
     expect(out).toContain('2025');
     expect(out).not.toContain('PM');
+  });
+});
+
+describe('formatRelativeLong', () => {
+  const now = Date.UTC(2026, 0, 20, 12, 0, 0);
+  const ago = (ms: number) => formatRelativeLong(now - ms, now);
+
+  it('prints what the Experiences artboards print', () => {
+    // "Created 5 days ago" on a card, "Edited 3 days ago" in the detail subline.
+    expect(ago(5 * 24 * 60_000 * 60)).toBe('5 days ago');
+    expect(ago(3 * 24 * 60_000 * 60)).toBe('3 days ago');
+  });
+
+  it('spells one day as yesterday and never says "1 days"', () => {
+    expect(ago(26 * 60 * 60_000)).toBe('yesterday');
+    expect(ago(61 * 60_000)).toBe('1 hour ago');
+  });
+
+  it('hands weeks over to months at four, so nothing reads "9 weeks ago"', () => {
+    expect(ago(21 * 24 * 60 * 60_000)).toBe('3 weeks ago');
+    expect(ago(60 * 24 * 60 * 60_000)).toBe('2 months ago');
+  });
+
+  it('says just now under a minute, matching the short ladder’s first band', () => {
+    expect(ago(3_000)).toBe('just now');
   });
 });

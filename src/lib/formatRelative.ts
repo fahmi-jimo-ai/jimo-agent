@@ -47,3 +47,31 @@ export function formatAbsolute(at: number): string {
   const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
   return `${date}, ${time}`;
 }
+
+/**
+ * The long form — "5 days ago", not "5d ago".
+ *
+ * The Experiences artboards print "Created 5 days ago" on a card and "Edited 3
+ * days ago" in a detail subline, where the Knowledge table prints "5d ago" in a
+ * column it needs to keep narrow. Same ladder, spelled out: a card has the room
+ * and the abbreviation reads as a table cell that escaped.
+ *
+ * Bands past a week are invented for the same reason the short ladder's are —
+ * the artboards only ever print the days band. `weeks` stops at four and hands
+ * over to months, so nothing ever reads "9 weeks ago".
+ */
+export function formatRelativeLong(at: number, now: number = Date.now()): string {
+  const delta = now - at;
+  if (delta < MINUTE) return 'just now';
+
+  const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
+
+  if (delta < HOUR) return plural(Math.floor(delta / MINUTE), 'minute');
+  if (delta < DAY) return plural(Math.floor(delta / HOUR), 'hour');
+  if (delta < 7 * DAY) {
+    const d = Math.floor(delta / DAY);
+    return d === 1 ? 'yesterday' : plural(d, 'day');
+  }
+  if (delta < 28 * DAY) return plural(Math.floor(delta / (7 * DAY)), 'week');
+  return plural(Math.max(1, Math.floor(delta / (30 * DAY))), 'month');
+}

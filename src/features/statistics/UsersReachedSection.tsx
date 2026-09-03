@@ -24,6 +24,22 @@ import { SEGMENT_LABEL, type SegmentFilter } from '@/state/types';
  * scroll region (and its `overflow: auto` was the box that used to clip row
  * menus), plus the same flush outer edges so the table starts and ends on the
  * Section's content box rather than a second, wrong margin.
+ *
+ * ## Two additive props, for the Experiences detail page
+ *
+ * That artboard (Agent Designer Sandbox `10:2271`) draws THE SAME CARD — same
+ * three columns, same "Anonymous / #Jimer23123 / No email" rows, same
+ * "See all 2312 users ›" footer, which is `TOTAL_USERS` and `USERS_REACHED`
+ * verbatim — but its two selectors are a step scope and a date range rather
+ * than this page's segment picker. A sibling component is how the two would
+ * drift, so instead:
+ *
+ *  - `segment` / `onSegment` became OPTIONAL. Omit them and the segment
+ *    selector does not render, and every row shows.
+ *  - `controls` prepends caller-owned controls to the same cluster.
+ *
+ * Both default to exactly what this file did before, so `/statistics` renders
+ * byte-identically.
  */
 const FLUSH_EDGES =
   '[&_th:first-child]:pl-0 [&_td:first-child]:pl-0 ' +
@@ -32,22 +48,30 @@ const FLUSH_EDGES =
 export function UsersReachedSection({
   segment,
   onSegment,
+  controls,
   onExport,
   onSeeAll,
 }: {
-  segment: SegmentFilter;
-  onSegment: (s: SegmentFilter) => void;
+  /** Omit to render no segment selector — see the header comment. */
+  segment?: SegmentFilter;
+  onSegment?: (s: SegmentFilter) => void;
+  /** ADDITIVE — caller-owned controls, prepended to the same cluster. */
+  controls?: React.ReactNode;
   onExport: () => void;
   onSeeAll: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const rows = USERS_REACHED.filter((u) => segment === 'all' || u.segment === segment);
+  const rows = USERS_REACHED.filter(
+    (u) => segment === undefined || segment === 'all' || u.segment === segment,
+  );
 
   return (
     <Section
       title="Users reached"
       controls={
         <>
+          {controls}
+          {segment !== undefined && onSegment && (
           <Menu
             open={open}
             onClose={() => setOpen(false)}
@@ -76,6 +100,7 @@ export function UsersReachedSection({
               />
             ))}
           </Menu>
+          )}
           <Button
             variant="outline"
             size="sm"

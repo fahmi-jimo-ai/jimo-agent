@@ -1,10 +1,13 @@
 # jimo-agent — Claude Code reference
 
-The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Five pages today:
+The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Five Agent pages:
 **Escalation** (`/escalation`), **Knowledge** (`/knowledge`), **Skills** (`/skills`),
 **Statistics** (`/statistics`) and **Conversations** (`/conversations`); `/` redirects to
-Escalation. The sidebar lists two more — Chat and Launcher — which are deliberately inert,
+Escalation. The Agent sidebar lists two more — Chat and Launcher — which are deliberately inert,
 because nothing is designed behind them.
+
+Beside the Agent, one level up, sit the six **Experiences** dashboards — `/tours`, `/surveys`,
+`/banners`, `/hints`, `/checklists`, `/resource-centers`, each with a `/:id` detail route.
 Read `README.md` first for what the app is; this file is the working rules.
 
 ## Run
@@ -18,6 +21,14 @@ Read `README.md` first for what the app is; this file is the working rules.
 
 > **Figma** (`5LL3WooWBeEfjNpUls93Zg`, section `43:6997`) **>** `~/Downloads/jimo-escalation-v2_2.html`
 > **>** `~/Downloads/support-handoff.md`
+
+For **Experiences** the ladder is its own, because the artboards there are skeletons:
+
+> **Agent Designer Sandbox** (`z7EQ0w6HgJkQ80VDck0JaG`: index `6:384`, detail `10:2269`) **>**
+> the **Jimo Help Center** (via the Jimo Documentation MCP) **>** the **Jimo MCP**
+
+The skeletons win on layout, selected states and any label they print. The docs win on what sits
+behind an undrawn affordance and on the per-type KPI sets. The MCP supplies the live enums.
 
 The HTML prototype is an older, superseded design. Take tokens and interaction idioms from it;
 never take page structure. The PRD supplies enum names and rationale, never UI.
@@ -230,6 +241,75 @@ page drawer's Skills tab comes back. Each reads its param ONCE and strips it, ex
 `?source=` already did — read it every render and it fights the close button, leave it in and a
 reload reopens the drawer.
 
+## Experiences are six pages over one component, and they live in the PRIMARY rail
+
+`/tours`, `/surveys`, `/banners`, `/hints`, `/checklists` and `/resource-centers` are one
+`ExperienceIndexPage` behind six routes, and their `/:id` details are one `ExperienceDetailPage`
+behind six more. Twelve literal `<Route>`s in `main.tsx`, not a `.map` and not
+`/experiences/:type` — `/tours` should be greppable, and a `:type` param makes every unknown
+segment a valid page.
+
+**They are not a section of `AGENT_NAV_SECTIONS`, and neither sidebar is forked.**
+`PrimaryNavSidebar` already ships all six as peers of the Agent (`NAV_ITEMS_ENGAGEMENT`,
+`NAV_ITEMS_CONTENT`) with an `onItemClick` nobody was passing. So `navConfig` gained
+`PRIMARY_NAV_ROUTES` beside `NAV_ROUTES`, keyed on the rail's OWN labels — note
+`Resource Center`, singular, where the page title is plural, which is why `EXPERIENCE_NAV_LABEL`
+and `EXPERIENCE_PLURAL` are two maps and `experiences.test.ts` asserts the join. Get Started,
+Changelog Posts, Spaces, Success Trackers, Actions, Users & Segments and Settings stay inert by
+omission, exactly as Chat and Launcher do one rail down.
+
+An Experiences page has **no secondary rail** — nothing is designed for one, and lending it the
+Agent's would misstate the IA — so `AppShell` takes `sections={null}`. With no second rail there
+is nothing left naming where you are, so it also takes `primaryCollapsed={false}` and the primary
+rail expands. All three `AppShell` props (`primaryItem`, `sections`, `primaryCollapsed`) default
+to what the file did before, so every Agent page is unchanged.
+
+**The detail is a route, not a drawer.** The artboard opens it with a back chevron rather than a
+close button, and a route swap also guarantees structurally what `PageHeader/CONTEXT.md` states as
+a rule: `type="main"` and `type="sub"` never render together. An unknown id renders a not-found
+branch and never redirects — bouncing to the index makes a stale link look like a working page.
+
+### One record, and a metric TABLE rather than six branches
+
+`src/data/experiences.ts` holds one `Experience` with a `type` discriminant. The KPI sets are
+`METRICS_BY_TYPE`, transcribed from the docs, and `metricsFor()` applies the docs' three
+conditions — two-plus steps for `went-through-all-steps`, a goal for `reached-goal`, and a CTA for
+`button-actions`. That last one is what makes the Checklist artboard reproduce tile for tile: the
+docs list Button Actions for every type, the artboard draws three tiles and none of them is it,
+and the honest resolution is that a CTA-click metric has nothing to count without a CTA.
+
+The other artboard/docs conflict is the Checklist metric itself — the docs call it
+*Completed Checklist*, the artboard labels it *Completion rate* and prints *70% completion*, then
+hangs the docs' per-task drill-down off it. Docs win the set, artboard wins the label.
+
+**Every `DrillKind` is built.** A tile that reveals nothing is a control with nothing behind it,
+so all six render: `MetricAreaChart` for a day series and (with two series) for the goal curves,
+three tables, and `StepDropoffChart`. `buildStepDropoff` pins its first bar at 100% and its last
+at the KPI, both of them the docs' own words and both asserted in the tests.
+
+Two reuses worth knowing rather than re-deriving. The detail's bottom card IS
+`UsersReachedSection` from `/statistics` — the artboard was drawn from the same fixture, down to
+"Anonymous / #Jimer23123 / No email" and "See all 2312 users" — so that component gained two
+additive props (`segment` became optional, `controls` prepends) rather than a sibling that would
+drift. And every thumbnail is `PageThumb`, for the reason its own header gives: the artboard's
+previews are flat placeholders, there is no renderer here that could produce a real one, and a
+token-drawn wireframe is the honest stand-in.
+
+### Filters ARE configuration; which tile you are on is not
+
+The docs say filters and display options "can be saved for the current tab view", so `ViewPrefs`
+(tab, the four pills, display mode) is persisted per type in `experiencesStore`. The detail page's
+selected KPI and its Statistics|Issues tab are NOT — that is where a reader is inside a page, the
+line `ThinkingTrace` already draws. The three KPI artboards are reachable through `initialMetric`.
+
+The docs name three display modes and the artboard draws only the mosaic, selected. All three are
+built, because a three-segment toggle where two segments toast is a broken control and the docs
+enumerate the detailed row's contents exactly. Mosaic is the default here where the product's is
+the detailed list, because the artboard draws it selected.
+
+Layout arithmetic, stated rather than hardcoded: `AppShell`'s 1064 column less two `--space-8`
+gutters is 1000, so 3 mosaic columns at `--space-5` are 320 wide. Same shape as `PageGrid`'s 4×223.
+
 ## Conversations is the one full-bleed page, and the panel owns a ground
 
 `/conversations` was redrawn against Figma `949:7217` (list row) and `949:7347` (panel), which
@@ -343,6 +423,12 @@ with `--color-brand-subtle` so a selected row matches the `DropdownSelector` abo
 action `buttons[]` cannot express — every entry there is rendered as a bare `<Button>`, so a
 `Menu` trigger has nowhere to go).
 
+`PageHeader` has a THIRD fork, `icon` + `subtitle`, on the `type="sub"` branch only, for the
+Experiences detail header. Neither could ride `title`, which renders inside a `whitespace-nowrap`
+`<h2>`. The subtitle column is emitted only when `subtitle != null`, so every pre-fork call site
+is byte-identical. `PrimaryNavSidebar` is NOT forked — it already carried every label and the
+`onItemClick` the Experiences pages needed.
+
 These local copies may be forked; `../../jimo-storybook` may not. When a fork lands here, say so in
 the component's header comment AND its `CONTEXT.md`, so the next reader can tell it from drift.
 
@@ -406,6 +492,23 @@ actually filters; the drawer kebab's `Duplicate` / `Delete` rows; `SkillFormModa
 drawn from tokens rather than baked as a PNG because the artboard's thumbnails are screenshots of
 somebody else's product; `ScanPageModal` and the 4s `SCAN_MS` behind it; and the page drawer's
 `Details` tab, which no frame draws at all.
+
+**Experiences** add the last batch, each commented at its own site: the reading of the `Contexts`
+pill as experience TYPE (it is drawn on `6:384`, appears in no Jimo doc, and the reading came from
+Fahmi); `+ New View`, which the docs describe but no frame follows, so it raises the `outOfScope`
+toast; every figure past the ones the artboards print (`70% completion`, `21 users`, `30% users`,
+the `24 / 12` task columns) and so every experience name, tag, segment label, step caption and
+goal; the drill-down generators in `experiences.ts`; the nine metric glyphs the artboard does not
+draw; `ExperiencesEmptyState`; the two undrawn display modes (transcribed from the docs' own
+description, not invented, but undrawn); and `IssuesTab`, whose TAB the docs name and whose rows
+are drawn from the Troubleshooting page's failure list — the detection itself is invented, because
+this prototype has no runtime to observe.
+
+Two things there are NOT invented and should not be "corrected": **"Poke statistics"** is the
+artboard's title and `poke` is Jimo's own word for an experience (it is in the product's own
+`?jimo_poke=` links); and the task table's completion rate is DERIVED, because the artboard prints
+`24 / 12` on all four rows while giving them four different rates, and reproducing that would be
+copying a typo — the same call `formatAbsolute` makes about the artboard's "17:12 PM".
 
 `src/lib/classifyChip.ts` is the opposite: transcribed **verbatim** from Figma node `29:12197`.
 Do not "improve" its rules — `classifyChip.test.ts` encodes the spec's own 12 worked examples.
