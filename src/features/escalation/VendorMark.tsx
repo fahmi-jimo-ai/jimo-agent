@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Sms } from 'iconsax-react';
+import { Link21, Sms } from 'iconsax-react';
 import type { Vendor } from '@/state/types';
 
 /**
@@ -9,10 +9,18 @@ import type { Vendor } from '@/state/types';
  * select and the hero illustration. They are simple geometric marks, so they
  * are drawn rather than shipped as raster assets — no network fetch, no
  * base64 payload, and they stay crisp at any size.
+ *
+ * Two entries are NOT brands and are drawn as plain glyphs instead: Support
+ * Email, and Webhook (PRD-591). Giving either a coloured tile would invent a
+ * logo for something that has none.
  */
 export function VendorMark({ vendor, size = 20 }: { vendor: Vendor; size?: number }) {
   if (vendor === 'email') {
     return <Sms size={size} variant="Linear" color="currentColor" />;
+  }
+
+  if (vendor === 'webhook') {
+    return <Link21 size={size} variant="Linear" color="currentColor" />;
   }
 
   if (vendor === 'intercom') {

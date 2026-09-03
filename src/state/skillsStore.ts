@@ -21,7 +21,13 @@
  * `SkillsEmptyState` is still built and still reachable — deleting every row
  * gets you there — it just is not where a first visit lands.
  */
-import { isSkillMode, DEMO_SKILLS, type Skill, type SkillMode } from '@/data/skills';
+import {
+  isSkillMode,
+  isSkillScope,
+  DEMO_SKILLS,
+  type Skill,
+  type SkillMode,
+} from '@/data/skills';
 
 const KEY = 'jimo.agent.skills.v1';
 
@@ -57,6 +63,12 @@ export function parseSkill(value: unknown): Skill | null {
     description: str(raw.description),
     instructions: str(raw.instructions),
     mode: isSkillMode(raw.mode) ? raw.mode : 'explain',
+    // PRD-584. A payload written before `scope` existed reads as `'page'`,
+    // which is exactly what it meant when it was written: every skill was
+    // anchored then, and some of those anchors were the homepage-as-dumping-
+    // ground the ticket describes. Inferring `'global'` from a null `pageId`
+    // instead would silently relabel skills that had simply lost their page.
+    scope: isSkillScope(raw.scope) ? raw.scope : 'page',
     pageId: typeof raw.pageId === 'string' ? raw.pageId : null,
     // Absent reads as active: a row whose flag was lost should still answer,
     // and the switch shows the truth either way.
@@ -144,9 +156,26 @@ export function filterSkills(skills: Skill[], { search, mode, sort }: SkillFilte
   });
 }
 
-/** How many skills a scanned page hosts — the page card's "• N Skills". */
+/**
+ * How many skills a scanned page hosts — the page card's "• N Skills".
+ *
+ * Global skills are excluded (PRD-584): the agent can reach every skill from
+ * anywhere, so a global one is not something this PAGE hosts, and counting it
+ * on all of them would make every card's number the same size lie.
+ */
 export function skillsForPage(skills: Skill[], pageId: string): Skill[] {
-  return skills.filter((s) => s.pageId === pageId);
+  return skills.filter((s) => s.scope === 'page' && s.pageId === pageId);
+}
+
+/**
+ * The two lists the Skills page draws, in the order PRD-584 asks for: what
+ * explains a screen, and what explains a concept.
+ */
+export function splitByScope(skills: Skill[]): { page: Skill[]; global: Skill[] } {
+  return {
+    page: skills.filter((s) => s.scope !== 'global'),
+    global: skills.filter((s) => s.scope === 'global'),
+  };
 }
 
 /* ── the store ────────────────────────────────────────────────────────────── */

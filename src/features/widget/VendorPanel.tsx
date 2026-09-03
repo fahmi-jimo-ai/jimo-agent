@@ -1,16 +1,20 @@
 import * as React from 'react';
 import { VendorMark } from '@/features/escalation/VendorMark';
+import { useEscalation } from '@/state/useEscalation';
 import { VENDOR_LABEL, type Vendor } from '@/state/types';
 import { SAMPLE_NOTE } from '@/data/fixtures';
 import type { Decision } from './escalationEngine';
 import { REASON_COPY } from './escalationEngine';
 
-/** The client's own support chat, mocked. Brand colour per vendor. */
+/** The client's own support chat, mocked. Brand colour per vendor.
+ *  The two non-brands — Support Email and Webhook (PRD-591) — share the
+ *  neutral, because inventing a colour for either would be inventing a logo. */
 const ACCENT: Record<Vendor, string> = {
   intercom: '#1F2937',
   zendesk: '#03363D',
   crisp: '#1972F5',
   email: '#4D637B',
+  webhook: '#4D637B',
 };
 
 /**
@@ -33,9 +37,15 @@ export function VendorPanel({
   brief: string;
   onClose: () => void;
 }) {
+  const { webhook } = useEscalation();
   const [showNote, setShowNote] = React.useState(false);
   const accent = ACCENT[vendor];
   const isEmail = vendor === 'email';
+  /* PRD-591. A webhook hand-off is not a conversation and nobody is going to
+     reply in it, so this panel must not pretend otherwise: the second bubble
+     is a delivery receipt rather than a support agent's answer. Everything
+     above it is unchanged, because the brief IS still what was sent. */
+  const isWebhook = vendor === 'webhook';
 
   return (
     <aside className="vp" aria-label={`${VENDOR_LABEL[vendor]} conversation`}>
@@ -43,7 +53,13 @@ export function VendorPanel({
         <VendorMark vendor={vendor} size={26} />
         <div className="vp-head-text">
           <strong>{VENDOR_LABEL[vendor]}</strong>
-          <span>{isEmail ? 'Message sent to your support inbox' : 'Usually replies in a few minutes'}</span>
+          <span>
+            {isWebhook
+              ? 'Posted to your endpoint'
+              : isEmail
+                ? 'Message sent to your support inbox'
+                : 'Usually replies in a few minutes'}
+          </span>
         </div>
         <button className="vp-close" onClick={onClose} aria-label="Close">×</button>
       </header>
@@ -56,13 +72,26 @@ export function VendorPanel({
           <span className="vp-meta">You · just now</span>
         </div>
 
-        <div className="vp-msg vp-msg--agent">
-          <p>
-            Thanks — I can see the whole history from your chat with the assistant, so you don’t need
-            to repeat any of it. Give me two minutes to look at your SSO config.
-          </p>
-          <span className="vp-meta">Support · just now</span>
-        </div>
+        {isWebhook ? (
+          <div className="vp-msg vp-msg--agent">
+            <p>
+              <strong>202 Accepted</strong>
+              <br />
+              {webhook?.url ?? 'your endpoint'}
+              <br />
+              Your system creates the ticket from here — Jimo’s part is done.
+            </p>
+            <span className="vp-meta">Delivery receipt · just now</span>
+          </div>
+        ) : (
+          <div className="vp-msg vp-msg--agent">
+            <p>
+              Thanks — I can see the whole history from your chat with the assistant, so you don’t need
+              to repeat any of it. Give me two minutes to look at your SSO config.
+            </p>
+            <span className="vp-meta">Support · just now</span>
+          </div>
+        )}
       </div>
 
       <div className="vp-note">

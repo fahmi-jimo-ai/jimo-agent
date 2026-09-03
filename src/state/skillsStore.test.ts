@@ -24,6 +24,7 @@ const skill = (over: Partial<Skill> = {}): Skill => ({
   description: 'Answers a product question in text.',
   instructions: 'Your goal is to answer.',
   mode: 'explain',
+  scope: 'page',
   pageId: null,
   active: true,
   updatedAt: 1,

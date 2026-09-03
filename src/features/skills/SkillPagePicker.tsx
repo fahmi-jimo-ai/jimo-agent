@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Scan, SearchNormal1 } from 'iconsax-react';
+import { Global, Scan, SearchNormal1 } from 'iconsax-react';
 import { PickerDialog, PickerEmpty } from '@/components/app/PickerDialog';
 import { Input } from '@/components/ui/Input/Input';
 import { useToast } from '@/components/app/toast';
@@ -45,11 +45,14 @@ export function SkillPagePicker({
   mode,
   onClose,
   onPick,
+  onPickGlobal,
 }: {
   /** The mode chosen in the Add Skill menu; carried into the form card next. */
   mode: SkillMode;
   onClose: () => void;
   onPick: (page: InterfacePage) => void;
+  /** PRD-584 — the skill is not about a screen. Skips straight to the form. */
+  onPickGlobal: () => void;
 }) {
   const toast = useToast();
   const { pages } = useKnowledge();
@@ -77,6 +80,28 @@ export function SkillPagePicker({
       }
     >
       <div className="grid grid-cols-3 gap-[var(--space-4)] px-[var(--space-2)] pb-[var(--space-4)]">
+        {/* PROPOSAL (PRD-584). First, and out of the search filter, for the
+            same reason the Scan tile is: it is an action rather than a result.
+            It is FIRST because this dialog's question — "where should we create
+            the skill?" — has been unanswerable for a whole class of skill, and
+            the answer being missing is what sends builders to the homepage.
+            Gojob's HR and legal questions have no screen. */}
+        <button
+          type="button"
+          onClick={onPickGlobal}
+          className="flex aspect-[16/10] w-full cursor-pointer flex-col items-center justify-center gap-[var(--space-2)] rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border-default)] bg-[var(--color-bg-default)] p-[var(--space-4)] text-center [transition:background-color_var(--transition-fast),border-color_var(--transition-fast)] hover:border-[var(--color-blue-400)] hover:bg-[var(--color-brand-subtle)]"
+        >
+          <span aria-hidden="true" className="flex items-center text-[var(--color-brand-default)]">
+            <Global size={24} variant="Linear" color="currentColor" />
+          </span>
+          <span className="[font:var(--text-subtitle-4)] text-[var(--color-text-primary)]">
+            Not about a page
+          </span>
+          <span className="[font:var(--text-body-4)] text-[var(--color-text-tertiary)]">
+            Available everywhere
+          </span>
+        </button>
+
         {/* Dead end, acknowledged — see the header comment. It stays first in
             the grid (and out of the search filter) because it is an action, not
             a result. */}
