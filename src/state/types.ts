@@ -1,6 +1,20 @@
 import type { TopicCategory } from '@/lib/classifyChip';
 
-export type Vendor = 'intercom' | 'zendesk' | 'crisp' | 'email';
+/**
+ * `webhook` is PRD-591, and it is deliberately in the same enum as the four
+ * named tools rather than beside it as a special case.
+ *
+ * Gojob runs Freshdesk without its chat product and a chatbot they built
+ * themselves, so none of Crisp / Intercom / Zendesk applies and they are not
+ * going to buy a fourth support tool to unlock escalation. What they asked for
+ * is narrower than a ticketing integration: when the agent cannot answer, POST
+ * the recap somewhere they control and let them create the ticket.
+ *
+ * Modelling that as a fifth VENDOR — rather than as a flag on the other four —
+ * is what makes the support-tool row keep working: one selector, one chosen
+ * tool, one section underneath showing what that tool still needs.
+ */
+export type Vendor = 'intercom' | 'zendesk' | 'crisp' | 'email' | 'webhook';
 export type FailedCount = 1 | 2 | 3;
 export type FrustrationLevel = 'mild' | 'clear' | 'strong';
 export type Range = 'this-month' | 'last-30-days' | 'last-7-days';
@@ -15,6 +29,20 @@ export interface CrispCredentials {
   websiteId: string;
   tokenIdentifier: string;
   tokenKey: string;
+}
+
+/**
+ * Where a hand-off is POSTed when the chosen tool is `webhook` (PRD-591).
+ *
+ * Two fields, for the same reason Crisp has three and the OAuth pair have none:
+ * this is what the tool actually needs and nothing more. The endpoint is the
+ * customer's own, and the secret is signed into the request so they can verify
+ * it is us — asking for neither would be a form that cannot be trusted, and
+ * asking for more would be inventing a ticketing schema nobody specified.
+ */
+export interface WebhookConfig {
+  url: string;
+  secret: string;
 }
 
 export interface Topic {
@@ -44,6 +72,9 @@ export interface EscalationState {
   supportEmail: string | null;
   /** Set once the Crisp credentials form has been submitted. */
   crisp: CrispCredentials | null;
+  /** Set once the webhook form has been submitted (PRD-591). Persisted for the
+   *  same reason `crisp` is: it is config the customer typed, not a redirect. */
+  webhook: WebhookConfig | null;
   /** Committed triggers — what the agent actually runs on. */
   triggers: Triggers;
   /** Edited by the trigger cards. `Confirm` copies draft -> triggers. */
@@ -64,6 +95,9 @@ export const VENDOR_LABEL: Record<Vendor, string> = {
   zendesk: 'Zendesk',
   crisp: 'Crisp Chat',
   email: 'Support Email',
+  // Named for what it does, not for the transport. The row it appears in reads
+  // "Switch to Webhook", and a customer picking it is choosing "my own system".
+  webhook: 'Webhook',
 };
 
 export const DEFAULT_TRIGGERS: Triggers = {
@@ -78,6 +112,7 @@ export const INITIAL_STATE: EscalationState = {
   vendor: null,
   supportEmail: null,
   crisp: null,
+  webhook: null,
   triggers: DEFAULT_TRIGGERS,
   draftTriggers: DEFAULT_TRIGGERS,
   topics: [],

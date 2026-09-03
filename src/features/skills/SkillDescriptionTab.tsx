@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ExportSquare, InfoCircle } from 'iconsax-react';
+import { ExportSquare, Global, InfoCircle } from 'iconsax-react';
 import { Section } from '@/components/ui/Section/Section';
 import { formatRelative } from '@/lib/formatRelative';
 import { SKILL_MODE_LABEL, type Skill } from '@/data/skills';
@@ -96,7 +96,17 @@ export function SkillDescriptionTab({
             {SKILL_MODE_LABEL[skill.mode]}
           </Meta>
           <Meta label="Interface">
-            {page ? (
+            {/* PRD-584. Three readings, not two: a page, "Global" for a skill
+                that was never about a screen, and the em dash for one whose
+                page is gone. Collapsing the last two is exactly the confusion
+                the ticket is about — one of them is working as intended and
+                the other is broken. */}
+            {skill.scope === 'global' ? (
+              <span className="flex min-w-0 items-center gap-[var(--space-1)] text-[var(--color-text-primary)]">
+                <Global size={16} variant="Linear" color="currentColor" />
+                <span className="truncate">Global</span>
+              </span>
+            ) : page ? (
               <button
                 type="button"
                 onClick={() => onOpenPage(page.id)}

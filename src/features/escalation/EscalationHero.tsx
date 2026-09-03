@@ -18,6 +18,12 @@ const OPTIONS: Array<{ vendor: Vendor; label: string }> = [
   { vendor: 'zendesk', label: 'Connect Zendesk' },
   { vendor: 'crisp', label: 'Connect Crisp Chat' },
   { vendor: 'email', label: 'Add Support Email' },
+  /* PROPOSAL (PRD-591) — the one row here the artboard does not draw.
+     It is in the hero rather than only in Configuration because this menu IS
+     the empty state's onboarding: a customer whose support tool is none of the
+     four above would otherwise have to connect a tool they do not use and then
+     switch away from it. Gojob is exactly that customer. */
+  { vendor: 'webhook', label: 'Use a Webhook' },
 ];
 
 export function EscalationHero({ onPick }: { onPick: (v: Vendor) => void }) {

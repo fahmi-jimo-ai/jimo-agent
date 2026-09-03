@@ -6,6 +6,7 @@ import { EscalationHero } from './EscalationHero';
 import { OAuthPlaceholder } from './OAuthPlaceholder';
 import { SupportEmailModal } from './SupportEmailModal';
 import { CrispConnectModal } from './CrispConnectModal';
+import { WebhookConnectModal } from './WebhookConnectModal';
 import { ConfigureModal } from './ConfigureModal';
 import { HandoffsChart } from './HandoffsChart';
 import { TriggersSection } from './TriggersSection';
@@ -14,7 +15,12 @@ import { VendorMark } from './VendorMark';
 import { useToast } from '@/components/app/toast';
 import { openWidget } from './openWidget';
 import { useEscalation, setState } from '@/state/useEscalation';
-import { VENDOR_LABEL, type CrispCredentials, type Vendor } from '@/state/types';
+import {
+  VENDOR_LABEL,
+  type CrispCredentials,
+  type Vendor,
+  type WebhookConfig,
+} from '@/state/types';
 
 /** How long the fake provider redirect is shown. */
 const OAUTH_MS = 1200;
@@ -25,6 +31,7 @@ export function EscalationPage() {
 
   const [emailFor, setEmailFor] = React.useState<Vendor | null>(null);
   const [crispOpen, setCrispOpen] = React.useState(false);
+  const [webhookOpen, setWebhookOpen] = React.useState(false);
   const [oauthFor, setOauthFor] = React.useState<Vendor | null>(null);
   const [configuring, setConfiguring] = React.useState(false);
 
@@ -70,6 +77,12 @@ export function EscalationPage() {
     // workspace token pair you paste in, so it gets a form of its own.
     if (v === 'crisp') {
       setCrispOpen(true);
+      return;
+    }
+    // PRD-591: a webhook is the customer's own endpoint, so like Crisp it is a
+    // form rather than an authorisation to be redirected out for.
+    if (v === 'webhook') {
+      setWebhookOpen(true);
       return;
     }
     // Intercom and Zendesk go through the provider redirect placeholder.
@@ -136,6 +149,16 @@ export function EscalationPage() {
             setCrispOpen(false);
             setState({ crisp: creds });
             enable('crisp');
+          }}
+        />
+      )}
+      {webhookOpen && (
+        <WebhookConnectModal
+          onCancel={() => setWebhookOpen(false)}
+          onConnected={(config: WebhookConfig) => {
+            setWebhookOpen(false);
+            setState({ webhook: config });
+            enable('webhook');
           }}
         />
       )}

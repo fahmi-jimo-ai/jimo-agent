@@ -81,6 +81,29 @@ export const SKILL_MODE_MENU: Record<SkillMode, { title: string; description: st
   },
 };
 
+/**
+ * Whether a skill belongs to one screen or to the whole product — PRD-584.
+ *
+ * This is NOT the same question as "does `pageId` resolve", and collapsing the
+ * two would lose the distinction `SkillDescriptionTab` already draws: a skill
+ * whose page was deleted is BROKEN and says so, while a global skill was never
+ * about a screen in the first place. Gojob's recruiters ask "how long does a
+ * contract last" from wherever they happen to be standing; anchoring that to
+ * the homepage is a lie about the skill, and the homepage becomes a dumping
+ * ground for everything generic.
+ *
+ * `scope: 'global'` therefore ignores `pageId` rather than requiring it to be
+ * null — a skill can be promoted to global and demoted back without losing the
+ * page it came from.
+ */
+export type SkillScope = 'page' | 'global';
+
+export const SKILL_SCOPES: SkillScope[] = ['page', 'global'];
+
+export function isSkillScope(value: unknown): value is SkillScope {
+  return typeof value === 'string' && (SKILL_SCOPES as string[]).includes(value);
+}
+
 export interface Skill {
   id: string;
   name: string;
@@ -89,7 +112,10 @@ export interface Skill {
   /** The drawer's Instructions block — free prose, newlines significant. */
   instructions: string;
   mode: SkillMode;
-  /** → `InterfacePage.id`. The drawer's `Interface: Dashboard ↗`. */
+  /** Page-scoped or site-wide. See `SkillScope` — PRD-584. */
+  scope: SkillScope;
+  /** → `InterfacePage.id`. The drawer's `Interface: Dashboard ↗`.
+   *  Ignored while `scope` is `'global'`. */
   pageId: string | null;
   active: boolean;
   /** Epoch ms — the Last updated column is relative, so an absolute would age. */
@@ -175,6 +201,7 @@ export function DEMO_SKILLS(): Skill[] {
         'If something goes wrong: if no source covers the question, say so plainly and offer to escalate rather than guessing from general knowledge.',
       ].join('\n'),
       mode: 'explain',
+      scope: 'page',
       pageId: 'page-dashboard',
       active: true,
       updatedAt: now - 2 * DAY,
@@ -200,6 +227,10 @@ export function DEMO_SKILLS(): Skill[] {
         'If something goes wrong: if the reply is still ambiguous, answer the most likely reading and say which one you picked.',
       ].join('\n'),
       mode: 'explain',
+      // PRD-584: these two were never about a screen — they are the case the
+      // ticket is asking for, and they now say so instead of reading as a
+      // skill that lost its page.
+      scope: 'global',
       pageId: null,
       active: true,
       updatedAt: now - 6 * HOUR,
@@ -226,6 +257,7 @@ export function DEMO_SKILLS(): Skill[] {
         'If something goes wrong: if a step\'s control is missing, stop and escalate rather than improvising a different route.',
       ].join('\n'),
       mode: 'guide',
+      scope: 'page',
       pageId: 'page-dashboard',
       active: true,
       updatedAt: now - 3 * DAY,
@@ -251,6 +283,10 @@ export function DEMO_SKILLS(): Skill[] {
         'If something goes wrong: if the thread has no clear request, say that explicitly rather than inventing one.',
       ].join('\n'),
       mode: 'explain',
+      // PRD-584: these two were never about a screen — they are the case the
+      // ticket is asking for, and they now say so instead of reading as a
+      // skill that lost its page.
+      scope: 'global',
       pageId: null,
       active: true,
       updatedAt: now - 8 * DAY,
@@ -277,6 +313,7 @@ export function DEMO_SKILLS(): Skill[] {
         'If something goes wrong: if the support tool rejects the ticket, fall back to the escalation email and say that you did.',
       ].join('\n'),
       mode: 'execute',
+      scope: 'page',
       pageId: 'page-integrations',
       active: true,
       updatedAt: now - 45 * MINUTE,
@@ -304,6 +341,7 @@ export function DEMO_SKILLS(): Skill[] {
         'If something goes wrong: if the card is declined, do not retry it. Report the decline reason verbatim and stop.',
       ].join('\n'),
       mode: 'execute',
+      scope: 'page',
       pageId: 'page-billing',
       active: true,
       updatedAt: now - 20 * MINUTE,
@@ -329,6 +367,7 @@ export function DEMO_SKILLS(): Skill[] {
         'If something goes wrong: if the workspace is at its seat limit, stop and explain that a plan change is needed first.',
       ].join('\n'),
       mode: 'execute',
+      scope: 'page',
       pageId: 'page-team',
       active: false,
       updatedAt: now - 14 * DAY,

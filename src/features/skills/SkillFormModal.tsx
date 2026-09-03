@@ -11,6 +11,7 @@ import {
   SKILL_MODE_LABEL,
   type Skill,
   type SkillMode,
+  type SkillScope,
 } from '@/data/skills';
 import type { InterfacePage } from '@/data/interfacePages';
 import { skillGlyph } from './skillGlyph';
@@ -55,6 +56,8 @@ export type SkillDraft = {
   mode: SkillMode;
   /** Chosen in `SkillPagePicker`. `null`/absent leaves Start from a URL field. */
   page?: InterfacePage | null;
+  /** PRD-584 — set by the picker's Global tile. Absent means page-scoped. */
+  scope?: SkillScope;
   /** Set when the card was opened from a row's edit action. */
   editing?: Skill;
 };
@@ -90,6 +93,12 @@ export function SkillFormModal({
   const page = draft.page ?? null;
   const canSave = name.trim().length > 0;
 
+  /* PRD-584. Editing keeps whatever the skill already is; creating takes what
+     the picker chose. The form does not offer a scope control of its own —
+     the picker is where that question is asked, and asking it twice is how the
+     two answers start to disagree. */
+  const scope: SkillScope = editing?.scope ?? draft.scope ?? 'page';
+
   const go = (next: Step, dir: 'forward' | 'back') => {
     setDirection(dir);
     setStep(next);
@@ -104,6 +113,7 @@ export function SkillFormModal({
         description: description.trim(),
         instructions,
         mode,
+        scope,
         pageId: page?.id ?? editing.pageId ?? null,
         updatedAt: Date.now(),
       });
@@ -119,6 +129,7 @@ export function SkillFormModal({
       description: description.trim(),
       instructions,
       mode,
+      scope,
       pageId: page?.id ?? null,
       active: true,
       updatedAt: Date.now(),

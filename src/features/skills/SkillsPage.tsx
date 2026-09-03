@@ -201,7 +201,13 @@ export function SkillsPage({
           onPick={(page) => {
             // The picker closes as the form opens — sequential, so this is not
             // a dialog over a dialog. Only one of the two is ever mounted.
-            setDraft({ mode: picking, page });
+            setDraft({ mode: picking, page, scope: 'page' });
+            setPicking(null);
+          }}
+          // PRD-584: same hand-off, no page. The form is the same card either
+          // way, so both routes still build the record the same way.
+          onPickGlobal={() => {
+            setDraft({ mode: picking, page: null, scope: 'global' });
             setPicking(null);
           }}
         />

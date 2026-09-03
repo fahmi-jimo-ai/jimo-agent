@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Section } from '@/components/ui/Section/Section';
 import { PropertyEmptyState } from '@/features/knowledge/PropertyEmptyState';
-import { filterSkills } from '@/state/skillsStore';
+import { filterSkills, splitByScope } from '@/state/skillsStore';
 import type { SkillModeFilter, SkillSort } from '@/state/skillsStore';
 import type { Skill, SkillMode } from '@/data/skills';
 import { SkillsToolbar } from './SkillsToolbar';
@@ -57,6 +57,14 @@ export function SkillsCard({
   const shown = filterSkills(skills, { search, mode, sort });
   const hasAny = skills.length > 0;
 
+  /* PRD-584. Two tables, not a "Scope" column: Zoe asked to be able to separate
+     "explains a screen" from "explains a concept", and a column you can sort by
+     still interleaves them. The split happens AFTER filtering, so search and
+     the mode filter keep working across both, and a heading only appears when
+     that half has rows — a lone "Global" header over nothing would make an
+     empty list look broken. */
+  const { page: pageScoped, global: globalScoped } = splitByScope(shown);
+
   return (
     <div className="flex flex-col gap-[var(--space-4)]">
       {/* No toolbar with nothing to filter — the same call SourcesCard makes. */}
@@ -71,15 +79,31 @@ export function SkillsCard({
         />
       )}
 
-      <Section flushBody>
-        {!hasAny ? (
+      {!hasAny ? (
+        <Section flushBody>
           <SkillsEmptyState onPick={onAdd} />
-        ) : shown.length > 0 ? (
-          <SkillTable skills={shown} onOpen={onOpen} />
-        ) : (
+        </Section>
+      ) : shown.length === 0 ? (
+        <Section flushBody>
           <PropertyEmptyState title="No skills found" />
-        )}
-      </Section>
+        </Section>
+      ) : (
+        <>
+          {pageScoped.length > 0 && (
+            <Section flushBody title={globalScoped.length > 0 ? 'On a page' : undefined}>
+              <SkillTable skills={pageScoped} onOpen={onOpen} />
+            </Section>
+          )}
+          {globalScoped.length > 0 && (
+            <Section
+              flushBody
+              title={pageScoped.length > 0 ? 'Everywhere' : undefined}
+            >
+              <SkillTable skills={globalScoped} onOpen={onOpen} />
+            </Section>
+          )}
+        </>
+      )}
     </div>
   );
 }
