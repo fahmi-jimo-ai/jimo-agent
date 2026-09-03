@@ -1,10 +1,14 @@
 # jimo-agent — Claude Code reference
 
-The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Five pages today:
+The Jimo Agent console, built 1:1 from Figma, plus a widget simulator. Five agent pages:
 **Escalation** (`/escalation`), **Knowledge** (`/knowledge`), **Skills** (`/skills`),
 **Statistics** (`/statistics`) and **Conversations** (`/conversations`); `/` redirects to
 Escalation. The sidebar lists two more — Chat and Launcher — which are deliberately inert,
 because nothing is designed behind them.
+
+Plus **`/settings/*`**, which is a SECOND PRODUCT inside the same shell: the Jimo platform's
+settings, not the agent's. It has its own source of truth and its own rules — see *Settings is a
+second product* below.
 Read `README.md` first for what the app is; this file is the working rules.
 
 ## Run
@@ -21,6 +25,18 @@ Read `README.md` first for what the app is; this file is the working rules.
 
 The HTML prototype is an older, superseded design. Take tokens and interaction idioms from it;
 never take page structure. The PRD supplies enum names and rationale, never UI.
+
+**`/settings/*` has a different chain**, because it comes from a different file and a different
+authority:
+
+> **Jimo Help Center** (`help.usejimo.com/docs/settings/*`) **>** Figma
+> `z7EQ0w6HgJkQ80VDck0JaG` section `13:27205` **>** the agent console's own conventions.
+
+Those artboards are dated December 2023 and describe a product that has since moved. They stay the
+authority on **layout, spacing, component choice and interaction shape**; the docs are the authority
+on **names, enums, limits, field sets and behaviour**. Where the docs contradict each other, the page
+that documents the screen wins. The differences this already resolved are tabulated in
+`src/data/settings.ts` and at each site.
 
 ## The ONE rule — tokens only
 
@@ -303,6 +319,62 @@ padding.
 It paints `--color-blue-50`, the colour `Subpage` paints, because without a ground of its own
 the header row sits on the backdrop and the page shows through it.
 
+## Settings is a second product, and the docs outrank the artboards
+
+`/settings/*` is Figma section `13:27205` of a DIFFERENT file (`z7EQ0w6HgJkQ80VDck0JaG`) and a
+different product: the Jimo platform's settings — project identity, themes, snippet installation,
+rate limiting, team, integrations, plan, billing, account. It is not the agent's configuration,
+which stays in Escalation's `ConfigureModal` and was deliberately left untouched.
+
+It renders into the SAME `AppShell` with the secondary sidebar swapped. That is why `AppShell` took
+`sections` / `routes` / `railItem`, all defaulting to the agent nav so the five agent pages are
+unchanged. **A label absent from `routes` stays inert** — the mechanism Chat and Launcher already
+use, and now what makes the undesigned `Events` item honest without a `disabled` flag.
+
+**One route per settings page**, unlike Knowledge's tabs. A sidebar is the same nav affordance as
+Escalation/Knowledge/Skills, and the docs link to `i.usejimo.com/settings/team` and `/settings/billing`
+as addresses, so the paths mirror the docs'. Sub-tabs WITHIN a page (Team's Members|Roles,
+Installation's Install|Identification) stay component state, exactly as Knowledge's do.
+
+**The interaction rule the artboards imply but never state: text fields go through the save bar,
+switches commit instantly.** The bar is only drawn on General and My Account; Notifications' two
+switches, Auto-Join and Force Identify write straight through. A toggle that silently does nothing
+until you find a Save button is the worse behaviour. It lives in `SaveBar.tsx` with `useDraft`, and
+is `sticky` inside the content column rather than portalled — it belongs to the page, so it needs no
+measurement effect and no ancestor can capture it.
+
+**`subscription` starts at `none`.** That means Billing's own "No history yet" artboard (`13:13269`)
+is where a fresh workspace lands, and every paid Billing state is reachable only by actually running
+checkout. The opposite of `skillsStore` seeding populated, for the reason that store's comment gives
+in reverse: a workspace claiming invoices it never bought is a false statement, a demo skill list is
+not.
+
+**Money lives in `plan/pricing.ts`, pure and tested.** Two rules it encodes that are easy to get
+wrong: the coupon applies BEFORE tax (taxing first charges VAT on money nobody paid), and yearly
+prices are STORED, not derived. `monthly × 0.84` gives 99/240/391 where the published prices are
+99/239/389 — they are marketing figures rounded to end in 9, so the real discounts are 16.1/16.4/16.5%
+and `YEARLY_DISCOUNT` is display-only. Deriving them would overcharge every yearly customer.
+
+**Four screens have no artboard at all** — Roles, Webhooks, Environments, Troubleshoot — and each
+says so in its own header. They exist because the docs describe them as real settings pages; they are
+built from this repo's existing layout vocabulary and should be expected to be redrawn. `RolesTab`
+deliberately does NOT invent a permission matrix: the docs name no individual permissions, and a
+made-up grid of checkboxes would read as product truth in a screenshot.
+
+**The theme builder (`13:10825`) is a second application and is deliberately a shell.** All 18 of its
+accordion groups are drawn COLLAPSED, so not one interior is designed, and its live preview needs a
+renderer for Jimo tours, surveys and changelogs that this repo does not have. The theme LIST is
+complete; the builder gives you the header, navigator, preview chrome and the one NPS card the
+artboard actually draws. Same gap as the widget's five undrawn states and the skill recorder: a
+separate project, not a missing `if`. If that file starts growing a preview renderer, stop.
+
+Three traps caught while building it, all worth knowing before touching a vendored component:
+`SecondaryHorizontalMenuGroup` names its label field **`tabName`**, not `label`, and silently falls
+back to `"Report"` — a wrong prop renders identical tabs with no type error. `Section`'s `title`
+declared `ReactNode` but lacked the `Omit<…, "title">` that `Page`/`Subpage`/`PageHeader` carry, so it
+collapsed to `string`; that Omit is now added. And `iconsax` has no `Broadcast` or `Cursor`, so the
+Webhooks and Events glyphs are `Radar` and `Mouse`.
+
 ## The support tool row owns whatever that tool needs
 
 Figma `105:4515` (Intercom / Zendesk / Crisp) and `105:4514` (Support Email) draw the "Escalation
@@ -335,13 +407,17 @@ read-only for this project. Traps that already bit once:
 - Verify every iconsax name against the package before use; Moji's own brand table lists `Flash1`,
   which does not exist in the 993 exports.
 
-`SecondaryNavSidebar` is forked to take a `sections` prop (upstream hardcodes its IA). Keep the
-fork additive. Three more forks exist, each documented in the component's own `CONTEXT.md`:
+`SecondaryNavSidebar` is forked twice: `sections` (upstream hardcodes its IA), and `SidebarItem`
+gaining `href` / `trailing` / `className` for the settings footer group — all three forward
+capabilities `SecondaryNavItem` ALREADY had, so that fork is one type and zero visual code. Keep both
+additive. Four more forks exist, each documented in the component's own `CONTEXT.md`:
 `Table` takes `scroll` (default `true` = unchanged); `DropdownMenuList`'s `selected` is filled
 with `--color-brand-subtle` so a selected row matches the `DropdownSelector` above it; and
 `PageHeader` takes `meta` (a passive status line) plus `actions` (a right-cluster slot for an
 action `buttons[]` cannot express — every entry there is rendered as a bare `<Button>`, so a
-`Menu` trigger has nowhere to go).
+`Menu` trigger has nowhere to go). And `Section` takes `Omit<React.ComponentProps<"section">, "title">`, which is a
+BUG FIX rather than a capability: its `title` already declared `ReactNode` with a comment saying why,
+but the missing Omit collapsed it to `string` and made the stated intent unreachable.
 
 These local copies may be forked; `../../jimo-storybook` may not. When a fork lands here, say so in
 the component's header comment AND its `CONTEXT.md`, so the next reader can tell it from drift.
@@ -406,6 +482,21 @@ actually filters; the drawer kebab's `Duplicate` / `Delete` rows; `SkillFormModa
 drawn from tokens rather than baked as a PNG because the artboard's thumbnails are screenshots of
 somebody else's product; `ScanPageModal` and the 4s `SCAN_MS` behind it; and the page drawer's
 `Details` tab, which no frame draws at all.
+
+**Settings** adds the last batch, each commented at its own site: `FREE_SEATS` and the three-person
+`DEMO_MEMBERS` (paired deliberately — the pairing is what keeps BOTH designed Team states reachable);
+`EXTRA_SEAT_MONTHLY`, `VAT_RATE` and the `JIMO50OFF` coupon, none of which any doc states; the five
+`ENVIRONMENT_COLOURS` and `ENVIRONMENT_ICONS`; `DEMO_EXPERIENCES` behind the rate-limit picker;
+`VendorMark`, which draws a vendor's initial on a tinted tile rather than vendoring seven trademarked
+wordmarks; `RolesTab` and `WebhooksPage` and `EnvironmentsPage` and `TroubleshootPage` entire, since
+no frame draws any of them; the GTM account/container fields; `CancelPlanModal`'s reason list; the
+password minimum; and the theme builder's generic style panel.
+
+Deliberately NOT invented, and worth keeping that way: a permission matrix on `RolesTab` (the docs
+name no permissions, so a grid of checkboxes would read as product truth), syntax highlighting in
+`CodeBlock` (it would need a colour system that is not in `tokens.css`), and a free colour picker
+for environments (`ColourSwatchField` stores a token NAME, because a picker yields `#3f7d2a` and
+that would be the first raw hex in the codebase).
 
 `src/lib/classifyChip.ts` is the opposite: transcribed **verbatim** from Figma node `29:12197`.
 Do not "improve" its rules — `classifyChip.test.ts` encodes the spec's own 12 worked examples.
