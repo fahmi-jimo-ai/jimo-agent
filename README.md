@@ -57,6 +57,10 @@ gained a `sections` prop. The fork is additive — the upstream default is uncha
 
 Real: every interaction, the state machine, persistence across reloads, cross-tab sync, and the
 topic classifier (transcribed verbatim from the Figma spec, with its own worked examples as tests).
+Also real, and easy to mistake for part of the prototype: three live third-party scripts load on the
+dashboard — the Jimo invader, the Intercom messenger and the Crisp chat client (`src/lib/`). Note
+that Crisp is therefore two unrelated things in this repo: that live widget, and the *simulated*
+support vendor on `/escalation`.
 
 Mocked: vendor OAuth, the handoff chart data, and "Suggest topics" — which returns fixtures after a
 two-second shimmer, not an LLM call. The simulator's phrase matchers in `src/data/fixtures.ts` under

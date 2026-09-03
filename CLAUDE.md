@@ -432,25 +432,33 @@ survive `npm run build`. Turning it on snapshots the real config to
 It deliberately does not use `seed()`: `seed()` calls `resetState()`, which would destroy the
 user's vendor and topics for good.
 
-## Two REAL vendor scripts run on the dashboard
+## Three REAL vendor scripts run on the dashboard
 
-`src/lib/jimo.ts` and `src/lib/intercom.ts`, both called from `main.tsx` at module scope. These are
-not simulated — they load the live Jimo invader (project `69331a7f…` on
-`testing.undercity.usejimo.com`, `JIMO_DEBUG` on) and the live Intercom messenger (workspace
-`l8fng6ag`). Everything else in this repo fakes its vendors; these two do not, so treat them as
-production surfaces.
+`src/lib/jimo.ts`, `src/lib/intercom.ts` and `src/lib/crisp.ts`, all called from `main.tsx` at
+module scope. These are not simulated — they load the live Jimo invader (project `69331a7f…` on
+`testing.undercity.usejimo.com`, `JIMO_DEBUG` on), the live Intercom messenger (workspace
+`l8fng6ag`) and the live Crisp client (website `4154b989…`). Everything else in this repo fakes its
+vendors; these three do not, so treat them as production surfaces.
+
+**Crisp is the name collision to watch.** `/escalation` has a Crisp too — `CrispConnectFields`, the
+`crisp` key in `EscalationState`, a workspace token pair that is never sent anywhere. That one is a
+SIMULATED support vendor. `src/lib/crisp.ts` is the real chat widget. They share a name and nothing
+else, and a change to one says nothing about the other.
 
 Three rules the files' own headers expand on:
 
-- **Dashboard only, never `widget.html`.** That entry is OUR simulated agent widget, and the real
-  Jimo launcher beside it would put two agents on one screen.
+- **Dashboard only, never `widget.html`.** That entry is OUR simulated agent widget, and a real
+  vendor launcher beside it would put two agents on one screen.
 - **Module scope, not a `useEffect`.** No component wraps the SPA — `main.tsx` mounts the router
-  directly — so both installs guard against a second call instead (`window.jimo != null`; Intercom
-  re-`update`s a booted messenger rather than appending its script twice). That is also what makes
-  StrictMode's double invoke a no-op.
+  directly — so each install guards against a second call instead (`window.jimo != null`,
+  `window.$crisp != null`; Intercom re-`update`s a booted messenger rather than appending its
+  script twice). That is also what makes StrictMode's double invoke a no-op.
 - **Intercom boots ANONYMOUS.** There is no auth and no current user to read. A `user_id` boot
   would create a real contact in the real workspace, which cannot be undone from this side, and it
   would need an Identity Verification HMAC from a server this prototype does not have.
+
+Crisp is the raw pasted snippet rather than `crisp-sdk-web`, because the resolver problem below
+means a new dependency is a tarball job and the snippet needs none.
 
 `installIntercom` is now two lines over the real `@intercom/messenger-js-sdk` (0.0.20), and its
 own double-call guard is gone because the SDK has one (a `_intercom_npm_loader` script id, and a
@@ -461,8 +469,8 @@ package was therefore installed from a checksum-verified tarball fetched by IP a
 `node_modules`; `package.json` and `package-lock.json` carry the ordinary registry entry, so CI
 and Vercel install it the normal way. **Until that resolver is fixed, a plain `npm install` or
 `npm ci` here fails and will prune the unpacked copy** — re-unpack it rather than assuming the
-dependency was never added. Known collision, deliberately left alone: Jimo and Intercom both drop
-a bottom-right launcher, so they overlap on `/escalation`.
+dependency was never added. Known collision, now three-way and deliberately left alone: Jimo,
+Intercom and Crisp all drop a bottom-right launcher, so they stack on `/escalation`.
 
 ## The daily triage routine lives in `.claude/skills/`
 

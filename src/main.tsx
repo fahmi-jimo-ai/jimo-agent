@@ -11,11 +11,14 @@ import { SkillsPage } from './features/skills/SkillsPage';
 import { ToastProvider } from './components/app/toast';
 import { installJimo } from './lib/jimo';
 import { installIntercom } from './lib/intercom';
+import { installCrisp } from './lib/crisp';
 
-// Jimo and Intercom, both on the dashboard only — see src/lib/jimo.ts for why
-// neither is in widget.html and why they run here rather than in a useEffect.
+// Jimo, Intercom and Crisp, all three on the dashboard only — see
+// src/lib/jimo.ts for why none is in widget.html and why they run here rather
+// than in a useEffect. All three land a launcher bottom-right; they stack.
 installJimo();
 installIntercom();
+installCrisp();
 
 // ToastProvider sits OUTSIDE the router so a toast raised just before a nav
 // (e.g. "Escalation enabled") is not unmounted by the route change.
