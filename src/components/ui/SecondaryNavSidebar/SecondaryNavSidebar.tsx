@@ -17,6 +17,21 @@ export type SidebarItem = {
   icon: React.ReactNode
   iconActive: React.ReactNode
   disabled?: boolean
+  /**
+   * FORK vs Moji (jimo-agent): the three below forward capabilities
+   * SecondaryNavItem ALREADY has, which upstream's SidebarItem simply never
+   * exposed. Nothing new is drawn — see the item component:
+   *   href      → it already renders an <a> when given one.
+   *   trailing  → it already has a right-aligned `counter` slot that inherits
+   *               the state colour. This is the ↗ on the settings Documentation row.
+   *   className → it already runs class names through `cn` (tailwind-merge), so
+   *               a caller's colour beats STATE_CLASS. This is the red Log out row.
+   * Adding them here rather than forking SecondaryNavItem keeps the fork to one
+   * type and zero visual code. See CONTEXT.md.
+   */
+  href?: string
+  trailing?: React.ReactNode
+  className?: string
 }
 
 export type SidebarSection = {
@@ -141,6 +156,9 @@ function SecondaryNavSidebar({
                   label={item.label}
                   icon={item.icon}
                   iconActive={item.iconActive}
+                  href={item.href}
+                  counter={item.trailing}
+                  className={item.className}
                   onClick={state !== "disabled" ? () => onItemClick?.(item.label) : undefined}
                 />
               )
