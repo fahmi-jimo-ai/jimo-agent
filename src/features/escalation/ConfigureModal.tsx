@@ -15,6 +15,14 @@ import { useToast } from '@/components/app/toast';
 import { useEscalation, setState } from '@/state/useEscalation';
 import { setDemo } from '@/state/demo';
 import { VENDOR_LABEL, type CrispCredentials, type Vendor } from '@/state/types';
+import { SettingCard, SettingRow, SettingExtra } from '@/components/app/SettingRow';
+
+/*
+ * NOTE: `SettingCard` / `SettingRow` / `SettingExtra` used to be private to this
+ * file. They moved to `@/components/app/SettingRow` when `/settings` landed,
+ * because that area needs the identical shape on every screen and a second copy
+ * would have drifted. Nothing about this modal's rendering changed.
+ */
 
 const VENDORS: Vendor[] = ['intercom', 'zendesk', 'crisp', 'email'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -388,40 +396,3 @@ function DisableFooter({ onCancel }: { onCancel: () => void }) {
   );
 }
 
-/** The bordered container. One per setting; the tool card holds two sections. */
-function SettingCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col rounded-[var(--radius-lg)] border border-[var(--color-border-default)]">
-      {children}
-    </div>
-  );
-}
-
-function SettingRow({
-  title,
-  description,
-  control,
-}: {
-  title: React.ReactNode;
-  description: string;
-  control: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-[var(--space-6)] p-[var(--space-4)]">
-      <div className="flex min-w-0 flex-col gap-[var(--space-1)]">
-        <span className="[font:var(--text-subtitle-3)] text-[var(--color-text-primary)]">{title}</span>
-        <span className="[font:var(--text-body-3)] text-[var(--color-text-secondary)]">{description}</span>
-      </div>
-      <div className="shrink-0">{control}</div>
-    </div>
-  );
-}
-
-/** The tool-owned half of the tool card, under its own rule. */
-function SettingExtra({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-[var(--space-3)] border-t border-[var(--color-border-default)] p-[var(--space-4)]">
-      {children}
-    </div>
-  );
-}
