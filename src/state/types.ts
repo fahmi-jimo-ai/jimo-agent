@@ -109,6 +109,21 @@ export type StatMetric = 'opened' | 'messages' | 'users' | 'success';
 export type ResponseFilter = 'all' | 'helpful' | 'not-helpful';
 export type SegmentFilter = 'all' | 'new-users' | 'power-users' | 'trialing';
 
+/**
+ * Whether the reach table counts people or accounts — PRD-587.
+ *
+ * It lives in `AnalyticsState` rather than in component state because it is
+ * configuration, not where a reader is inside a page: a B2B workspace whose
+ * unit of account is the company wants that to still be true on the next
+ * visit. Same line `ThinkingTrace` draws for its open state, on the other side.
+ */
+export type ReachGrouping = 'user' | 'company';
+
+export const GROUPING_LABEL: Record<ReachGrouping, string> = {
+  user: 'By user',
+  company: 'By company',
+};
+
 export interface AnalyticsState {
   /** Gates the zeroed-tile state — the analytics twin of `hasHandoffs`. */
   hasData: boolean;
@@ -116,6 +131,8 @@ export interface AnalyticsState {
   metric: StatMetric;
   /** "All Segments" on the Users reached card. */
   segment: SegmentFilter;
+  /** People or accounts, on that same card — PRD-587. */
+  grouping: ReachGrouping;
 
   /** Gates "No conversations yet" (934:30359), which hides the toolbar too. */
   hasConversations: boolean;
@@ -152,6 +169,9 @@ export const INITIAL_ANALYTICS: AnalyticsState = {
   // 934:27943 draws the Success Rate tile selected, so that is the default.
   metric: 'success',
   segment: 'all',
+  // Users, because that is what the artboard draws and what most workspaces
+  // measure. A B2B workspace switches once and it sticks.
+  grouping: 'user',
   hasConversations: true,
   convoSearch: '',
   convoRange: 'all-time',

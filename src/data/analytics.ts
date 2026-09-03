@@ -142,17 +142,91 @@ export interface ReachedUser {
   email: string | null;
   lastReached: string;
   segment: Exclude<SegmentFilter, 'all'>;
+  /** → `Company.id` — PRD-587. */
+  companyId: string;
 }
 
 export const TOTAL_USERS = 2312;
 
 export const USERS_REACHED: ReachedUser[] = [
-  { id: 'u1', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: '11 minutes ago', segment: 'new-users' },
-  { id: 'u2', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: 'Yesterday', segment: 'power-users' },
-  { id: 'u3', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: '2 days ago', segment: 'new-users' },
-  { id: 'u4', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: 'a week ago', segment: 'trialing' },
-  { id: 'u5', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: '2 weeks ago', segment: 'power-users' },
+  { id: 'u1', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: '11 minutes ago', segment: 'new-users', companyId: 'co-northwind' },
+  { id: 'u2', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: 'Yesterday', segment: 'power-users', companyId: 'co-northwind' },
+  { id: 'u3', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: '2 days ago', segment: 'new-users', companyId: 'co-brightpath' },
+  { id: 'u4', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: 'a week ago', segment: 'trialing', companyId: 'co-meridian' },
+  { id: 'u5', name: 'Anonymous', handle: '#Jimer23123', email: null, lastReached: '2 weeks ago', segment: 'power-users', companyId: 'co-brightpath' },
 ];
+
+/* ── Companies ─────────────────────────────────────────────────────────────
+   PRD-587, and INVENTED like everything else in this file.
+
+   Tomorro sells contract management to companies, so their reportable unit is
+   the client account: they can see that N users finished a checklist, but not
+   WHICH of their client accounts is actually onboarded. Louna's words were
+   that the analysis "n'est que sur user, sauf que nous, on a besoin de suivre
+   par entreprise".
+
+   `seats` is what makes reach a rate rather than a count — 3 of 4 users at a
+   company is a very different story from 3 of 900, and it is the difference
+   between "this account is onboarded" and "three people there tried it once".
+   That ratio is the whole reason this cannot be served by filtering the user
+   table: filtering tells you who, not how far through an account you are.
+
+   Note what is NOT modelled here: the company-grouping primitive itself. That
+   is the roadmap item Louna was told lands mid-to-late September, and this is
+   the layer above it — the analytics leg the ticket asks whether anyone has
+   scoped. If the shape below disagrees with that work, that work wins. */
+export interface Company {
+  id: string;
+  name: string;
+  /** Known seats. Reach is measured against this, not against total users. */
+  seats: number;
+  /** Seats the agent has reached at least once. */
+  usersReached: number;
+  /** Of those reached, how many finished what they started. */
+  completed: number;
+}
+
+export const COMPANIES: Company[] = [
+  { id: 'co-northwind', name: 'Northwind Legal', seats: 48, usersReached: 41, completed: 33 },
+  { id: 'co-brightpath', name: 'Brightpath Group', seats: 120, usersReached: 62, completed: 24 },
+  { id: 'co-meridian', name: 'Meridian Partners', seats: 22, usersReached: 19, completed: 17 },
+  { id: 'co-halcyon', name: 'Halcyon Industries', seats: 310, usersReached: 44, completed: 9 },
+  { id: 'co-vestry', name: 'Vestry & Co', seats: 16, usersReached: 3, completed: 0 },
+];
+
+export const TOTAL_COMPANIES = 87;
+
+/** Share of a company's seats the agent has reached. */
+export function companyReach(c: Company): number {
+  return c.seats <= 0 ? 0 : Math.round((c.usersReached / c.seats) * 100);
+}
+
+/**
+ * Share of the reached seats that finished. `null`, not 0, when nobody has been
+ * reached — the same call `completionRate` makes in skills.ts, and for the same
+ * reason: an account nobody has started is not an account that is failing.
+ */
+export function companyCompletion(c: Company): number | null {
+  if (c.usersReached <= 0) return null;
+  return Math.round((c.completed / c.usersReached) * 100);
+}
+
+/**
+ * The companies a set of reached users belongs to, in `COMPANIES` order.
+ *
+ * Derived from the user rows rather than returning `COMPANIES` wholesale, so
+ * the segment filter above the table keeps meaning something once the reader
+ * switches to companies: filtering to Trialing and grouping by company answers
+ * "which accounts are still only trialing", which is the question Tomorro is
+ * actually asking before a renewal.
+ */
+export function companiesForUsers(
+  users: ReachedUser[],
+  companies: Company[] = COMPANIES,
+): Company[] {
+  const ids = new Set(users.map((u) => u.companyId));
+  return companies.filter((c) => ids.has(c.id));
+}
 
 /* ── Conversations ─────────────────────────────────────────────────────────
    Same turn shape as `SAMPLE_TRANSCRIPT` in fixtures.ts, plus `feedback` —

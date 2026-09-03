@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   buildUsageDays,
   filterConversations,
+  companiesForUsers,
+  companyCompletion,
+  companyReach,
+  COMPANIES,
   CONVERSATIONS,
+  USERS_REACHED,
   Y_MAX,
 } from './analytics';
 
@@ -108,6 +113,61 @@ describe('filterConversations', () => {
     for (const c of combined) {
       expect(c.name).toBe('UXWiz');
       expect(c.segment).toBe('trialing');
+    }
+  });
+});
+
+/* ── Companies — PRD-587 ──────────────────────────────────────────────────── */
+
+describe('companyReach', () => {
+  it('is a share of seats, not a count', () => {
+    // The distinction the ticket turns on: 41/48 is an onboarded account and
+    // 44/310 is three people who tried it once.
+    expect(companyReach({ id: 'a', name: 'A', seats: 48, usersReached: 41, completed: 0 })).toBe(85);
+    expect(companyReach({ id: 'b', name: 'B', seats: 310, usersReached: 44, completed: 0 })).toBe(14);
+  });
+
+  it('does not divide by zero seats', () => {
+    expect(companyReach({ id: 'c', name: 'C', seats: 0, usersReached: 0, completed: 0 })).toBe(0);
+  });
+});
+
+describe('companyCompletion', () => {
+  it('is a share of the users actually reached', () => {
+    expect(
+      companyCompletion({ id: 'a', name: 'A', seats: 48, usersReached: 40, completed: 30 })
+    ).toBe(75);
+  });
+
+  it('is null — not 0 — when nobody has been reached', () => {
+    // An account nobody has started is not an account that is failing.
+    expect(
+      companyCompletion({ id: 'a', name: 'A', seats: 10, usersReached: 0, completed: 0 })
+    ).toBeNull();
+  });
+});
+
+describe('companiesForUsers', () => {
+  it('returns only the companies the given users belong to', () => {
+    const found = companiesForUsers(USERS_REACHED.filter((u) => u.companyId === 'co-meridian'));
+    expect(found.map((c) => c.id)).toEqual(['co-meridian']);
+  });
+
+  it('keeps COMPANIES order rather than first-seen order', () => {
+    const found = companiesForUsers(USERS_REACHED);
+    const order = COMPANIES.filter((c) => found.some((f) => f.id === c.id)).map((c) => c.id);
+    expect(found.map((c) => c.id)).toEqual(order);
+  });
+
+  it('is empty when the filter matched no users — the segment filter still applies', () => {
+    expect(companiesForUsers([])).toEqual([]);
+  });
+
+  it('every reached user resolves to a real company', () => {
+    // The same guard skills.test.ts puts on cited skill ids: a row that cannot
+    // resolve would silently vanish from the grouped table.
+    for (const u of USERS_REACHED) {
+      expect(COMPANIES.some((c) => c.id === u.companyId)).toBe(true);
     }
   });
 });
