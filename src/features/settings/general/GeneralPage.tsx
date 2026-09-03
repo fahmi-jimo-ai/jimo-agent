@@ -60,7 +60,7 @@ export function GeneralPage() {
           <Input
             label="Project name"
             value={form.draft.name}
-            onChange={(e) => form.set('name', (e.target as HTMLInputElement).value)}
+            onChange={(e) => form.set('name', e.target.value)}
           />
         </div>
       </SettingCard>

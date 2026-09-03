@@ -55,7 +55,7 @@ export function ExcludeExperienceDialog({
           placeholder="Search an experience"
           aria-label="Search an experience"
           leftIcon={<SearchNormal1 size={20} variant="Linear" color="currentColor" />}
-          onChange={(e) => setSearch((e.target as HTMLInputElement).value)}
+          onChange={(e) => setSearch(e.target.value)}
         />
       }
       footer={

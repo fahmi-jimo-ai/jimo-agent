@@ -115,7 +115,7 @@ export function MembersTab() {
               value={email}
               disabled={atLimit}
               leftIcon={<Sms size={20} variant="Linear" color="currentColor" />}
-              onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
+              onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') invite();
               }}

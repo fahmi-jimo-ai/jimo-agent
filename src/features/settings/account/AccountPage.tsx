@@ -61,17 +61,17 @@ export function AccountPage() {
           <Input
             label="Username"
             value={form.draft.username}
-            onChange={(e) => form.set('username', (e.target as HTMLInputElement).value)}
+            onChange={(e) => form.set('username', e.target.value)}
           />
           <Input
             label="First name"
             value={form.draft.firstName}
-            onChange={(e) => form.set('firstName', (e.target as HTMLInputElement).value)}
+            onChange={(e) => form.set('firstName', e.target.value)}
           />
           <Input
             label="Last name"
             value={form.draft.lastName}
-            onChange={(e) => form.set('lastName', (e.target as HTMLInputElement).value)}
+            onChange={(e) => form.set('lastName', e.target.value)}
           />
         </div>
       </SettingCard>

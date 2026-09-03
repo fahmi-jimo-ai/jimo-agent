@@ -71,7 +71,7 @@ export function ChangeEmailModal({
                   : 'Enter a valid email address.'
                 : undefined
             }
-            onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
       ) : (

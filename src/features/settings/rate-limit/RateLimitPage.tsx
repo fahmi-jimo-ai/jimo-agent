@@ -88,7 +88,7 @@ export function RateLimitPage() {
               disabled={!rateLimit.enabled}
               value={String(rateLimit.count)}
               onChange={(e) =>
-                setRateLimit({ count: Math.max(1, Number((e.target as HTMLInputElement).value) || 1) })
+                setRateLimit({ count: Math.max(1, Number(e.target.value) || 1) })
               }
             />
             <span className="[font:var(--text-body-3)] text-[var(--color-text-secondary)]">
@@ -103,7 +103,7 @@ export function RateLimitPage() {
               disabled={!rateLimit.enabled}
               value={String(rateLimit.every)}
               onChange={(e) =>
-                setRateLimit({ every: Math.max(1, Number((e.target as HTMLInputElement).value) || 1) })
+                setRateLimit({ every: Math.max(1, Number(e.target.value) || 1) })
               }
             />
             <Menu

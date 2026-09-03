@@ -99,7 +99,7 @@ export function WebhookFormModal({
                 ? 'Enter an absolute http:// or https:// URL.'
                 : 'Jimo POSTs a JSON payload here. A response of 400 or above counts as a failure.'
             }
-            onChange={(e) => setEndpoint((e.target as HTMLInputElement).value)}
+            onChange={(e) => setEndpoint(e.target.value)}
           />
 
           <div className="flex flex-col gap-[var(--space-3)]">

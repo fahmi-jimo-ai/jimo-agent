@@ -53,7 +53,7 @@ export function ChangePasswordModal({
           label="Current password"
           type="password"
           value={current}
-          onChange={(e) => setCurrent((e.target as HTMLInputElement).value)}
+          onChange={(e) => setCurrent(e.target.value)}
         />
         <Input
           label="New password"
@@ -61,7 +61,7 @@ export function ChangePasswordModal({
           value={next}
           status={tooShort ? 'negative' : 'none'}
           supportiveText={tooShort ? `At least ${MIN} characters.` : undefined}
-          onChange={(e) => setNext((e.target as HTMLInputElement).value)}
+          onChange={(e) => setNext(e.target.value)}
         />
         <Input
           label="Confirm new password"
@@ -69,7 +69,7 @@ export function ChangePasswordModal({
           value={confirm}
           status={mismatch ? 'negative' : 'none'}
           supportiveText={mismatch ? 'Those do not match.' : undefined}
-          onChange={(e) => setConfirm((e.target as HTMLInputElement).value)}
+          onChange={(e) => setConfirm(e.target.value)}
         />
       </div>
     </ModalCard>
