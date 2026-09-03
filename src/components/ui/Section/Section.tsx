@@ -22,7 +22,19 @@ const sectionVariants = cva(
   },
 )
 
-type SectionProps = React.ComponentProps<"section"> &
+/*
+ * FORK vs Moji (jimo-agent): `Omit<..., "title">`.
+ *
+ * `title` below already DECLARES ReactNode and its comment already says why —
+ * "so a badge/link can be embedded" — but without the Omit it intersects with
+ * the DOM `title` attribute (string), collapsing to `string & ReactNode`, and
+ * the declared intent could never actually be used. This restores it.
+ *
+ * Not a new capability and not a visual change: every existing call site passes
+ * a string, which still satisfies it. It is the same Omit `Page`, `Subpage` and
+ * `PageHeader` already carry for exactly this collision.
+ */
+type SectionProps = Omit<React.ComponentProps<"section">, "title"> &
   VariantProps<typeof sectionVariants> & {
     title?: React.ReactNode // header title (ReactNode so a badge/link can be embedded)
     description?: React.ReactNode // optional sub-line under the title

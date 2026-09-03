@@ -62,3 +62,16 @@ import { Section } from '../../../src/components/ui/Section/Section';
   <UsersTable />
 </Section>
 ```
+
+## Fork: `Omit<React.ComponentProps<"section">, "title">` (jimo-agent)
+
+`title` was already declared `React.ReactNode`, with a comment saying why ("so a badge/link can be
+embedded"). Without the `Omit` it intersected with the DOM `title` attribute — a `string` — so the
+declared type collapsed to `string & ReactNode` and the stated intent was unreachable.
+
+Added when `/settings` needed `Members 5`, where the count is a differently-styled span beside the
+title, exactly the case the original comment anticipated.
+
+Not a new capability and not a visual change: every existing call site passes a string, which still
+satisfies the prop. It is the same `Omit` that `Page`, `Subpage` and `PageHeader` already carry for
+this collision — Section simply missed it.

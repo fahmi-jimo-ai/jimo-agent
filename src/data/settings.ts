@@ -103,6 +103,29 @@ export function planById(id: PlanId): Plan | null {
   return PLANS.find((p) => p.id === id) ?? null;
 }
 
+/**
+ * INVENTED. `free` is not a plan — it is the no-subscription state, and neither
+ * the docs nor the artboards state how many seats it allows.
+ *
+ * Five, paired with a three-person seeded roster, so a fresh workspace opens on
+ * the artboard's UNDER-limit frame with the invite row live, and inviting three
+ * more reaches the at-limit frame. Both designed states are therefore reachable
+ * without editing fixtures. One seat would leave the page permanently at-limit
+ * and hide the invite affordance the artboard features.
+ *
+ * Not larger than Growth's five on purpose: a free tier with more seats than a
+ * paid one would be nonsense on the Plan page two clicks away.
+ *
+ * (The artboards are themselves inconsistent here: 13:4843 says "up to 2
+ * members" above a list of five.)
+ */
+export const FREE_SEATS = 5;
+
+/** Seats available on the current plan, free included. */
+export function seatsFor(id: PlanId): number {
+  return planById(id)?.seats ?? FREE_SEATS;
+}
+
 /* ── team ─────────────────────────────────────────────────────────────────── */
 
 /**
@@ -147,13 +170,17 @@ export type Member = {
   status: MemberStatus;
 };
 
-/** Invented. Names are the Jimo team's; the emails are all one real address. */
+/**
+ * Invented. Names are the Jimo team's, from the artboard's own roster.
+ *
+ * Three rather than the artboard's five, so the seeded workspace sits UNDER
+ * FREE_SEATS — see the note there. All three roles appear once, so the role
+ * dropdown has something to show on every row.
+ */
 export const DEMO_MEMBERS = (): Member[] => [
-  { id: 'm-raph', name: 'Raphäel', email: 'raph@usejimo.com', role: 'admin', status: 'active' },
   { id: 'm-fahmi', name: 'Fahmi', email: 'fahmi@usejimo.com', role: 'admin', status: 'active' },
-  { id: 'm-thomas', name: 'Thomas', email: 'thomas@usejimo.com', role: 'editor', status: 'active' },
-  { id: 'm-andy', name: 'Andy', email: 'andy@usejimo.com', role: 'editor', status: 'active' },
-  { id: 'm-sam', name: 'Sam', email: 'sam@usejimo.com', role: 'viewer', status: 'active' },
+  { id: 'm-raph', name: 'Raphäel', email: 'raph@usejimo.com', role: 'editor', status: 'active' },
+  { id: 'm-thomas', name: 'Thomas', email: 'thomas@usejimo.com', role: 'viewer', status: 'active' },
 ];
 
 /* ── integrations ─────────────────────────────────────────────────────────── */
