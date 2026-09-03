@@ -203,11 +203,24 @@ export type ThinkingStepKind =
   | 'search'
   | 'compare'
   | 'draft'
-  | 'escalate';
+  | 'escalate'
+  | 'act'
+  | 'failed';
 
 export interface ThinkingStep {
   kind: ThinkingStepKind;
   label: string;
+  /**
+   * Why this step ended the way it did — PRD-599's whole ask.
+   *
+   * That ticket is a step that reasoned for 72 seconds and then said only
+   * "Un problème est survenu lors du traitement de cette étape", which tells
+   * the end user nothing and tells the builder reviewing the transcript even
+   * less. A `failed` step without a `detail` reproduces exactly that bug, so
+   * the two travel together: the label names the step, `detail` names the
+   * cause. Optional because a step that succeeded has nothing to explain.
+   */
+  detail?: string;
 }
 
 /** A skill the turn fired. `/skills` is not built, so the id has nowhere to go
@@ -361,12 +374,50 @@ const GENERIC: ConversationTurn[] = [
   },
 ];
 
+/* ── A run that failed, and said why ───────────────────────────────────────
+   INVENTED like every other transcript here, but modelled on a real report:
+   PRD-599, where an action step reasoned for 72 seconds and then returned
+   "Un problème est survenu lors du traitement de cette étape. Veuillez
+   réessayer." — a generic string, in front of the end user, with the cause
+   nowhere. The customer had already verified the same path by hand, so the
+   target UI was fine and the failure was the agent's own.
+
+   The point of the fixture is the LAST TWO steps. `act` records the attempt
+   with the selector it went for, and `failed` carries the cause in `detail`
+   instead of leaving the reader with the word "problème". That is the whole
+   difference the ticket asks for, and it is visible on `/conversations`
+   without opening a log. */
+const ACTION_FAILED: ConversationTurn[] = [
+  { from: 'user', at: '11:02', text: 'Close this modal and open the legal notice settings for me.' },
+  {
+    from: 'agent',
+    at: '11:03',
+    text: 'I could not finish that one. I closed the dialog, but the Legal notice section did not open — the entry moved out of Settings since I last scanned this page, so the link I had is no longer there. You can reach it from Settings → Compliance, or I can hand this to a person.',
+    feedback: 'not-helpful',
+    steps: [
+      { kind: 'read', label: 'Read the current page' },
+      { kind: 'navigate', label: 'Closed the open dialog' },
+      { kind: 'act', label: 'Tried to open Settings → Legal notice' },
+      {
+        kind: 'failed',
+        label: 'Could not open Settings → Legal notice',
+        detail:
+          'The scanned link for this page no longer resolves — the section moved to Settings → Compliance. Re-scan the page in Knowledge → Interface to update it.',
+      },
+    ],
+    skills: [{ id: 'skill-navigate', name: 'Point to a page' }],
+  },
+];
+
 /**
  * The artboard's list, including its own repetition — it draws the same
  * "UXWiz #DesignPro / Understanding user needs…" row eleven times to show the
  * pane scrolling. Kept, because a list that scrolls is the thing being drawn.
  */
 export const CONVERSATIONS: Conversation[] = [
+  // First on purpose: the pane opens on this row, so the failed run is what a
+  // reader lands on. See ACTION_FAILED above for what it is demonstrating.
+  { id: 'c0', name: 'FlowRunner', handle: '#AutoPilot', email: null, at: '3 hours ago', daysAgo: 0, title: 'Agent action stopped halfway through', up: 0, down: 1, segment: 'power-users', startedAt: 'Mon 17 Feb • 11:02 AM', transcript: ACTION_FAILED },
   { id: 'c1', name: 'Thomas Moussafer', handle: 'cb6e4bd4-4c15-4a4e-9d05-2f8c1b7a9e31', email: 'thomas@usejimo.com', at: '2 days ago', daysAgo: 2, title: 'User segments and its relationship with hints', up: 0, down: 0, segment: 'power-users', startedAt: 'Sat 15 Feb • 10:14 AM', transcript: LOGIN_ISSUES },
   { id: 'c2', name: 'InsightsGuru', handle: '#Techie123', email: null, at: '1 day ago', daysAgo: 1, title: 'Enhancing user experience through data', up: 5, down: 2, segment: 'new-users', startedAt: 'Sun 16 Feb • 09:02 AM', transcript: GENERIC },
   { id: 'c3', name: 'MarketMaven', handle: '#Trendy2023', email: null, at: '3 days ago', daysAgo: 3, title: 'The impact of UI design on conversion', up: 8, down: 1, segment: 'trialing', startedAt: 'Fri 14 Feb • 09:02 AM', transcript: GENERIC },

@@ -1,0 +1,177 @@
+/* ============================================================
+   PROPOSAL sheet — NOT part of the port.
+
+   `widget.css` next to this file is a 1:1 port of
+   demo-apps/trigger-demo/builder/src/styles/widget.css and is still in step
+   with it, line for line. CLAUDE.md's rule for it is "re-port it whole rather
+   than patching a rule", and a rule patched in for a proposal would turn the
+   next re-port from a copy into a merge.
+
+   So everything proposed against a ticket lives here instead: this sheet is
+   loaded AFTER the port, adds only selectors the port does not define, and
+   overrides nothing it already sets. Delete this file and the widget is
+   exactly the nine states the prototype ships.
+
+   Tickets, and what each one added:
+
+     PRD-599  `s-execute-failed` — a tenth state. A run that stops says which
+              step stopped it and why, instead of "Un problème est survenu".
+     PRD-595  `.ag-prop-elapsed` / `.ag-prop-slow` — the wait counts itself,
+              and past 5s says it is still working.
+     PRD-577  the narrow-viewport block at the bottom — the window becomes a
+              sheet instead of covering the app the agent is pointing at.
+     PRD-104  `.ag-prop-dot` — an idle widget holding an unread answer says so.
+
+   Tokens: everything below reads the `--agent-*` / `--ag-*` chain the port
+   defines on `#agent`. The one literal is `--ag-prop-warn`, which reproduces
+   the port's own `.ag-pill.is-warn` amber (#b45309) so a warned pill and a
+   failed row cannot drift apart.
+   ============================================================ */
+
+#agent {
+  --ag-prop-warn: #b45309;
+  --ag-prop-warn-tint: color-mix(in srgb, var(--ag-prop-warn) 10%, transparent);
+}
+
+/* ---- PRD-599: slot visibility for the tenth state ----------------------
+   Mirrors the port's own gate block (widget.css "slot visibility per state"),
+   which lists every state explicitly rather than matching a prefix. */
+.proto.s-execute-failed .ag-pill { display: flex; }
+.proto.s-execute-failed .ag-botbar { display: flex; }
+.proto.s-execute-failed .ag-bar { display: none; }
+
+/* The failed row in the run log. The port colours every `.ag-runlog-item svg`
+   green (#0a7d5a) because every step it can draw succeeded; this is the one
+   that did not. */
+.ag-runlog-item.ag-prop-failed { color: var(--ag-prop-warn); }
+.ag-runlog-item.ag-prop-failed svg { color: var(--ag-prop-warn); }
+
+/* The cause. Sits inside the run log, under the steps, because it explains the
+   last one — a separate panel would read as a second event. */
+.ag-prop-cause {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--agent-radius-btn);
+  background: var(--ag-prop-warn-tint);
+  color: var(--agent-text-secondary);
+  font-family: var(--ag-input-family);
+  font-size: calc(var(--ag-input-size) * 12 / 14);
+  font-weight: var(--ag-input-weight);
+  letter-spacing: var(--ag-input-ls);
+  line-height: 1.5;
+}
+
+.ag-prop-ctas { display: flex; gap: 8px; }
+.ag-prop-ctas .ag-cta { flex: 1; }
+
+/* ---- PRD-595: the wait, counting ---------------------------------------
+   Both derive from the thinking panel's own step text, so they read as part of
+   it rather than as a badge welded on. */
+.ag-prop-elapsed {
+  margin: 0;
+  color: var(--ag-accent-60);
+  font-family: var(--ag-input-family);
+  font-size: calc(var(--ag-input-size) * 12 / 14);
+  font-weight: var(--ag-input-weight);
+  letter-spacing: var(--ag-input-ls);
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-prop-slow {
+  margin: 0;
+  color: var(--agent-text-secondary);
+  font-family: var(--ag-input-family);
+  font-size: calc(var(--ag-input-size) * 12 / 14);
+  font-weight: var(--ag-input-weight);
+  letter-spacing: var(--ag-input-ls);
+  text-align: center;
+  animation: ag-prop-fade 240ms var(--spring) both;
+}
+
+@keyframes ag-prop-fade {
+  from { opacity: 0; translate: 0 4px; }
+  to   { opacity: 1; translate: 0 0; }
+}
+
+/* ---- PRD-104: an idle widget with something waiting --------------------
+   Always in the DOM, shown by the class — the same rule the port's other
+   toggled parts follow, so it can animate instead of popping in. */
+.ag-prop-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ag-accent);
+  opacity: 0;
+  scale: 0.6;
+  transition: opacity 160ms var(--spring), scale 160ms var(--spring);
+}
+
+/* .ag-bar-av is a plain span in the port with no positioning of its own, so the
+   dot needs a containing block. `position: relative` adds one without touching
+   the avatar's size, background or flex behaviour. */
+.ag-bar-av { position: relative; }
+
+.agent.has-attention .ag-prop-dot { opacity: 1; scale: 1; }
+
+/* The ring is what makes it noticeable rather than merely present — PRD-104 is
+   "nobody sees the trigger", not "the trigger has no badge". */
+.agent.has-attention .ag-bar-av::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ag-accent-50);
+  animation: ag-prop-ping 2s ease-out infinite;
+}
+
+@keyframes ag-prop-ping {
+  0%   { opacity: .7; scale: .9; }
+  70%  { opacity: 0;  scale: 1.35; }
+  100% { opacity: 0;  scale: 1.35; }
+}
+
+/* ---- PRD-577: narrow viewports -----------------------------------------
+   The port has exactly one media query (prefers-reduced-motion) and no width
+   breakpoint at all, which is the ticket: on a phone the window covers the
+   screen, so the element the agent is guiding you to is behind it, and the
+   only way to reach it — closing — used to throw the thread away. Closing now
+   collapses (see AgentWidget's `collapse`), and the window stops being
+   full-bleed so the app stays visible above it.
+
+   640px, not a token: the port defines no breakpoint scale to bind to, and
+   inventing one in a proposal sheet would be minting a token the design system
+   has to live with afterwards. */
+@media (max-width: 640px) {
+  .ag-window,
+  .ag-think,
+  .ag-suggestions {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* A sheet, not a screen. 62vh leaves the top third of the app visible, which
+     is the half of the interaction the widget was hiding. */
+  .ag-window {
+    max-height: 62vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* The pill and the bottom bar are the whole interface while the agent is
+     acting, so they get the full width rather than the panel's centred column. */
+  .ag-pill,
+  .ag-botbar {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ag-runlog { max-height: 40vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ag-prop-slow { animation: none; }
+  .agent.has-attention .ag-bar-av::after { animation: none; opacity: .7; scale: 1; }
+}
