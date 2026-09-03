@@ -2,6 +2,11 @@ import * as React from 'react';
 import { Book, Flash, Chart, Lifebuoy, MessageQuestion, Bubble } from 'iconsax-react';
 import { AgentIcon } from '@/components/ui/Icon/Icon';
 import type { SidebarSection } from '@/components/ui/SecondaryNavSidebar/SecondaryNavSidebar';
+import {
+  EXPERIENCE_NAV_LABEL,
+  EXPERIENCE_ROUTE,
+  EXPERIENCE_TYPES,
+} from '@/data/experiences';
 
 const S = 20;
 const pair = (Ico: React.ElementType) => ({
@@ -63,4 +68,35 @@ export const NAV_ROUTES: Record<string, string> = {
   Knowledge: '/knowledge',
   Statistics: '/statistics',
   Conversations: '/conversations',
+};
+
+/**
+ * The PRIMARY rail's label → route map.
+ *
+ * `PrimaryNavSidebar` is vendored and already ships all six experience types
+ * as peers of the Agent — `NAV_ITEMS_ENGAGEMENT` is Tours / Surveys / Banners /
+ * Hints and `NAV_ITEMS_CONTENT` is Checklists / Agent / Resource Center /
+ * Changelog Posts — so Experiences need no new nav taxonomy and neither
+ * sidebar is forked. They are not a section of `AGENT_NAV_SECTIONS`: that array
+ * is the Agent console's own IA (Customize / Train / Analyze), and filing Tours
+ * inside it would claim Tours are part of the Agent while the rail one column
+ * to the left says otherwise.
+ *
+ * Same "inert by omission" contract as `NAV_ROUTES`: Get Started, Changelog
+ * Posts, Spaces, Success Trackers, Actions, Users & Segments and Settings have
+ * no entry here and stay dead, rather than navigating to a page that does not
+ * exist. `Changelog Posts` is the `POST` member of the workspace enum and has
+ * no skeleton — see `experiences.ts`.
+ *
+ * The keys are the RAIL's own labels, which is how `PrimaryNavSidebar` marks
+ * active — note "Resource Center", singular, where the page title is plural.
+ * `experiences.test.ts` asserts every type resolves, so a rename on either side
+ * fails a test rather than silently killing a sidebar item.
+ */
+export const PRIMARY_NAV_ROUTES: Record<string, string> = {
+  Agent: '/escalation',
+  ...EXPERIENCE_TYPES.reduce<Record<string, string>>((acc, type) => {
+    acc[EXPERIENCE_NAV_LABEL[type]] = EXPERIENCE_ROUTE[type];
+    return acc;
+  }, {}),
 };

@@ -108,3 +108,41 @@ renders byte-identically.
   }
 />
 ```
+
+### `icon` and `subtitle` — `type="sub"` only
+
+The Experiences detail artboard (Agent Designer Sandbox `10:2269`) draws its
+header as **[back] [type glyph] [name over a muted subline]**, with the actions
+in the usual right cluster:
+
+```
+‹  [▣]  Onboarding Checklist            ⏵ Play   ⚙ Settings   ✎ Edit   …
+        Checklists • Edited 3 days ago
+```
+
+Neither node can ride `title`. `title` renders **inside** the `<h2>`, so an icon
+put there would sit inside a heading element at the heading's type ramp, and a
+subline put there would be caught by that `<h2>`'s `whitespace-nowrap`.
+
+They landed together because they are one design change — unlike `meta` and
+`actions`, which arrived for two unrelated reasons. The flex column is emitted
+**only when `subtitle != null`**, so a caller that passes just `icon`, and every
+call site from before the fork, renders byte-identically.
+
+Nothing new was needed for the right cluster: `Play` / `Settings` / `Edit` are
+three `buttons[]` entries at `level: "secondary"` with `buttonSize="small"`
+(→ `variant="outline" size="sm"`), and the kebab goes through `actions`.
+
+```jsx
+<PageHeader
+  type="sub"
+  icon={<ContainedIcon icon={TaskSquare} tint="yellow" size={36} />}
+  title="Onboarding Checklist"
+  subtitle="Checklists • Edited 3 days ago"
+  buttonSize="small"
+  buttons={[{ label: 'Play', level: 'secondary', leftIcon: <PlayCircle … /> , onClick: … }]}
+  actions={<Menu …>{/* the kebab */}</Menu>}
+  showTabs={false}
+  onBackClick={…}
+/>
+```

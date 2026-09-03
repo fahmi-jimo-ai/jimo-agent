@@ -23,6 +23,16 @@ import { PrimaryHorizontalMenuGroup } from "@/components/ui/PrimaryHorizontalMen
 // and `Menu` wraps its own trigger in order to measure it. `actions` renders
 // after the button group in the same cluster, and is likewise undefined by
 // default.
+//
+// THIRD ADDITIVE FORK: `icon` and `subtitle`, both on the `sub` branch only.
+// The Experiences detail artboard (Agent Designer Sandbox 10:2269) draws
+// [back] [type glyph] [name over a muted "Checklists • Edited 3 days ago"].
+// Neither node can ride `title`, because `title` renders INSIDE the <h2> —
+// an icon would land at the heading's type ramp and inside a heading element,
+// and a subtitle would be caught by that <h2>'s `whitespace-nowrap`. They
+// arrive together because they are one design change, unlike `meta` and
+// `actions` above. The flex column is emitted ONLY when `subtitle != null`, so
+// every pre-fork call site renders byte-identically.
 
 // Adapt PageHeader's legacy button API → shadcn Button props.
 const LEVEL_TO_VARIANT: Record<string, "default" | "outline" | "link"> = {
@@ -51,6 +61,10 @@ type PageHeaderProps = Omit<React.ComponentProps<"div">, "title"> & {
   meta?: React.ReactNode
   /** ADDITIVE FORK — right-cluster slot for an action `buttons[]` cannot express. */
   actions?: React.ReactNode
+  /** ADDITIVE FORK — glyph between the back button and the title. `sub` only. */
+  icon?: React.ReactNode
+  /** ADDITIVE FORK — muted line under the title. `sub` only. */
+  subtitle?: React.ReactNode
   buttons?: PageHeaderButton[]
   tabs?: PageHeaderTab[]
   activeTab?: string
@@ -69,6 +83,8 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
       showTabs = true,
       meta,
       actions,
+      icon,
+      subtitle,
       buttons = [],
       tabs = [],
       activeTab,
@@ -115,11 +131,26 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
               {title}
             </h1>
           ) : (
-            <div className="flex items-center gap-[var(--space-4)]">
+            <div className="flex min-w-0 items-center gap-[var(--space-4)]">
               <Button variant="outline" size="icon-sm" leftIcon={backIcon} onClick={onBackClick} aria-label="Go back" />
-              <h2 className="m-0 [font:var(--text-subtitle-1)] [letter-spacing:0] whitespace-nowrap text-[var(--color-text-primary)]">
-                {title}
-              </h2>
+              {icon}
+              {subtitle != null ? (
+                <div className="flex min-w-0 flex-col">
+                  <h2 className="m-0 [font:var(--text-subtitle-1)] [letter-spacing:0] truncate text-[var(--color-text-primary)]">
+                    {title}
+                  </h2>
+                  <span
+                    data-slot="page-header-subtitle"
+                    className="[font:var(--text-body-4)] truncate text-[var(--color-text-tertiary)]"
+                  >
+                    {subtitle}
+                  </span>
+                </div>
+              ) : (
+                <h2 className="m-0 [font:var(--text-subtitle-1)] [letter-spacing:0] whitespace-nowrap text-[var(--color-text-primary)]">
+                  {title}
+                </h2>
+              )}
             </div>
           )}
           {(meta != null || actions != null || buttonGroup) && (
