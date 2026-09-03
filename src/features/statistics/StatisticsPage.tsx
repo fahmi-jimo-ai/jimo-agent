@@ -25,7 +25,7 @@ import { RANGE_LABEL, type AnalyticsRange } from '@/state/types';
  * Everything below the header follows the artboard as drawn.
  */
 export function StatisticsPage() {
-  const { hasData, range, metric, segment } = useAnalytics();
+  const { hasData, range, metric, segment, grouping } = useAnalytics();
   const toast = useToast();
   const [rangeOpen, setRangeOpen] = React.useState(false);
 
@@ -108,10 +108,14 @@ export function StatisticsPage() {
       <UsersReachedSection
         segment={segment}
         onSegment={(s) => setAnalytics({ segment: s })}
+        grouping={grouping}
+        onGrouping={(g) => setAnalytics({ grouping: g })}
         onExport={exportCsv}
         onSeeAll={outOfScope(
-          'The full user list is out of scope',
-          'This prototype ships the five rows the artboard draws.'
+          grouping === 'company'
+            ? 'The full company list is out of scope'
+            : 'The full user list is out of scope',
+          'This prototype ships the handful of rows the artboard draws.'
         )}
       />
     </AppShell>
