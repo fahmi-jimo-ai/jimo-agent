@@ -8,7 +8,14 @@ import {
   withSourceRemoved,
   INITIAL_KNOWLEDGE,
 } from './knowledgeStore';
-import type { KnowledgeSource } from '@/data/knowledgeSources';
+import {
+  ACCEPTED_FILE_TYPES,
+  ADDABLE_KINDS,
+  CONNECTOR_KINDS,
+  CONNECTOR_SPEC,
+  SOURCE_KIND_LABEL,
+  type KnowledgeSource,
+} from '@/data/knowledgeSources';
 
 /**
  * The suite runs in vitest's default node environment — there is no jsdom, so
@@ -160,5 +167,41 @@ describe('pages', () => {
       expect(page.elements.length).toBeGreaterThan(0);
       expect(page.urlRule).toBeTruthy();
     });
+  });
+});
+
+describe('connected sources', () => {
+  it('keeps a connector kind rather than coercing it to text', () => {
+    // The coercion in `parseSource` exists to stop an unknown kind rendering an
+    // empty pill. A kind that shipped later is not unknown, so a connector row
+    // written today has to still be a connector row after a reload.
+    expect(parseSource({ ...source(), kind: 'gitbook' })?.kind).toBe('gitbook');
+    expect(parseSource({ ...source(), kind: 'intercom' })?.kind).toBe('intercom');
+    expect(parseSource({ ...source(), kind: 'drive' })?.kind).toBe('drive');
+  });
+
+  it('gives every connector a label, a glyph key and a full form spec', () => {
+    // A missing entry would render a blank pill or an empty field label rather
+    // than failing, which is exactly the class of bug this asserts away.
+    CONNECTOR_KINDS.forEach((kind) => {
+      expect(SOURCE_KIND_LABEL[kind]).toBeTruthy();
+      const spec = CONNECTOR_SPEC[kind];
+      expect(spec.title).toBeTruthy();
+      expect(spec.tokenLabel).toBeTruthy();
+      expect(spec.tokenHint).toBeTruthy();
+      expect(spec.scopeLabel).toBeTruthy();
+      expect(spec.scopeHint).toBeTruthy();
+    });
+  });
+
+  it('offers every connector in the Add Content menu', () => {
+    CONNECTOR_KINDS.forEach((kind) => expect(ADDABLE_KINDS).toContain(kind));
+  });
+
+  it('accepts slides and images on the file dropzone', () => {
+    // PRD-391: the accepted list is the promise, so it is worth pinning.
+    ['.pptx', '.key', '.pdf', '.png'].forEach((ext) =>
+      expect(ACCEPTED_FILE_TYPES).toContain(ext),
+    );
   });
 });

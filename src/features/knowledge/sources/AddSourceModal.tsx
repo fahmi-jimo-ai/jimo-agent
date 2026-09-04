@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
 import { DropdownMenuList } from '@/components/ui/DropdownMenuList/DropdownMenuList';
 import {
+  ACCEPTED_FILE_TYPES,
+  CONNECTOR_SPEC,
   CURRENT_AUTHOR,
+  isConnectorKind,
   makeSourceId,
   SOURCE_KIND_LABEL,
   type KnowledgeSource,
@@ -63,6 +66,9 @@ const TITLE: Record<SourceKind, string> = {
   file: 'Add File Content',
   video: 'Add Video Content',
   qa: 'Add Q&A Content',
+  gitbook: CONNECTOR_SPEC.gitbook.title,
+  intercom: CONNECTOR_SPEC.intercom.title,
+  drive: CONNECTOR_SPEC.drive.title,
 };
 
 /** 932:19941 — the three hosts the supportive line names. */
@@ -122,6 +128,10 @@ export function AddSourceModal({
   const [rules, setRules] = React.useState<UrlRule[]>([makeRule()]);
   const [text, setText] = React.useState(editing?.label ?? '');
   const [video, setVideo] = React.useState('');
+  // One pair for whichever connector is open. The card only ever shows one, so
+  // a state per vendor would be three copies of the same two fields.
+  const [token, setToken] = React.useState('');
+  const [scope, setScope] = React.useState('');
   const [files, setFiles] = React.useState<{ id: string; name: string; size: number }[]>([]);
   const [dragging, setDragging] = React.useState(false);
   const fileInput = React.useRef<HTMLInputElement>(null);
@@ -144,6 +154,12 @@ export function AddSourceModal({
         return video.trim().length > 0 && !videoInvalid;
       case 'file':
         return files.length > 0;
+      // Scope is optional on every connector — its own hint says what an empty
+      // one means — so the token is the only thing that gates Train.
+      case 'gitbook':
+      case 'intercom':
+      case 'drive':
+        return token.trim().length > 0;
     }
   })();
 
@@ -191,6 +207,18 @@ export function AddSourceModal({
       case 'file':
         onSubmit(files.map((f) => baseSource('file', f.name, '#')));
         break;
+      case 'gitbook':
+      case 'intercom':
+      case 'drive': {
+        const spec = CONNECTOR_SPEC[kind];
+        const picked = scope.trim();
+        // The token is NOT part of the label, and is not stored on the source.
+        // It is a credential; the row is a thing a whole team reads.
+        onSubmit([
+          baseSource(kind, label || (picked ? `${spec.label} · ${picked}` : `${spec.label} workspace`)),
+        ]);
+        break;
+      }
     }
   };
 
@@ -357,14 +385,24 @@ export function AddSourceModal({
                 Drop files, or click to browse
               </span>
               <span className="[font:var(--text-body-3)] text-[var(--color-neutral-700)]">
-                PDF, DOCX, TXT and Markdown.
+                Documents, slides and images. PDF, DOCX, PPTX, Keynote, TXT, Markdown, CSV, PNG
+                and JPG.
               </span>
             </button>
+            {/* PRD-391. Says what happens to a deck rather than letting the
+                accepted list imply it: text comes out of the slides and the
+                image captions, and a diagram whose meaning is only in the
+                picture will not survive that. Better said here than discovered
+                in a bad answer three weeks later. */}
+            <p className="m-0 [font:var(--text-body-4)] text-[var(--color-text-tertiary)]">
+              Slides and image-rich PDFs are read for their text, including text inside images.
+              Anything a diagram says only by being a diagram will not come through.
+            </p>
             <input
               ref={fileInput}
               type="file"
               multiple
-              accept=".pdf,.doc,.docx,.txt,.md"
+              accept={ACCEPTED_FILE_TYPES}
               className="sr-only"
               onChange={(e) => takeFiles(e.target.files)}
             />
@@ -388,6 +426,43 @@ export function AddSourceModal({
             ))}
           </div>
         );
+
+      /* The connectors — PRD-549, PRD-571, PRD-234.
+         One form, filled from CONNECTOR_SPEC, because the three differ only in
+         their words. It follows the Crisp pattern from /escalation rather than
+         the OAuth one: a token pasted into a field is what these vendors' APIs
+         take, and it is the only path that reaches content behind a login. */
+      case 'gitbook':
+      case 'intercom':
+      case 'drive': {
+        const spec = CONNECTOR_SPEC[kind];
+        return (
+          <div className="flex flex-col gap-[var(--space-4)]">
+            {nameField}
+            <Input
+              label={spec.tokenLabel}
+              placeholder={spec.tokenPlaceholder}
+              supportiveText={spec.tokenHint}
+              // A credential, so it is masked and never becomes the row's label.
+              // `type` is the HTML one here; `inputType` is Moji's variant prop.
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+            />
+            <Input
+              label={`${spec.scopeLabel} (Optional)`}
+              placeholder={spec.scopePlaceholder}
+              supportiveText={spec.scopeHint}
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
+            />
+            <p className="m-0 [font:var(--text-body-4)] text-[var(--color-text-tertiary)]">
+              Jimo reads this through {spec.label}&rsquo;s API, so pages that are private to your
+              team come through without being made public.
+            </p>
+          </div>
+        );
+      }
     }
   })();
 

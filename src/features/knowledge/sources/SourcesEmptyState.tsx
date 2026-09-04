@@ -16,8 +16,13 @@ import { kindGlyph } from './kindGlyph';
  * The order is this frame's — URLs, Files, Texts — and it is deliberately NOT
  * the Add Content menu's (URL, Text, File, 899:15358). The two artboards
  * disagree, and each is right about its own frame, so each keeps its own list.
+ *
+ * The three connectors are a second extension, on the same footing as Video and
+ * for a blunter reason: a workspace with nothing in it is exactly where someone
+ * whose documentation is behind a login gives up, and the card that says "we can
+ * read that" has to be visible before they conclude otherwise.
  */
-const ORDER: SourceKind[] = ['url', 'file', 'text', 'video'];
+const ORDER: SourceKind[] = ['url', 'file', 'text', 'video', 'gitbook', 'intercom', 'drive'];
 
 const COPY: Record<SourceKind, { title: string; description: string }> = {
   url: { title: 'Add URLs', description: 'Pull content directly from web pages' },
@@ -26,6 +31,11 @@ const COPY: Record<SourceKind, { title: string; description: string }> = {
   // Extension — the wording follows the three above.
   video: { title: 'Add Videos', description: 'Train on a video transcript' },
   qa: { title: 'Add Q&A', description: 'Author an answer by hand' },
+  // Each says what it unlocks, not what it is: the point of every one of these
+  // is content the public crawler cannot reach.
+  gitbook: { title: 'Connect GitBook', description: 'Train on private spaces' },
+  intercom: { title: 'Connect Intercom', description: 'Train on unpublished articles' },
+  drive: { title: 'Connect Drive', description: 'Train on a shared folder' },
 };
 
 export function SourcesEmptyState({ onPick }: { onPick: (kind: SourceKind) => void }) {
