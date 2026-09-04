@@ -123,6 +123,33 @@ export function SkillDescriptionTab({
             {skill.description}
           </p>
         </div>
+
+        {/* PRD-585. Its own block rather than a fourth cell in the meta band
+            above: a URL is long, and the three-column row is sized for short
+            values. A skill with no reference renders nothing at all here — an
+            empty "Reference" label would read as a missing setting rather than
+            as one this skill does not need. */}
+        {skill.referenceUrl && (
+          <div className="flex flex-col gap-[var(--space-2)]">
+            <span className="[font:var(--text-body-4)] text-[var(--color-text-secondary)]">
+              Reference link
+            </span>
+            <a
+              href={skill.referenceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex min-w-0 items-center gap-[var(--space-1)] [font:var(--text-subtitle-4)] text-[var(--color-brand-default)] no-underline [transition:color_var(--transition-fast)] hover:text-[var(--color-brand-hover)] hover:underline"
+            >
+              <span className="truncate">{skill.referenceUrl}</span>
+              <span aria-hidden="true" className="flex shrink-0 items-center">
+                <ExportSquare size={16} variant="Linear" color="currentColor" />
+              </span>
+            </a>
+            <span className="[font:var(--text-body-4)] text-[var(--color-text-tertiary)]">
+              Cited when this skill answers. Jimo stores the address and never reads the page.
+            </span>
+          </div>
+        )}
       </Section>
 
       <Section title="Instructions">

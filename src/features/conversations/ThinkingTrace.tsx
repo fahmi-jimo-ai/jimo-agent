@@ -12,6 +12,13 @@ import {
   ExportSquare,
 } from 'iconsax-react';
 import { cn } from '@/lib/utils';
+import {
+  citationText,
+  reviewSummary,
+  splitCitations,
+  withheldReason,
+  type WithheldReason,
+} from '@/lib/citations';
 import { Badge } from '@/components/ui/Chip/badge';
 import { kindGlyph } from '@/features/knowledge/sources/kindGlyph';
 import { SOURCE_KIND_LABEL } from '@/data/knowledgeSources';
@@ -155,6 +162,13 @@ function SkillChips({
   );
 }
 
+/** Why a citation the answer used was not named to the end user. One reason
+ *  today, and it reads as configuration rather than as a fault: a team source is
+ *  working exactly as it was set up to. */
+const WITHHELD_LABEL: Record<WithheldReason, string> = {
+  'team-only': 'Not shown · team only',
+};
+
 /**
  * One citation. It has up to two destinations and they are not the same thing:
  *
@@ -177,6 +191,7 @@ function SkillChips({
 function SourceRow({ source }: { source: CitedSource }) {
   const navigate = useNavigate();
   const { sources } = useKnowledge();
+  const withheld = withheldReason(source);
   // Resolved ONLY to decide where the row goes. The row's own text comes from
   // the citation — see `CitedSource` in analytics.ts for why a historical
   // record must not depend on a live row.
@@ -187,7 +202,7 @@ function SourceRow({ source }: { source: CitedSource }) {
       <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center">
         {kindGlyph(source.kind, 16)}
       </span>
-      <span className="min-w-0 flex-1 truncate">{source.label}</span>
+      <span className="min-w-0 flex-1 truncate">{citationText(source)}</span>
     </>
   );
 
@@ -226,6 +241,16 @@ function SourceRow({ source }: { source: CitedSource }) {
         </span>
       )}
 
+      {/* Review's own column: what the READER got, which is not what the answer
+          used. Sits before the open-in-a-new-tab affordance because a builder
+          scanning this list is asking "did they see it", not "where does it
+          go". */}
+      {withheld && (
+        <Badge type="neutral" variant="secondary" size="xx-small">
+          {WITHHELD_LABEL[withheld]}
+        </Badge>
+      )}
+
       {source.href && (
         <a
           href={source.href}
@@ -242,11 +267,22 @@ function SourceRow({ source }: { source: CitedSource }) {
   );
 }
 
+/**
+ * Review lists every citation the answer used, including the ones the end user
+ * was never shown — PRD-582's builder half. The count beside the heading is the
+ * thing that makes the difference legible without opening a row: an answer that
+ * leaned on four sources and could only name one is a knowledge-coverage
+ * problem, and it reads as an answer-quality problem everywhere else.
+ */
 function SourceList({ sources }: { sources: CitedSource[] }) {
+  const split = splitCitations(sources);
   return (
     <div className="flex flex-col gap-[var(--space-2)]">
-      <span className="[font:var(--text-body-4)] text-[var(--color-text-tertiary)]">
+      <span className="flex flex-wrap items-center gap-[var(--space-2)] [font:var(--text-body-4)] text-[var(--color-text-tertiary)]">
         Knowledge used
+        {split.withheld.length > 0 && (
+          <span className="text-[var(--color-text-secondary)]">{reviewSummary(split)}</span>
+        )}
       </span>
       <ul className="m-0 flex list-none flex-col gap-[var(--space-1)] p-0">
         {sources.map((source) => (

@@ -1,0 +1,96 @@
+/* The answer's sources — PRD-582, PRD-455.
+ *
+ * A SIBLING of widget.css, never an edit to it. That file is a 1:1 port of
+ * `trigger-demo/builder/src/styles/widget.css` and stays byte-comparable with
+ * it, so anything this repo adds lives here and is loaded after it. The
+ * prototype has no citation block, so there is nothing upstream to re-port.
+ *
+ * Everything below derives from the widget's own `--agent-*` variables, which
+ * are scoped to `#agent` in widget.css. That is what keeps the block recoloring
+ * with the rest of the widget when a customer changes `--agent-primary`, and it
+ * is why there is no raw hex here.
+ *
+ * No new radius terminal: the rows use `--agent-radius-btn`, the same one the
+ * CTA buttons use. widget.css's own note is explicit that a surface which
+ * terminates somewhere else looks like another product's component. */
+
+.agc {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.agc-label {
+  margin: 0 0 2px;
+  font-family: var(--agent-font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--agent-text-muted);
+}
+
+/* One named source. Where the citation has a destination the whole row is the
+   link; where it has none the row is a paragraph instead (`--plain` below), so
+   nothing that cannot be opened is ever styled as though it can. */
+.agc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: var(--agent-radius-btn);
+  color: var(--agent-primary);
+  font-family: var(--agent-font-body);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 140ms ease;
+}
+
+.agc-row:hover { background: var(--agent-primary-10); }
+
+/* A source the reader is told about and cannot be sent to: an uploaded file,
+   a document pushed through MCP, anything whose home Jimo never had an address
+   for. Same row, minus every affordance that would suggest a destination. */
+.agc-row--plain {
+  margin: 0;
+  color: var(--agent-text);
+  cursor: default;
+}
+
+.agc-row--plain:hover { background: transparent; }
+
+.agc-row:focus-visible {
+  outline: 2px solid var(--agent-primary);
+  outline-offset: 1px;
+}
+
+.agc-ico {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.agc-ico svg { width: 14px; height: 14px; }
+
+.agc-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Everything this reader may not be named, as a count. The only thing that
+   lands here is a source restricted to the team (PRD-455), so the line says
+   "not shared here" rather than anything about links. The builder's copy on
+   /conversations names all of them. */
+.agc-count {
+  margin: 0;
+  padding: 0 6px;
+  font-family: var(--agent-font-body);
+  font-size: 12px;
+  color: var(--agent-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agc-row { transition: none; }
+}

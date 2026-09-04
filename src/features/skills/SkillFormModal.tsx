@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { Global, Trash } from 'iconsax-react';
+import { ExportSquare, Global, Trash } from 'iconsax-react';
 import { ModalCard } from '@/components/app/ModalCard';
+import { normalisePreviewUrl } from '@/features/knowledge/PreviewInAppModal';
 import { Menu } from '@/components/app/Menu';
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
@@ -86,9 +87,15 @@ export function SkillFormModal({
   const [mode, setMode] = React.useState<SkillMode>(editing?.mode ?? draft.mode);
   const [modeOpen, setModeOpen] = React.useState(false);
   const [startUrl, setStartUrl] = React.useState('');
+  const [reference, setReference] = React.useState(editing?.referenceUrl ?? '');
 
   const page = draft.page ?? null;
-  const canSave = name.trim().length > 0;
+  // Empty is fine — the field is optional. A typed value has to survive
+  // `normalisePreviewUrl`, which is why the state below is three-valued rather
+  // than a boolean.
+  const referenceUrl = reference.trim() ? normalisePreviewUrl(reference) : null;
+  const referenceBad = reference.trim().length > 0 && referenceUrl === null;
+  const canSave = name.trim().length > 0 && !referenceBad;
 
   const go = (next: Step, dir: 'forward' | 'back') => {
     setDirection(dir);
@@ -105,6 +112,9 @@ export function SkillFormModal({
         instructions,
         mode,
         pageId: page?.id ?? editing.pageId ?? null,
+        // `?? undefined` and not `?? ''`: clearing the field must remove the
+        // reference, and an empty string would render as a link to nowhere.
+        referenceUrl: referenceUrl ?? undefined,
         updatedAt: Date.now(),
       });
       return;
@@ -120,6 +130,7 @@ export function SkillFormModal({
       instructions,
       mode,
       pageId: page?.id ?? null,
+      referenceUrl: referenceUrl ?? undefined,
       active: true,
       updatedAt: Date.now(),
       usage: 0,
@@ -247,6 +258,25 @@ export function SkillFormModal({
             />
           ))}
         </Menu>
+
+        {/* PRD-585. Validated through `normalisePreviewUrl` rather than trusted:
+            the value ends up as an `href` the agent sends an end user to, and
+            `new URL()` accepts `javascript:` as happily as `https:`. Same
+            reasoning, same helper, as Test Knowledge's Preview in-app field and
+            ScanPageModal. */}
+        <Input
+          label="Reference link"
+          placeholder="https://docs.example.com/billing/change-card"
+          supportiveText={
+            referenceBad
+              ? 'Needs a full web address, for example https://docs.example.com/billing.'
+              : 'Optional. Where the agent sends someone who needs the full document. Jimo stores the address and never reads the page, so private docs stay private.'
+          }
+          status={referenceBad ? 'negative' : 'none'}
+          leftIcon={<ExportSquare size={24} variant="Linear" color="currentColor" />}
+          value={reference}
+          onChange={(e) => setReference(e.target.value)}
+        />
 
         {page ? (
           <Input
