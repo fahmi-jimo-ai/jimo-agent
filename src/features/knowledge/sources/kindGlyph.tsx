@@ -1,8 +1,11 @@
 import * as React from 'react';
 import {
+  Book1,
   Document,
+  FolderCloud,
   Global,
   MessageQuestion,
+  Messages2,
   TextalignJustifyleft,
   VideoPlay,
 } from 'iconsax-react';
@@ -34,5 +37,15 @@ export function kindGlyph(kind: SourceKind, size = 20): React.ReactNode {
       return <VideoPlay {...props} />;
     case 'qa':
       return <MessageQuestion {...props} />;
+    // The three connectors get a glyph for what the tool IS rather than a brand
+    // mark: this file has no logo assets, and a wrong-shaped logo drawn from
+    // memory is worse than an honest generic. Book for a docs site, a chat
+    // bubble for a help desk, a cloud folder for a drive.
+    case 'gitbook':
+      return <Book1 {...props} />;
+    case 'intercom':
+      return <Messages2 {...props} />;
+    case 'drive':
+      return <FolderCloud {...props} />;
   }
 }
