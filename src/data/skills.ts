@@ -91,6 +91,20 @@ export interface Skill {
   mode: SkillMode;
   /** → `InterfacePage.id`. The drawer's `Interface: Dashboard ↗`. */
   pageId: string | null;
+  /**
+   * A document this skill can send the reader to — PRD-585.
+   *
+   * Stored, never fetched. That is the whole point of the field rather than an
+   * accident of the prototype: the accounts asking for it (Gojob) keep their
+   * documentation behind their own login precisely so nobody crawls it, and a
+   * skill that could only cite what Jimo had already ingested would be no use
+   * to them. Jimo holds the address; their access control still decides who
+   * gets through it.
+   *
+   * Absent on every skill written before the field existed, which reads
+   * correctly: no reference, so nothing to cite.
+   */
+  referenceUrl?: string;
   active: boolean;
   /** Epoch ms — the Last updated column is relative, so an absolute would age. */
   updatedAt: number;
@@ -176,6 +190,10 @@ export function DEMO_SKILLS(): Skill[] {
       ].join('\n'),
       mode: 'explain',
       pageId: 'page-dashboard',
+      // INVENTED, like every other figure here. The address shape is the point:
+      // a private docs host Jimo never crawls, which is the case PRD-585 exists
+      // for.
+      referenceUrl: 'https://docs.internal.example.com/knowledge/answering-from-sources',
       active: true,
       updatedAt: now - 2 * DAY,
       usage: 321,

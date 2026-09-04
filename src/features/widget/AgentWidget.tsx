@@ -2,6 +2,8 @@ import * as React from 'react';
 import { useEscalation } from '@/state/useEscalation';
 import { evaluate, isRejection, REASON_COPY, type Decision } from './escalationEngine';
 import { SAMPLE_BRIEF } from '@/data/fixtures';
+import { citationText, countLine, splitCitations } from '@/lib/citations';
+import type { CitedSource } from '@/data/analytics';
 import { WidgetIcons, Ico } from './WidgetIcons';
 
 /**
@@ -129,7 +131,85 @@ const QUESTION = {
   options: ['Okta', 'Microsoft Entra ID', 'Google Workspace', 'Something else'],
 };
 
-interface Reply { title?: string; body: string; handoff?: Decision }
+/* ── Invented, and labelled as such ────────────────────────────────────────
+   What the canned SSO answer was built from. The engine has no retrieval step —
+   it matches phrases — so nothing here is a real citation, in the same way the
+   answer itself is not a real answer. The four entries are one of each case the
+   rule has to handle: a public page the reader can open, an uploaded file that
+   is named with nowhere to send them, a video that carries the moment it
+   answers from, and the support team's own runbook, which the answer used and
+   the reader is never shown. */
+const ANSWER_SOURCES: CitedSource[] = [
+  {
+    sourceId: 'demo-url-sso',
+    label: 'Setting up SSO',
+    kind: 'url',
+    href: 'https://help.usejimo.com/docs/settings/sso',
+  },
+  { sourceId: 'demo-file-security', label: 'Security overview.pdf', kind: 'file' },
+  {
+    sourceId: 'demo-video-sso',
+    label: 'Connecting an identity provider',
+    kind: 'video',
+    href: 'https://help.usejimo.com/videos/sso-setup',
+    detail: '1:38',
+  },
+  {
+    sourceId: 'demo-url-runbook',
+    label: 'Support runbook — SSO incidents',
+    kind: 'url',
+    href: 'https://support.internal.example.com/runbooks/sso',
+    audience: 'team',
+  },
+];
+
+interface Reply { title?: string; body: string; handoff?: Decision; sources?: CitedSource[] }
+
+/**
+ * What the answer was built from — PRD-582, PRD-455, and PRD-583's second half.
+ *
+ * Every citation the reader is allowed is NAMED, whether or not Jimo can open
+ * it for them. A source with a link is the whole row; one without is the same
+ * row without the affordance, which is the case that matters most — the
+ * accounts asking for citations keep their documentation behind their own login
+ * precisely so nobody crawls it, and a count would be all they ever saw.
+ *
+ * `splitCitations` is shared with `ThinkingTrace` rather than reimplemented, so
+ * the widget can never name a source the record says was hidden.
+ */
+function AnswerSources({ sources }: { sources: CitedSource[] }) {
+  const { shown, withheld } = splitCitations(sources);
+  if (shown.length === 0 && withheld.length === 0) return null;
+
+  return (
+    <div className="agc">
+      <p className="agc-label">Sources</p>
+      {shown.map((source) =>
+        source.href ? (
+          <a
+            key={source.sourceId}
+            className="agc-row"
+            href={source.href}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span className="agc-ico"><Ico id="i-routing-2" /></span>
+            <span className="agc-text">{citationText(source)}</span>
+          </a>
+        ) : (
+          /* Named, not clickable. A row styled like the linked ones and inert
+             would be the one promise this design must not make, so the plain
+             variant drops the colour and the hover with it. */
+          <p key={source.sourceId} className="agc-row agc-row--plain">
+            <span className="agc-ico"><Ico id="i-routing-2" /></span>
+            <span className="agc-text">{citationText(source)}</span>
+          </p>
+        )
+      )}
+      {withheld.length > 0 && <p className="agc-count">{countLine(withheld.length)}</p>}
+    </div>
+  );
+}
 
 export function AgentWidget({
   onHandoff,
@@ -193,6 +273,7 @@ export function AgentWidget({
           setReply({
             title: 'Here’s what I found',
             body: 'Single sign-on is configured under **Settings → SSO**. Add your identity provider’s metadata URL, then verify your domain so members can sign in with it.',
+            sources: ANSWER_SOURCES,
           });
           setLive('response');
           return;
@@ -305,6 +386,10 @@ export function AgentWidget({
                   </>
                 )}
               </div>
+
+              {/* Between the answer and the CTA row: what it was built from
+                  comes before what to do next. */}
+              {!asking && reply?.sources && <AnswerSources sources={reply.sources} />}
 
               {/* The hand-off card IS this CTA row — the widget's own grammar,
                   dark primary + outline secondary, rather than a new surface.

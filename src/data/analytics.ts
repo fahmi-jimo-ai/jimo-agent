@@ -218,6 +218,11 @@ export interface TriggeredSkill {
   name: string;
 }
 
+/** Who a citation may be named to. Lives here beside `CitedSource` rather than
+ *  in `src/lib/citations.ts`, so the rule module depends on the record and not
+ *  the other way round. */
+export type CitationAudience = 'everyone' | 'team';
+
 export interface CitedSource {
   /** Matches a `KnowledgeSource.id` when the store still holds that row. */
   sourceId: string;
@@ -225,6 +230,29 @@ export interface CitedSource {
   label: string;
   kind: SourceKind;
   href?: string;
+  /**
+   * Whatever else this source kind can give a reader looking for the thing
+   * again — PRD-582's "regardless of training mode", and PRD-583's restitution
+   * half. A video carries the timestamp the answer came from; a crawled page
+   * carries nothing, because its title is already the whole address as far as a
+   * reader is concerned. Rendered by `citationText`.
+   */
+  detail?: string;
+  /**
+   * Who this citation may be NAMED to — PRD-455. A `team` source is used by the
+   * answer exactly as any other, and never shown to the end user, because
+   * Tyredating's Zendesk is readable by their project managers and not by the
+   * garagistes the agent answers. Absent means `everyone`: a record written
+   * before audiences existed was public when it was written.
+   *
+   * This is separate from `href` on purpose, and it is the ONLY thing that
+   * withholds a citation: a source with no link is still named, because the
+   * accounts that need citations most are the ones whose documentation Jimo
+   * cannot reach. A link is about whether a destination exists, an audience is
+   * about whether this reader may be sent to one. `src/lib/citations.ts` holds
+   * the predicate.
+   */
+  audience?: CitationAudience;
 }
 
 export interface Conversation {
@@ -276,6 +304,30 @@ const SRC_WHAT_IS_JIMO: CitedSource = {
   label: 'What is Jimo?',
   kind: 'qa',
 };
+/* The PRD-455 case, and the only one that proves the audience rule is not just
+   "does it have a link". This has a perfectly good URL and is still never named
+   to the end user, because it is the support team's own runbook — Tyredating's
+   shape exactly: answer from it, do not send a garagiste to it. There is no
+   matching `DEMO_SOURCES()` row on purpose, so the citation also exercises the
+   record-outlives-the-store path `CitedSource` exists for. */
+const SRC_TEAM_RUNBOOK: CitedSource = {
+  sourceId: 'demo-url-runbook',
+  label: 'Support runbook — account recovery',
+  kind: 'url',
+  href: 'https://support.internal.example.com/runbooks/account-recovery',
+  audience: 'team',
+};
+/* PRD-583's restitution half: a video is cited like anything else, and carries
+   the point in it the answer came from. The timestamp is `detail` rather than a
+   fragment on the href because not every video host takes one, and a reader can
+   act on "4:02" whether or not the link seeks for them. */
+const SRC_RESET_VIDEO: CitedSource = {
+  sourceId: 'demo-video-reset',
+  label: 'Resetting a password',
+  kind: 'video',
+  href: 'https://help.usejimo.com/videos/password-reset',
+  detail: '4:02',
+};
 
 /** 934:28534's transcript, verbatim — the Login Issues thread. The reasoning
  *  trace on each agent turn is the invention documented above. */
@@ -308,7 +360,11 @@ const LOGIN_ISSUES: ConversationTurn[] = [
       { kind: 'draft', label: 'Drafted an answer from the top match' },
     ],
     skills: [{ id: 'skill-answer', name: 'Answer from knowledge' }],
-    sources: [SRC_WHAT_IS_JIMO, SRC_HOME],
+    // Four citations, one of each case the rule has to handle: a Q&A row that
+    // is named with nowhere to send anyone, a public URL, a video that carries
+    // its timestamp, and the team's own runbook, which the answer used and the
+    // end user is never shown.
+    sources: [SRC_WHAT_IS_JIMO, SRC_HOME, SRC_RESET_VIDEO, SRC_TEAM_RUNBOOK],
   },
   { from: 'user', at: '10:16', text: 'Yes, but I didnt receive the reset email.' },
   {
