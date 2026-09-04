@@ -117,4 +117,17 @@ export const MATCHERS = {
     clear:  ['frustrating', 'annoying', 'waste of time', 'going in circles', 'seriously'],
     strong: ['useless', 'terrible', 'ridiculous', 'awful', 'fed up', 'unacceptable'],
   },
+  /**
+   * What the simulator's one canned answer actually covers — PRD-554, PRD-576.
+   *
+   * A retrieval score is what decides this in the product. There is no
+   * retrieval here, so coverage is a phrase list like everything else in this
+   * block: a question that touches none of these gets the same answer marked as
+   * uncertain, which is the behaviour the tickets are about. Quarantined with
+   * the rest, and no more real than they are.
+   */
+  covered: [
+    'sso', 'single sign', 'saml', 'okta', 'identity provider',
+    'login', 'log in', 'sign in', 'password',
+  ],
 } as const;

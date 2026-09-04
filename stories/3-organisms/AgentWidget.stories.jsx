@@ -3,6 +3,7 @@ import { WidgetPage } from '../../src/features/widget/WidgetPage';
 import { AgentWidget } from '../../src/features/widget/AgentWidget';
 import { SEEDS } from '../../src/state/seed';
 import '../../src/styles/widget.css';
+import '../../src/styles/widget-uncertainty.css';
 import '../../src/styles/widget-host.css';
 
 const meta = {

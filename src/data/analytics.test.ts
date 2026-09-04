@@ -81,6 +81,17 @@ describe('filterConversations', () => {
     }
   });
 
+  it('filters on the agent’s own verdict, which is a different field', () => {
+    // `unsure` reads `certainty`, not `feedback`. Filtering on it and getting
+    // thumbs-down conversations back would be the bug worth catching: the whole
+    // point of the option is finding answers nobody has judged yet.
+    const unsure = filterConversations(CONVERSATIONS, { ...ALL, response: 'unsure' });
+    expect(unsure.length).toBeGreaterThan(0);
+    for (const c of unsure) {
+      expect(c.transcript.some((t) => t.certainty === 'unsure')).toBe(true);
+    }
+  });
+
   it('filters by segment', () => {
     const power = filterConversations(CONVERSATIONS, { ...ALL, segment: 'power-users' });
     expect(power.length).toBeGreaterThan(0);

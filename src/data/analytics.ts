@@ -167,6 +167,22 @@ export interface ConversationTurn {
   at: string;
   text: string;
   feedback?: 'helpful' | 'not-helpful';
+  /**
+   * The agent's own verdict on the answer it just gave — PRD-554, PRD-576.
+   *
+   * `unsure` means it answered from thin or unrelated retrieval and said so
+   * rather than presenting a guess as fact. It is deliberately NOT the same
+   * field as `feedback`: one is what the reader thought, the other is what the
+   * agent knew about itself, and a turn can carry both (the most useful pairing
+   * on this page is an unsure answer the reader also marked Not Helpful).
+   *
+   * Absent on every turn recorded before the agent could mark itself, which
+   * reads correctly: no claim either way.
+   */
+  certainty?: 'unsure';
+  /** Why it was unsure, in the builder's terms. Agent turns only, and only
+   *  alongside `certainty` — it is the thing that tells them what to fix. */
+  uncertainReason?: string;
   /** Agent turns only — see the reasoning-trace block below. */
   steps?: ThinkingStep[];
   skills?: TriggeredSkill[];
@@ -310,10 +326,32 @@ const LOGIN_ISSUES: ConversationTurn[] = [
     skills: [{ id: 'skill-answer', name: 'Answer from knowledge' }],
     sources: [SRC_WHAT_IS_JIMO, SRC_HOME],
   },
-  { from: 'user', at: '10:16', text: 'Yes, but I didnt receive the reset email.' },
+  /* The PRD-554 / PRD-576 turn. It is the one that answers anyway and says so:
+     retrieval came back with nothing on the subject, and rather than presenting
+     the guess as fact the agent marks it and offers a person. Kept as an ANSWER
+     rather than a refusal because that is the shape chosen for it (Option B in
+     the 4 September triage) — nothing is withheld from the reader, the claim
+     about it is just honest. It carries a thumbs-down as well, which is the
+     pairing a builder most wants to find. */
+  { from: 'user', at: '10:16', text: 'Is there an account settings tab where I can change the address?' },
   {
     from: 'agent',
     at: '10:16',
+    text: 'I think that lives under your profile, though I could not find it in what I have been trained on — so please check before relying on it.',
+    feedback: 'not-helpful',
+    certainty: 'unsure',
+    uncertainReason: 'No source or scanned page covers an account settings screen',
+    steps: [
+      { kind: 'search', label: 'Searched knowledge for “account settings”' },
+      { kind: 'compare', label: 'Best match scored below the threshold' },
+      { kind: 'draft', label: 'Answered, and marked the answer not certain' },
+    ],
+    skills: [{ id: 'skill-navigate', name: 'Point to a page' }],
+  },
+  { from: 'user', at: '10:17', text: 'Yes, but I didnt receive the reset email.' },
+  {
+    from: 'agent',
+    at: '10:17',
     text: 'Thanks — that usually means the address on file differs from the one you are checking. I can raise this with a human so they can confirm it for you.',
     steps: [
       { kind: 'search', label: 'Searched knowledge for “reset email not received”' },
@@ -429,8 +467,12 @@ export function filterConversations(
       c.name.toLowerCase().includes(q) ||
       c.handle.toLowerCase().includes(q) ||
       c.title.toLowerCase().includes(q);
+    // `unsure` reads a different field from the two thumbs — see ResponseFilter.
     const byResponse =
-      response === 'all' || c.transcript.some((t) => t.feedback === response);
+      response === 'all' ||
+      (response === 'unsure'
+        ? c.transcript.some((t) => t.certainty === 'unsure')
+        : c.transcript.some((t) => t.feedback === response));
     const bySegment = segment === 'all' || c.segment === segment;
     const byRange = c.daysAgo <= RANGE_WINDOW[range];
     return byQuery && byResponse && bySegment && byRange;

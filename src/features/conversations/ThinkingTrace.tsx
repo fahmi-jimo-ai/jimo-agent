@@ -10,6 +10,7 @@ import {
   Routing2,
   SearchNormal1,
   ExportSquare,
+  InfoCircle,
 } from 'iconsax-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Chip/badge';
@@ -257,21 +258,62 @@ function SourceList({ sources }: { sources: CitedSource[] }) {
   );
 }
 
+/**
+ * Why the agent marked its own answer, and the one thing to do about it —
+ * PRD-554, PRD-576, PRD-148.
+ *
+ * It lives inside the trace rather than beside the bubble because the reason is
+ * a fact about the reasoning, and this card is where the reasoning already is: a
+ * builder who wants to know why an answer was hedged is already opening it.
+ *
+ * The action is the SAME handler as the New Custom Answer affordance on the user
+ * turn above — one behaviour, reachable from either end of the exchange, rather
+ * than a second thing that looks like it does something else. PRD-148 asks for
+ * correction at the point of the mistake; this is that point.
+ */
+function UnsureNote({ reason, onTeach }: { reason?: string; onTeach: () => void }) {
+  return (
+    <div className="flex flex-col gap-[var(--space-2)] rounded-[var(--radius-sm)] bg-[var(--color-orange-100)] p-[var(--space-2)]">
+      <span className="flex items-start gap-[var(--space-2)] [font:var(--text-body-4)] text-[var(--color-neutral-700)]">
+        <span aria-hidden="true" className="flex h-[18px] w-4 shrink-0 items-center justify-center text-[var(--color-orange-500)]">
+          <InfoCircle size={16} variant="Bold" color="currentColor" />
+        </span>
+        <span className="min-w-0 flex-1">
+          {reason ?? 'Answered from weak retrieval, and said so'}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={onTeach}
+        className="ml-[var(--space-6)] cursor-pointer self-start border-0 bg-transparent p-0 text-left [font:var(--text-subtitle-4)] text-[var(--color-brand-default)] [transition:color_var(--transition-fast)] hover:text-[var(--color-brand-hover)]"
+      >
+        Teach the agent this answer
+      </button>
+    </div>
+  );
+}
+
 export function hasTrace(turn: ConversationTurn): boolean {
   return (
     (turn.steps?.length ?? 0) > 0 ||
     (turn.skills?.length ?? 0) > 0 ||
-    (turn.sources?.length ?? 0) > 0
+    (turn.sources?.length ?? 0) > 0 ||
+    // A flagged answer always has a card, even if nothing else was recorded:
+    // the flag is the one thing on this page a builder has to be able to act on.
+    turn.certainty === 'unsure'
   );
 }
 
 export function ThinkingTrace({
   turn,
   onSkillClick,
+  onTeach,
   defaultOpen = false,
 }: {
   turn: ConversationTurn;
   onSkillClick: (skill: TriggeredSkill) => void;
+  /** Same handler the user turn's New Custom Answer affordance calls. */
+  onTeach: () => void;
   /** Stories open one trace so the expanded frame can be diffed. */
   defaultOpen?: boolean;
 }) {
@@ -281,14 +323,15 @@ export function ThinkingTrace({
   const steps = turn.steps ?? [];
   const skills = turn.skills ?? [];
   const sources = turn.sources ?? [];
-  if (steps.length === 0 && skills.length === 0 && sources.length === 0) return null;
+  if (!hasTrace(turn)) return null;
 
   // The collapsed line. Falls back down the list because a turn may carry
-  // skills or citations with no step list at all.
+  // skills, citations or nothing but a flag, with no step list at all.
   const summary =
     steps[steps.length - 1]?.label ??
     (skills.length > 0 ? `${skills.length} skill${skills.length === 1 ? '' : 's'} triggered` : null) ??
-    `${sources.length} source${sources.length === 1 ? '' : 's'} used`;
+    (sources.length > 0 ? `${sources.length} source${sources.length === 1 ? '' : 's'} used` : null) ??
+    'Answered, and marked the answer not certain';
 
   return (
     <div className="flex w-full flex-col rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-neutral-white)] p-[var(--space-2)]">
@@ -329,6 +372,9 @@ export function ThinkingTrace({
             {...(open ? {} : { inert: '' })}
           >
             {steps.length > 0 && <StepRail steps={steps} />}
+            {turn.certainty === 'unsure' && (
+              <UnsureNote reason={turn.uncertainReason} onTeach={onTeach} />
+            )}
             {skills.length > 0 && <SkillChips skills={skills} onSkillClick={onSkillClick} />}
             {sources.length > 0 && <SourceList sources={sources} />}
           </div>
