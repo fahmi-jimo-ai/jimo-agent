@@ -1,0 +1,30 @@
+/* The agent's caveat on its own answer — PRD-554, PRD-576.
+ *
+ * A SIBLING of widget.css, never an edit to it. That file is a 1:1 port of
+ * `trigger-demo/builder/src/styles/widget.css` and stays byte-comparable with
+ * it, so anything this repo adds lives here and is loaded after it. The
+ * prototype's agent never doubts itself, so there is nothing upstream to
+ * re-port.
+ *
+ * Everything below derives from the widget's own `--agent-*` variables, which
+ * are scoped to `#agent` in widget.css, so the note recolours with the rest of
+ * the widget when a customer changes their palette. No raw hex.
+ *
+ * No new radius terminal: it uses `--agent-radius-btn`, the same one the CTA
+ * buttons use. widget.css's own note is explicit that a surface terminating
+ * somewhere else looks like another product's component. */
+
+.agu {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--agent-radius-btn);
+  /* A tint of the widget's own accent rather than a warning colour. The answer
+     is still an answer — this says check it, not something went wrong, and a
+     red panel under a perfectly usable reply overstates it. */
+  background: var(--agent-primary-10);
+  color: var(--agent-text-secondary);
+  font-family: var(--agent-font-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}

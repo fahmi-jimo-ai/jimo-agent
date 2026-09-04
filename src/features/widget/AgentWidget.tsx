@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useEscalation } from '@/state/useEscalation';
-import { evaluate, isRejection, REASON_COPY, type Decision } from './escalationEngine';
+import { evaluate, isCovered, isRejection, REASON_COPY, type Decision } from './escalationEngine';
 import { SAMPLE_BRIEF } from '@/data/fixtures';
 import { WidgetIcons, Ico } from './WidgetIcons';
 
@@ -129,7 +129,15 @@ const QUESTION = {
   options: ['Okta', 'Microsoft Entra ID', 'Google Workspace', 'Something else'],
 };
 
-interface Reply { title?: string; body: string; handoff?: Decision }
+interface Reply {
+  title?: string;
+  body: string;
+  handoff?: Decision;
+  /** The agent's verdict on its own answer — PRD-554, PRD-576. */
+  certainty?: 'unsure';
+  /** What it wants the reader to know before acting on it. */
+  note?: string;
+}
 
 export function AgentWidget({
   onHandoff,
@@ -190,10 +198,22 @@ export function AgentWidget({
     timers.current.push(
       window.setTimeout(() => {
         if (!decision) {
-          setReply({
-            title: 'Here’s what I found',
-            body: 'Single sign-on is configured under **Settings → SSO**. Add your identity provider’s metadata URL, then verify your domain so members can sign in with it.',
-          });
+          // Covered: the answer stands on its own. Not covered: the SAME answer,
+          // marked. Nothing is withheld from the reader — what changes is the
+          // claim the widget makes about it.
+          setReply(
+            isCovered(q)
+              ? {
+                  title: 'Here’s what I found',
+                  body: 'Single sign-on is configured under **Settings → SSO**. Add your identity provider’s metadata URL, then verify your domain so members can sign in with it.',
+                }
+              : {
+                  title: 'Here’s what I found',
+                  body: 'Single sign-on is configured under **Settings → SSO**. Add your identity provider’s metadata URL, then verify your domain so members can sign in with it.',
+                  certainty: 'unsure',
+                  note: 'I could not find this in what I have been trained on, so check it before relying on it.',
+                }
+          );
           setLive('response');
           return;
         }
@@ -305,6 +325,14 @@ export function AgentWidget({
                   </>
                 )}
               </div>
+
+              {/* Under the answer, not over it: the reader came for the answer,
+                  and the caveat is about the answer they have just read. It is
+                  a statement, not a control — the widget's own escalation
+                  triggers already handle "that didn't work". */}
+              {!asking && reply?.certainty === 'unsure' && reply.note && (
+                <p className="agu">{reply.note}</p>
+              )}
 
               {/* The hand-off card IS this CTA row — the widget's own grammar,
                   dark primary + outline secondary, rather than a new surface.

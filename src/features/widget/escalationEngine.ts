@@ -85,6 +85,18 @@ export function evaluate(
 
 export const isRejection = (text: string) => hit(text, MATCHERS.rejection);
 
+/**
+ * Whether the knowledge behind the canned answer actually covers this question
+ * — PRD-554, PRD-576.
+ *
+ * SIMULATOR HEURISTIC, same standing as `matchTopic` above: the product decides
+ * this from a retrieval score, and there is no retrieval here. What it stands in
+ * for is real, though — an answer built from nothing that scored is the failure
+ * both tickets describe, and the widget marks it rather than presenting it as
+ * fact.
+ */
+export const isCovered = (text: string) => hit(text, MATCHERS.covered);
+
 export const REASON_COPY: Record<Reason, string> = {
   asked_for_human: 'You asked for a person',
   agent_stuck: "I haven't been able to answer this",

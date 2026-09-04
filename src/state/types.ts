@@ -106,7 +106,14 @@ export type AnalyticsRange = 'all-time' | 'this-month' | 'last-30-days' | 'last-
 /** Which stat tile is selected. The selection is what the chart plots. */
 export type StatMetric = 'opened' | 'messages' | 'users' | 'success';
 
-export type ResponseFilter = 'all' | 'helpful' | 'not-helpful';
+/**
+ * `unsure` is the agent's own verdict rather than the reader's — PRD-554,
+ * PRD-148. It shares this filter with the two thumbs because a builder opening
+ * the toolbar is asking one question, "which answers went badly", and a fifth
+ * control for a second kind of badness would split that question in two. The
+ * artboard's four-filter row is unchanged; this is an option inside one of them.
+ */
+export type ResponseFilter = 'all' | 'helpful' | 'not-helpful' | 'unsure';
 export type SegmentFilter = 'all' | 'new-users' | 'power-users' | 'trialing';
 
 export interface AnalyticsState {
@@ -137,6 +144,7 @@ export const RESPONSE_LABEL: Record<ResponseFilter, string> = {
   all: 'All Responses',
   helpful: 'Helpful',
   'not-helpful': 'Not Helpful',
+  unsure: 'Marked not certain',
 };
 
 export const SEGMENT_LABEL: Record<SegmentFilter, string> = {

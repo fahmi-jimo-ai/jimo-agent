@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Like1, Dislike, MessageText1, Additem } from 'iconsax-react';
+import { Like1, Dislike, MessageText1, Additem, InfoCircle } from 'iconsax-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Chip/badge';
 import { Avatar } from '@/components/app/Avatar';
@@ -47,6 +47,20 @@ const FEEDBACK = {
   },
 };
 
+/**
+ * The agent's own verdict, in the same slot as the reader's — PRD-554.
+ *
+ * `alert` rather than `negative`: an answer the agent flagged is not a wrong
+ * answer, it is one that has told you to check it, and the two must not read the
+ * same. A turn can carry this AND a thumbs-down, which is exactly the pairing
+ * worth finding, so they sit in one row rather than competing for a slot.
+ */
+const UNSURE = {
+  label: 'Not certain',
+  type: 'alert' as const,
+  icon: <InfoCircle size={16} variant="Bold" color="currentColor" />,
+};
+
 const ACTION =
   'flex cursor-pointer items-center gap-[var(--space-2)] border-0 bg-transparent p-0 [font:var(--text-body-4)] text-[var(--color-text-secondary)] hover:text-[var(--color-brand-default)]';
 
@@ -67,7 +81,12 @@ export function MessageBubble({
   traceDefaultOpen?: boolean;
 }) {
   const isUser = turn.from === 'user';
-  const feedback = turn.feedback ? FEEDBACK[turn.feedback] : null;
+  // Order is the agent's claim first, then the reader's — the same order the
+  // turn happened in.
+  const badges = [
+    turn.certainty === 'unsure' ? UNSURE : null,
+    turn.feedback ? FEEDBACK[turn.feedback] : null,
+  ].filter(Boolean) as Array<{ label: string; type: 'positive' | 'negative' | 'alert'; icon: React.ReactNode }>;
 
   return (
     <div className={cn('group flex', isUser ? 'justify-end pl-[25%]' : 'justify-start pr-[25%]')}>
@@ -84,6 +103,9 @@ export function MessageBubble({
           <ThinkingTrace
             turn={turn}
             onSkillClick={onSkillClick}
+            // The flagged-answer note's action and the user turn's New Custom
+            // Answer are the same job, so they are the same handler.
+            onTeach={onNewCustomAnswer}
             defaultOpen={traceDefaultOpen}
           />
         )}
@@ -95,7 +117,7 @@ export function MessageBubble({
             <div
               className={cn(
                 'min-w-0 rounded-[var(--radius-lg)] px-[var(--space-3)] pt-[var(--space-2)] [font:var(--text-body-3)]',
-                feedback ? 'pb-[var(--space-4)]' : 'pb-[var(--space-2)]',
+                badges.length > 0 ? 'pb-[var(--space-4)]' : 'pb-[var(--space-2)]',
                 isUser
                   ? 'bg-[var(--color-brand-default)] text-[var(--color-text-inverse)]'
                   : 'bg-[var(--color-bg-default)] text-[var(--color-text-primary)]'
@@ -106,16 +128,20 @@ export function MessageBubble({
             {isUser && <Avatar name={userName} size="small" />}
           </div>
 
-          {feedback && (
-            <Badge
-              size="x-small"
-              variant="primary"
-              type={feedback.type}
-              leftIcon={feedback.icon}
-              className="-mt-[var(--space-3)] ml-[var(--space-2)]"
-            >
-              {feedback.label}
-            </Badge>
+          {badges.length > 0 && (
+            <div className="-mt-[var(--space-3)] ml-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-2)]">
+              {badges.map((badge) => (
+                <Badge
+                  key={badge.label}
+                  size="x-small"
+                  variant="primary"
+                  type={badge.type}
+                  leftIcon={badge.icon}
+                >
+                  {badge.label}
+                </Badge>
+              ))}
+            </div>
           )}
         </div>
 
