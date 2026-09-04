@@ -108,7 +108,19 @@ export function SourceTable({
                 <SourceKindPill kind={source.kind} />
               </TableCell>
               <TableCell>
-                <SourceStatusPill status={source.status} />
+                {/* The pill says what the last sync did; the line under it says
+                    what the agent is answering from right now. Those are
+                    different facts on a failed row, and separating them is the
+                    whole of PRD-390 — a row that only carried the pill would
+                    read as "this source is gone" when it is still working. */}
+                <span className="flex flex-col gap-[var(--space-1)]">
+                  <SourceStatusPill status={source.status} />
+                  {source.status === 'failed' && source.lastTrainedAt != null && (
+                    <span className="[font:var(--text-body-4)] text-[var(--color-text-tertiary)]">
+                      Answering from {formatRelative(source.lastTrainedAt, now)}
+                    </span>
+                  )}
+                </span>
               </TableCell>
               <TableCell>{formatRelative(source.updatedAt, now)}</TableCell>
               <TableCell>{formatRelative(source.addedAt, now)}</TableCell>
