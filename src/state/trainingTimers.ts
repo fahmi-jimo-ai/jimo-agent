@@ -31,6 +31,24 @@ export const TRAINING_MS = 2000;
  */
 export const SCAN_MS = 4000;
 
+/**
+ * The auto-retry loop — PRD-373, and invented in the same way and for the same
+ * reason as TRAINING_MS above.
+ *
+ * Nothing upstream says how often a failed sync should be retried or how many
+ * times before it stops. Three attempts is the smallest number that reads as a
+ * loop rather than as one more go, and three seconds is long enough to watch the
+ * count move without making the demo a waiting game. Both are quarantined here
+ * with the rest of the simulation.
+ *
+ * The bound matters more than the numbers. A retry loop with no end is how a
+ * broken permission turns into a service hammering a customer's server, and the
+ * point at which it gives up is exactly the point a person needs to be told —
+ * which is what the banner on the Sources tab is for.
+ */
+export const RETRY_MS = 3000;
+export const MAX_AUTO_RETRIES = 3;
+
 type Timer = ReturnType<typeof setTimeout>;
 
 const timers = new Map<string, Timer>();

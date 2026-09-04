@@ -98,7 +98,13 @@ export function SourcesTab({
         onEdit={(s) => setDraft({ kind: s.kind, editing: s })}
         onRetry={(s) => {
           retrySource(s.id);
-          toast({ type: 'neutral', title: `Retraining ${s.label}` });
+          toast({
+            type: 'neutral',
+            title: `Retraining ${s.label}`,
+            // Says what a retry is FOR, because the automatic ones have already
+            // been and failed: this one assumes whatever blocked them is fixed.
+            body: 'Retrying by hand assumes the source is reachable again.',
+          });
         }}
         onRemove={(s) => {
           if (detailId === s.id) setDetailId(null);

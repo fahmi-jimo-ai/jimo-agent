@@ -34,7 +34,13 @@ import {
   type InterfacePage,
   type PageElement,
 } from '@/data/interfacePages';
-import { armTraining, disarmTraining, SCAN_MS } from './trainingTimers';
+import {
+  armTraining,
+  disarmTraining,
+  MAX_AUTO_RETRIES,
+  RETRY_MS,
+  SCAN_MS,
+} from './trainingTimers';
 
 const KEY = 'jimo.agent.knowledge.v1';
 
@@ -107,6 +113,16 @@ export function parseSource(value: unknown): KnowledgeSource | null {
     status: isSourceStatus(raw.status) ? raw.status : 'trained',
     addedAt: num(raw.addedAt, now),
     updatedAt: num(raw.updatedAt, now),
+    // All four read forward as absent, which is the correct reading of a row
+    // written before any of this existed: nothing is known about its sync
+    // health, and nothing is claimed. `failedAttempts` in particular HAS to
+    // survive the round trip — `resumeTraining` counts against it to decide
+    // whether the retry loop still has attempts left, so dropping it here would
+    // restart an exhausted loop on every reload.
+    lastTrainedAt: typeof raw.lastTrainedAt === 'number' ? raw.lastTrainedAt : undefined,
+    failedAttempts: typeof raw.failedAttempts === 'number' ? raw.failedAttempts : undefined,
+    lastError: typeof raw.lastError === 'string' ? raw.lastError : undefined,
+    unreachable: raw.unreachable === true ? true : undefined,
     addedBy: typeof raw.addedBy === 'string' ? raw.addedBy : '',
     tokens: num(raw.tokens),
     usedInResponses: num(raw.usedInResponses),
@@ -288,28 +304,97 @@ export function updateSource(id: string, next: Partial<KnowledgeSource>) {
   patch({ sources: withSourcePatched(state.sources, id, next) });
 }
 
-/** Put a failed row back through training. */
+/**
+ * Put a failed row back through training, by hand — PRD-373.
+ *
+ * A manual retry clears `unreachable`, which is what separates it from the
+ * automatic one: the person clicking it has, presumably, just fixed the access
+ * that broke. An auto-retry cannot make that assumption, so it leaves the flag
+ * alone and fails again until someone does something. That asymmetry is the
+ * ticket's own account of the situation — a manual re-trigger restores the
+ * source, which is exactly why the customer wants the system to stop needing
+ * them to notice.
+ */
 export function retrySource(id: string) {
-  updateSource(id, { status: 'training', updatedAt: Date.now() });
+  updateSource(id, {
+    status: 'training',
+    updatedAt: Date.now(),
+    unreachable: false,
+    lastError: undefined,
+  });
   armTraining(id, finishTraining);
 }
 
 /**
- * Re-arm a timer for every row that is still `training`.
+ * Re-arm a timer for every row that is still `training`, and resume the
+ * auto-retry loop for every failed row that has attempts left.
  *
  * `training` IS persisted — a row that says Training… should still say it after
  * a reload rather than lie about being trained — but the timer is not, so
  * without this a reload would strand the pill forever. `SourcesTab` calls it on
  * mount; it is idempotent, because `armTraining` replaces rather than stacks.
+ *
+ * The failed half is the same pairing one level along: `failedAttempts` is
+ * persisted, the schedule behind it is not, so a source left mid-loop when the
+ * tab closed would sit there forever with attempts remaining and nothing coming.
  */
 export function resumeTraining() {
-  state.sources.filter((s) => s.status === 'training').forEach((s) => armTraining(s.id, finishTraining));
+  state.sources.forEach((s) => {
+    if (s.status === 'training') armTraining(s.id, finishTraining);
+    else if (s.status === 'failed' && (s.failedAttempts ?? 0) < MAX_AUTO_RETRIES) {
+      armTraining(s.id, autoRetry, RETRY_MS);
+    }
+  });
 }
 
+/**
+ * One scheduled attempt. It runs the same training as everything else and lets
+ * `finishTraining` decide the outcome, rather than deciding it here — an
+ * auto-retry that could succeed where a manual one could not would be a lie
+ * about what the loop is doing.
+ */
+function autoRetry(id: string) {
+  const source = state.sources.find((s) => s.id === id);
+  if (!source || source.status !== 'failed') return;
+  if ((source.failedAttempts ?? 0) >= MAX_AUTO_RETRIES) return;
+  updateSource(id, { status: 'training', updatedAt: Date.now() });
+  armTraining(id, finishTraining);
+}
+
+/**
+ * The end of one training run, successful or not.
+ *
+ * The load-bearing line is the failure branch: it writes a status, a reason and
+ * an attempt count, and it does NOT touch `chunks`, `tokens` or `lastTrainedAt`.
+ * A sync that fetched nothing has nothing to commit, so the previous training
+ * stays exactly where it was and the agent keeps answering from it. Committing
+ * the empty result is the bug PRD-390 describes, and it cost the account that
+ * filed it months of wrong answers nobody could see the cause of.
+ */
 function finishTraining(id: string) {
   const source = state.sources.find((s) => s.id === id);
   if (!source || source.status !== 'training') return;
-  updateSource(id, { status: 'trained', updatedAt: Date.now() });
+
+  if (source.unreachable) {
+    const failedAttempts = (source.failedAttempts ?? 0) + 1;
+    updateSource(id, {
+      status: 'failed',
+      updatedAt: Date.now(),
+      failedAttempts,
+      lastError: source.lastError ?? 'The source could not be fetched',
+    });
+    if (failedAttempts < MAX_AUTO_RETRIES) armTraining(id, autoRetry, RETRY_MS);
+    return;
+  }
+
+  const now = Date.now();
+  updateSource(id, {
+    status: 'trained',
+    updatedAt: now,
+    lastTrainedAt: now,
+    failedAttempts: 0,
+    lastError: undefined,
+  });
 }
 
 /** Wholesale replacement — the Demo data switch, and nothing else. */

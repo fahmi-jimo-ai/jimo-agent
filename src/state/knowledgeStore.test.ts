@@ -80,6 +80,36 @@ describe('parseSource', () => {
     expect(parseSource(null)).toBeNull();
   });
 
+  it('carries sync health across a reload', () => {
+    // `failedAttempts` decides whether the auto-retry loop still has attempts
+    // left, so a round trip that dropped it would restart an exhausted loop on
+    // every reload — against a source that is failing for a reason retrying
+    // cannot fix.
+    const parsed = parseSource({
+      ...source({ status: 'failed' }),
+      lastTrainedAt: 1700,
+      failedAttempts: 3,
+      lastError: 'The page returned 403',
+      unreachable: true,
+    });
+    expect(parsed?.lastTrainedAt).toBe(1700);
+    expect(parsed?.failedAttempts).toBe(3);
+    expect(parsed?.lastError).toBe('The page returned 403');
+    expect(parsed?.unreachable).toBe(true);
+  });
+
+  it('reads a row written before sync health existed as claiming nothing', () => {
+    const parsed = parseSource(source());
+    expect(parsed?.lastTrainedAt).toBeUndefined();
+    expect(parsed?.failedAttempts).toBeUndefined();
+    expect(parsed?.lastError).toBeUndefined();
+    expect(parsed?.unreachable).toBeUndefined();
+  });
+
+  it('does not take a truthy non-boolean as unreachable', () => {
+    expect(parseSource({ ...source(), unreachable: 'yes' })?.unreachable).toBeUndefined();
+  });
+
   it('defaults missing numbers to zero and drops malformed chunks', () => {
     const parsed = parseSource({
       id: 'a',

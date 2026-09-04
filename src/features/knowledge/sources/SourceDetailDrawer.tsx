@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button/Button';
 import { Section } from '@/components/ui/Section/Section';
 import { formatAbsolute } from '@/lib/formatRelative';
 import { SOURCE_KIND_LABEL, type KnowledgeSource } from '@/data/knowledgeSources';
+import { MAX_AUTO_RETRIES } from '@/state/trainingTimers';
 import { SourceKindPill, SourceStatusPill } from './SourcePills';
 
 /**
@@ -68,6 +69,20 @@ export function SourceDetailDrawer({
           <Row label="Status">
             <SourceStatusPill status={source.status} />
           </Row>
+          {/* PRD-390: the drawer is where someone lands after the banner, so it
+              is where the two facts a failure raises have to be answerable —
+              why it broke, and what is being served meanwhile. Both are absent
+              on a healthy row rather than rendered empty. */}
+          {source.lastError && <Row label="Last sync">{source.lastError}</Row>}
+          {source.status === 'failed' && (source.failedAttempts ?? 0) > 0 && (
+            <Row label="Failed attempts">
+              {source.failedAttempts}
+              {(source.failedAttempts ?? 0) >= MAX_AUTO_RETRIES && ' — retries stopped'}
+            </Row>
+          )}
+          {source.lastTrainedAt != null && (
+            <Row label="Answering from">{formatAbsolute(source.lastTrainedAt)}</Row>
+          )}
           <Row label="Added at">{formatAbsolute(source.addedAt)}</Row>
           <Row label="Added by">
             <span className="flex items-center gap-[var(--space-2)]">

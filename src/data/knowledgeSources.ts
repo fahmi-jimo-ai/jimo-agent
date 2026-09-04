@@ -33,6 +33,37 @@ export type KnowledgeSource = {
   /** Epoch ms. Both columns are relative times, so absolute values would age. */
   addedAt: number;
   updatedAt: number;
+  /**
+   * When the content the agent is answering from was last trained successfully
+   * — PRD-390, PRD-268.
+   *
+   * Separate from `updatedAt`, and that separation is the whole fix. `updatedAt`
+   * moves on every attempt, including the ones that failed; this moves only when
+   * something good was actually written. A failed sync therefore leaves the row
+   * saying what it is still serving, instead of the product silently replacing a
+   * good index with whatever a blocked crawl returned and reporting nothing.
+   *
+   * Absent on a row that has never trained, which is not the same as a row whose
+   * training is stale.
+   */
+  lastTrainedAt?: number;
+  /**
+   * Consecutive failed syncs since the last good one — PRD-373. Reset to 0 by a
+   * success, so it reads as "how long has this been broken", not a lifetime
+   * total.
+   */
+  failedAttempts?: number;
+  /** Why the last sync failed, in the customer's terms rather than a stack
+   *  trace. Cleared on success. */
+  lastError?: string;
+  /**
+   * The source cannot currently be fetched at all — a 403, a page behind a new
+   * login, a host that has gone away. Retrying while this holds fails again, and
+   * that is the point: the auto-retry loop is not a way to wish a permission
+   * change away. Cleared when someone retries by hand, which stands in for the
+   * access having been fixed on their side.
+   */
+  unreachable?: boolean;
   addedBy: string;
   tokens: number;
   usedInResponses: number;
@@ -206,17 +237,32 @@ export function DEMO_SOURCES(): KnowledgeSource[] {
         },
       ],
     }),
+    /* The PRD-390 row. It failed its last sync and it is STILL ANSWERING, from
+       the training it took four days ago — which is the behaviour the ticket
+       asks for and the opposite of what happened to the account that filed it,
+       where a blocked crawl silently overwrote a working index with the string
+       the block returned. Its tokens and chunks are therefore non-zero: content
+       that is being served has to be there to serve. */
     row({
       id: 'demo-url-announcements',
       kind: 'url',
       label: 'https://usejimo.com/product/announcements',
       href: 'https://usejimo.com/product/announcements',
       status: 'failed',
-      addedAt: now - 1 * DAY,
-      updatedAt: now - 1 * DAY,
-      tokens: 0,
-      usedInResponses: 0,
-      chunks: [],
+      addedAt: now - 6 * DAY,
+      updatedAt: now - 2 * HOUR,
+      lastTrainedAt: now - 4 * DAY,
+      failedAttempts: 3,
+      lastError: 'The page returned 403 — it is no longer public',
+      unreachable: true,
+      tokens: 780,
+      usedInResponses: 24,
+      chunks: [
+        {
+          id: 'c1',
+          text: 'Announcements let you tell users about a release in the product itself, with a changelog they can open from anywhere.',
+        },
+      ],
     }),
     row({
       id: 'demo-text-positioning',

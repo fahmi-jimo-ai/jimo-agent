@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Add } from 'iconsax-react';
 import { Section } from '@/components/ui/Section/Section';
+import { Alert } from '@/components/ui/Infobox/alert';
 import { Button } from '@/components/ui/Button/Button';
 import { DropdownMenuList } from '@/components/ui/DropdownMenuList/DropdownMenuList';
 import { Menu } from '@/components/app/Menu';
@@ -32,6 +33,47 @@ import {
  * Video has a designed dialog and no other way in. Marked as an extension in
  * SourcesEmptyState, which carries the matching fourth card.
  */
+/**
+ * What a failed sync actually means, said once at the top of the card —
+ * PRD-374, PRD-390.
+ *
+ * The ticket asks for a notification, and the honest first version of that is
+ * the one place the customer is already looking. Jacqueline found her source
+ * failed twice in a week and both times by chance, because nothing on the page
+ * said so above the fold; a banner is what turns "by chance" into "on arrival".
+ * Email is the other half of the ask and belongs with a notification system this
+ * prototype does not model.
+ *
+ * It states what is still being served, because that is the question a failure
+ * actually raises. A banner that only said "2 sources failed" would send someone
+ * looking for an outage that is not happening.
+ */
+function SyncBanner({
+  failed,
+  onRetryAll,
+}: {
+  failed: KnowledgeSource[];
+  onRetryAll: () => void;
+}) {
+  const stillServing = failed.filter((s) => s.lastTrainedAt != null).length;
+  const n = failed.length;
+  return (
+    <Alert
+      type="warning"
+      title={`${n} ${n === 1 ? 'source' : 'sources'} could not be refreshed`}
+      body={
+        stillServing > 0
+          ? `The agent is still answering from the last good training. Nothing was overwritten${
+              n > stillServing ? ', except where a source had never trained' : ''
+            }.`
+          : 'These sources have never trained successfully, so the agent has nothing from them.'
+      }
+      ctaLabel="Retry all"
+      onCta={onRetryAll}
+    />
+  );
+}
+
 export function SourcesCard({
   sources,
   search,
@@ -70,6 +112,7 @@ export function SourcesCard({
   });
 
   const hasAny = sources.length > 0;
+  const failed = sources.filter((s) => s.status === 'failed');
 
   return (
     <Section
@@ -108,6 +151,11 @@ export function SourcesCard({
     >
       {hasAny ? (
         <div className="flex flex-col gap-[var(--space-4)]">
+          {/* Reads the whole list, never the filtered one: a failure you have
+              just filtered out of view is exactly the one you need told about. */}
+          {failed.length > 0 && (
+            <SyncBanner failed={failed} onRetryAll={() => failed.forEach(onRetry)} />
+          )}
           <SourceToolbar
             search={search}
             onSearch={onSearch}
