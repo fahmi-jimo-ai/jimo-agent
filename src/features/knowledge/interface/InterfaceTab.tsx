@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { ScanBarcode, SearchNormal1 } from 'iconsax-react';
+import { ArrowSwapVertical, ScanBarcode, SearchNormal1 } from 'iconsax-react';
 import { Section } from '@/components/ui/Section/Section';
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
+import { DropdownSelector } from '@/components/ui/DropdownSelector/DropdownSelector';
+import { Menu, MenuItem } from '@/components/app/Menu';
 import { useToast } from '@/components/app/toast';
 import {
   useKnowledge,
@@ -17,6 +19,25 @@ import { PageGrid } from './PageGrid';
 import { PageDrawer, type PageDrawerTab } from './PageDrawer';
 import { InterfaceEmptyState } from './InterfaceEmptyState';
 import { ScanPageModal, toPageName, toUrlRule } from './ScanPageModal';
+
+/**
+ * How the catalogue is ordered — PRD-568.
+ *
+ * Two options, not a sort menu with six. The ticket asks for "even a simple
+ * alphabetical sort", and names why: with a stable order a builder can impose
+ * their own hierarchy through naming prefixes, which is a structure the product
+ * does not have to model. Creation order is kept as the other one because it
+ * answers the only question A-to-Z cannot — what did the last scan add.
+ *
+ * Like `search`, this is view state and not persisted: it is where a reader is
+ * in a page, not configuration.
+ */
+export type PageSort = 'name' | 'recent';
+
+const PAGE_SORT_LABEL: Record<PageSort, string> = {
+  name: 'A to Z',
+  recent: 'Recently scanned',
+};
 
 /**
  * The Interface tab — Figma Interface-Knowledge `12987:13033`, inside section
@@ -71,6 +92,8 @@ export function InterfaceTab({
   const toast = useToast();
 
   const [search, setSearch] = React.useState(initialSearch);
+  const [sort, setSort] = React.useState<PageSort>('name');
+  const [sortOpen, setSortOpen] = React.useState(false);
   const [scanOpen, setScanOpen] = React.useState(false);
   const [openId, setOpenId] = React.useState<string | null>(initialPageId ?? null);
 
@@ -97,11 +120,25 @@ export function InterfaceTab({
   const q = search.trim().toLowerCase();
   // The URL rule is searched as well as the name: the card prints both, and
   // "billing" is as likely to be typed at the rule as at the title.
-  const shown = q
+  const filtered = q
     ? pages.filter(
         (p) => p.name.toLowerCase().includes(q) || p.urlRule.toLowerCase().includes(q),
       )
     : pages;
+
+  // A copy, never the store's array: sorting in place would reorder the
+  // persisted catalogue as a side effect of looking at it.
+  const shown = React.useMemo(() => {
+    const list = [...filtered];
+    if (sort === 'name') {
+      // `localeCompare` rather than `<`, so a prefix scheme survives accents and
+      // case — the whole point of sorting for the customer who asked.
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      list.sort((a, b) => b.scannedAt - a.scannedAt);
+    }
+    return list;
+  }, [filtered, sort]);
 
   const outOfScope = (what: string) =>
     toast({
@@ -130,15 +167,49 @@ export function InterfaceTab({
               body states `SourcesCard` documents. It goes away only when there
               is nothing at all to search. */}
           {pages.length > 0 && (
-            <Input
-              className="w-[240px]"
-              value={search}
-              onChange={(e) => setSearch((e.target as HTMLInputElement).value)}
-              placeholder="Search a page"
-              aria-label="Search a page"
-              size="small"
-              leftIcon={<SearchNormal1 size={20} variant="Linear" color="currentColor" />}
-            />
+            <div className="flex items-center gap-[var(--space-3)]">
+              <Input
+                className="w-[240px]"
+                value={search}
+                onChange={(e) => setSearch((e.target as HTMLInputElement).value)}
+                placeholder="Search a page"
+                aria-label="Search a page"
+                size="small"
+                leftIcon={<SearchNormal1 size={20} variant="Linear" color="currentColor" />}
+              />
+              {/* PRD-568. Alphabetical is the option the customer asked for by
+                  name, and the reason he gave is the reason it is the default
+                  here: a stable order is what lets someone impose their own
+                  structure with naming prefixes. Creation order stays available
+                  because it is the only way to see what a recent scan added. */}
+              <Menu
+                open={sortOpen}
+                onClose={() => setSortOpen(false)}
+                trigger={
+                  <DropdownSelector
+                    size="small"
+                    text={PAGE_SORT_LABEL[sort]}
+                    isOpen={sortOpen}
+                    hasValue={sort !== 'name'}
+                    withIcon
+                    icon={<ArrowSwapVertical size={20} variant="Linear" color="currentColor" />}
+                    onClick={() => setSortOpen((o) => !o)}
+                  />
+                }
+              >
+                {(Object.keys(PAGE_SORT_LABEL) as PageSort[]).map((value) => (
+                  <MenuItem
+                    key={value}
+                    label={PAGE_SORT_LABEL[value]}
+                    selected={value === sort}
+                    onClick={() => {
+                      setSort(value);
+                      setSortOpen(false);
+                    }}
+                  />
+                ))}
+              </Menu>
+            </div>
           )}
 
           {pages.length === 0 ? (

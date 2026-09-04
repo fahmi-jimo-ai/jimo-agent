@@ -7,7 +7,12 @@ import { Section } from '@/components/ui/Section/Section';
 import { CloseIcon } from '@/components/ui/Icon/Icon';
 import { PrimaryHorizontalMenuGroup } from '@/components/ui/PrimaryHorizontalMenuGroup/PrimaryHorizontalMenuGroup';
 import { useToast } from '@/components/app/toast';
-import { rescanPage } from '@/state/useKnowledge';
+import {
+  rescanPage,
+  removeElement,
+  resolveDuplicates,
+  setElementDisabled,
+} from '@/state/useKnowledge';
 import { formatRelative } from '@/lib/formatRelative';
 import { SCAN_STATUS_LABEL, type InterfacePage, type ScanStatus } from '@/data/interfacePages';
 import { PageElementGroups } from './PageElementGroups';
@@ -179,7 +184,35 @@ export function PageDrawer({
 
   return (
     <Drawer title={`${page.name} knowledge`} onClose={onClose} header={header} footer={footer}>
-      {tab === 'interface' && <PageElementGroups page={page} onOutOfScope={outOfScope} />}
+      {tab === 'interface' && (
+        <PageElementGroups
+          page={page}
+          onOutOfScope={outOfScope}
+          onToggleDisabled={(el) => {
+            setElementDisabled(page.id, el.id, !el.disabled);
+            toast({
+              type: 'positive',
+              title: el.disabled ? `${el.label} is back in` : `${el.label} excluded`,
+              body: el.disabled
+                ? 'The agent can read it again.'
+                : 'The agent stops reading it. It stays here, so you can put it back.',
+            });
+          }}
+          onRemove={(el) => {
+            removeElement(page.id, el.id);
+            toast({ type: 'positive', title: `${el.label} deleted` });
+          }}
+          onResolveDuplicates={(el) => {
+            if (!el.anchor) return;
+            resolveDuplicates(page.id, el.anchor);
+            toast({
+              type: 'positive',
+              title: 'Duplicates resolved',
+              body: 'One element kept on that anchor. The others pointed at the same thing.',
+            });
+          }}
+        />
+      )}
 
       {tab === 'skills' && <PageSkillsTab page={page} onOpenSkill={onOpenSkill} />}
 

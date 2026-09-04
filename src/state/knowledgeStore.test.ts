@@ -144,6 +144,30 @@ describe('pages', () => {
     expect(parsed?.elements[0].group).toBe('contents');
   });
 
+  it('carries an element’s anchor and exclusion across a reload', () => {
+    // Curation that did not survive a reload would be worse than none: the
+    // builder would do the pass, come back, and find the duplicates restored.
+    const parsed = parsePage({
+      id: 'p1',
+      name: 'Dashboard',
+      elements: [
+        { id: 'e1', label: 'Create', group: 'controls', tag: 'Button', anchor: '.a > button', disabled: true },
+      ],
+    });
+    expect(parsed?.elements[0].anchor).toBe('.a > button');
+    expect(parsed?.elements[0].disabled).toBe(true);
+  });
+
+  it('reads an element stored before curation existed as claiming nothing', () => {
+    const parsed = parsePage({
+      id: 'p1',
+      name: 'Dashboard',
+      elements: [{ id: 'e1', label: 'Create', group: 'controls', tag: 'Button' }],
+    });
+    expect(parsed?.elements[0].anchor).toBeUndefined();
+    expect(parsed?.elements[0].disabled).toBeUndefined();
+  });
+
   it('coerces a missing scan status to ready, never to a stuck spinner', () => {
     expect(parsePage({ id: 'p1', name: 'Dashboard' })?.status).toBe('ready');
     expect(parsePage({ id: 'p1', name: 'Dashboard', status: 'scanning' })?.status).toBe('scanning');
