@@ -21,6 +21,9 @@ export {
   updatePage,
   rescanPage,
   resumeScanning,
+  setElementDisabled,
+  removeElement,
+  resolveDuplicates,
   setPages,
 } from './knowledgeStore';
 export type { KnowledgeState, RetrainFrequency } from './knowledgeStore';

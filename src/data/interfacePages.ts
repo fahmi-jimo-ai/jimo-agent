@@ -84,6 +84,28 @@ export interface PageElement {
   group: ElementGroup;
   /** The trailing tag the artboard prints on each row — "Div", "Button", … */
   tag: string;
+  /**
+   * What the element is actually bound to — PRD-566, PRD-372.
+   *
+   * On the row rather than behind it. The customer who filed this was opening
+   * and closing roughly a hundred element sheets per page to answer "what is
+   * this one connected to", which is also what made duplicates invisible: two
+   * rows that resolve to the same anchor look like two different elements until
+   * you can see the anchor on both.
+   *
+   * Optional, because a page stored before anchors were recorded still has
+   * readable elements. A row with none says so rather than pretending.
+   */
+  anchor?: string;
+  /**
+   * Excluded from what the agent reads, without being deleted.
+   *
+   * The ticket's complaint is that disabled was the ONLY option, so it came to
+   * mean four different things at once — trash, duplicate, deliberately
+   * ignored, might want later. It keeps its honest meaning here now that delete
+   * exists beside it: not now, but still real.
+   */
+  disabled?: boolean;
 }
 
 export interface InterfacePage {
@@ -117,6 +139,19 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
+/**
+ * A plausible selector for a label — INVENTED, like every other string in this
+ * fixture, and here for one reason: an anchor column with nothing in it cannot
+ * show what an anchor column is for.
+ *
+ * It is deterministic on the label, which is what makes two rows named the same
+ * thing collide the way the real scanner's duplicates do.
+ */
+function anchorFor(g: ElementGroup, tag: string, label: string): string {
+  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  return `${g === 'navigation' ? 'nav' : `.${g}`} > ${tag.toLowerCase()}[data-el="${slug}"]`;
+}
+
 /** Build `count` elements in one group — the fixture is about counts, not prose. */
 function group(
   pageId: string,
@@ -129,6 +164,7 @@ function group(
     label,
     group: g,
     tag,
+    anchor: anchorFor(g, tag, label),
   }));
 }
 
@@ -179,7 +215,20 @@ export function DEMO_PAGES(): InterfacePage[] {
           'Saved view name',
         ],
       },
-      controls: { tag: 'Button', labels: ['Create experience', 'Share dashboard'] },
+      /* Three of these resolve to the same anchor, which is what the scanner
+         does on a page that renders one button in three places (a header, an
+         empty state, a sticky footer). It is the case PRD-566 is about: without
+         the anchor on the row they read as three different controls, and the
+         agent is handed the same target three times. */
+      controls: {
+        tag: 'Button',
+        labels: [
+          'Create experience',
+          'Create experience',
+          'Create experience',
+          'Share dashboard',
+        ],
+      },
       data: {
         tag: 'Div',
         labels: [

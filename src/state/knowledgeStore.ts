@@ -126,6 +126,10 @@ function parseElements(value: unknown): PageElement[] {
       // kind: an unknown group would render an untinted row, not an error.
       group: isElementGroup(e.group) ? e.group : 'contents',
       tag: typeof e.tag === 'string' ? e.tag : 'Div',
+      // Both absent on a page stored before curation existed, which reads
+      // correctly: no anchor recorded, and nothing excluded.
+      anchor: typeof e.anchor === 'string' ? e.anchor : undefined,
+      disabled: e.disabled === true ? true : undefined,
     }));
 }
 
@@ -353,6 +357,52 @@ function finishScan(id: string) {
   const page = state.pages.find((p) => p.id === id);
   if (!page || page.status !== 'scanning') return;
   updatePage(id, { status: 'ready', scannedAt: Date.now() });
+}
+
+/* ── curating what a scan captured — PRD-566 ──────────────────────────────── */
+
+/**
+ * Exclude an element from what the agent reads, or put it back.
+ *
+ * Disabled and deleted are different answers to different questions, which is
+ * the point of shipping both: this one says "not now", `removeElement` says
+ * "never". While disable was the only verb available, the disabled pile meant
+ * all four things at once and could not be read back by anyone.
+ */
+export function setElementDisabled(pageId: string, elementId: string, disabled: boolean) {
+  const page = state.pages.find((p) => p.id === pageId);
+  if (!page) return;
+  updatePage(pageId, {
+    elements: page.elements.map((el) => (el.id === elementId ? { ...el, disabled } : el)),
+  });
+}
+
+export function removeElement(pageId: string, elementId: string) {
+  const page = state.pages.find((p) => p.id === pageId);
+  if (!page) return;
+  updatePage(pageId, { elements: page.elements.filter((el) => el.id !== elementId) });
+}
+
+/**
+ * Keep the first element on an anchor and drop the rest.
+ *
+ * First, not "best": every element on one anchor resolves to the same thing at
+ * runtime, so there is nothing to choose between them, and a picker would be a
+ * decision the product cannot help anyone make. Keeping the earliest also keeps
+ * whatever the builder may already have renamed.
+ */
+export function resolveDuplicates(pageId: string, anchor: string) {
+  const page = state.pages.find((p) => p.id === pageId);
+  if (!page) return;
+  let kept = false;
+  updatePage(pageId, {
+    elements: page.elements.filter((el) => {
+      if (el.anchor !== anchor) return true;
+      if (kept) return false;
+      kept = true;
+      return true;
+    }),
+  });
 }
 
 /**
