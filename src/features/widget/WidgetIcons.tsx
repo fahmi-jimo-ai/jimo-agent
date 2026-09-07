@@ -76,6 +76,14 @@ export function WidgetIcons() {
         <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 6l6 6-6 6" />
         </symbol>
+        {/* Invented, and labelled as such: the reference prototype's <defs> has no
+            minimize glyph, because it never folds. PRD-616/617/606 add that
+            control, so this one path is NOT a trace of the reference — a plain
+            underscore, drawn on the same 24x24/stroke-2/round-cap grammar as
+            i-arrow-up and i-stop-round above it. */}
+        <symbol id="i-minimize" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M6 18h12" />
+        </symbol>
       </defs>
     </svg>
   );

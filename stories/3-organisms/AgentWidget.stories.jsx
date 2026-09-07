@@ -3,6 +3,7 @@ import { WidgetPage } from '../../src/features/widget/WidgetPage';
 import { AgentWidget } from '../../src/features/widget/AgentWidget';
 import { SEEDS } from '../../src/state/seed';
 import '../../src/styles/widget.css';
+import '../../src/styles/widget-fold.css';
 import '../../src/styles/widget-host.css';
 
 const meta = {
@@ -72,3 +73,23 @@ export const GuideChecking = frame('guide-checking');
 export const ExecuteAction = frame('execute-action');
 
 export const ExecuteThinking = frame('execute-thinking');
+
+/* ── Folded — PRD-616 / PRD-617 / PRD-606 ──────────────────────────────────
+   The minimize control any of the above states can reach: same conversation
+   or skill underneath, swapped for a small pill instead of the full surface.
+   Shown here folded from `execute-action`, the closest this repo has to "a
+   skill is running" — see AgentWidget's own header comment. Not a Figma
+   frame: same invented-and-labelled status as the five states above it. */
+export const Folded = {
+  render: () => {
+    SEEDS.withData();
+    return (
+      <div className="wp">
+        <div className="wp-agent">
+          <AgentWidget state="execute-action" defaultFolded onHandoff={() => {}} />
+        </div>
+      </div>
+    );
+  },
+  parameters: { layout: 'fullscreen' },
+};

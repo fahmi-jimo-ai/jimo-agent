@@ -46,6 +46,22 @@ import { WidgetIcons, Ico } from './WidgetIcons';
  * of the disclosure `ThinkingTrace` draws on `/conversations`: one line of what
  * the agent is doing, opening onto the list of what it has done. Same object,
  * two surfaces — keep them recognisable as each other.
+ *
+ * ## Folding — PRD-616 / PRD-617 / PRD-606
+ *
+ * Three Altior reports, one root cause: the widget only had two states, open or
+ * fully closed, so anything that should hand off cleanly — launching a tour,
+ * reaching a button the chat covers, folding aside mid-skill — either overlaid
+ * what was underneath or ended it. `folded` is the primitive that fixes all
+ * three: a minimize control (in the header for response/asking, in the bottom
+ * bar for guide/execute) swaps the whole surface for a small pill and leaves
+ * `live`/`step`/`reply` exactly as they were, so reopening resumes rather than
+ * restarts. The auto-close half of PRD-616 already exists below — the
+ * "Talk to a human" CTA calls `setLive('idle')` the moment it hands off — this
+ * adds the complementary "don't end it, just get it out of the way" control a
+ * real Launch-tour CTA would pair with once this repo has a host app to guide
+ * (see the header comment above). Visibility is CSS-driven in
+ * `widget-fold.css`, loaded after `widget.css`, never inside it.
  */
 
 /** The prototype's nine. `s-{state}` on `.proto` is what widget.css gates on. */
@@ -134,6 +150,7 @@ interface Reply { title?: string; body: string; handoff?: Decision }
 export function AgentWidget({
   onHandoff,
   state: stateOverride,
+  defaultFolded = false,
 }: {
   onHandoff: (d: Decision, brief: string) => void;
   /**
@@ -141,6 +158,8 @@ export function AgentWidget({
    * frames this repo has no host app to produce — see the header comment.
    */
   state?: WState;
+  /** Storybook's way into the folded pill — see the Folded story. */
+  defaultFolded?: boolean;
 }) {
   const cfg = useEscalation();
 
@@ -153,6 +172,7 @@ export function AgentWidget({
   const [headOpen, setHeadOpen] = React.useState(false);
   const [logOpen, setLogOpen] = React.useState(false);
   const [selected, setSelected] = React.useState(-1);
+  const [folded, setFolded] = React.useState(defaultFolded);
 
   const state = stateOverride ?? live;
   const frozen = stateOverride != null;
@@ -223,8 +243,15 @@ export function AgentWidget({
   const pill = LIVE_STATES.includes(state) || state === 'asking' ? null : PILL_FACE[state];
   const asking = state === 'asking';
 
+  // What folding promises not to lose — the exact worry all three tickets raise.
+  const foldedSub = state === 'response' || state === 'thinking' || state === 'asking'
+    ? 'Conversation kept · tap to reopen'
+    : state === 'guide-waiting' || state === 'guide-checking' || state === 'execute-action' || state === 'execute-thinking'
+      ? 'Skill still running · tap to reopen'
+      : 'Tap to reopen';
+
   return (
-    <div className={`proto s-${state}`}>
+    <div className={`proto s-${state}${folded ? ' folded' : ''}`}>
       <WidgetIcons />
       <div
         className={`agent${headOpen ? ' head-open' : ''}`}
@@ -284,6 +311,13 @@ export function AgentWidget({
                 <button className="ag-chev" title="Next question"><Ico id="i-chevron-right" /></button>
               </span>
               <span className="ag-win-actions">
+                <button
+                  className="ag-round-btn"
+                  title="Minimize — keeps this conversation"
+                  onClick={() => setFolded(true)}
+                >
+                  <Ico id="i-minimize" />
+                </button>
                 <button
                   className="ag-round-btn"
                   title="Close"
@@ -424,10 +458,30 @@ export function AgentWidget({
             <span className="ag-botbar-text ag-stagger" style={{ ['--d' as string]: '.08s' }}>
               {BOTBAR_TEXT[state] ?? ''}
             </span>
+            <button
+              className="ag-round-btn ag-stagger"
+              style={{ ['--d' as string]: '.11s' }}
+              title="Minimize — keeps this skill running"
+              onClick={() => setFolded(true)}
+            >
+              <Ico id="i-minimize" />
+            </button>
             <button className="ag-ghost-stop ag-stagger" style={{ ['--d' as string]: '.14s' }}>
               Stop
             </button>
           </div>
+
+          {/* The folded view. Always in the DOM, shown only by `.proto.folded`
+              in widget-fold.css — the same CSS-driven-visibility contract the
+              four panels above already use, so this is one more slot, not a
+              new pattern. */}
+          <button type="button" className="ag-fold-pill" onClick={() => setFolded(false)} title="Reopen Jimo AI">
+            <span className="ag-fold-pill-icon"><Ico id="i-message-question" /></span>
+            <span className="ag-fold-pill-text">
+              <span className="ag-fold-pill-title">Jimo AI</span>
+              <span className="ag-fold-pill-sub">{foldedSub}</span>
+            </span>
+          </button>
         </div>
       </div>
     </div>

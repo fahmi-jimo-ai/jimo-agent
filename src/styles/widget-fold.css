@@ -1,0 +1,77 @@
+/**
+ * Additive to widget.css — PRD-616 / PRD-617 / PRD-606 (fold the Agent widget
+ * without ending whatever is running underneath: a tour, a skill, the
+ * Resource Center's reason for staying open).
+ *
+ * `widget.css` is a 1:1 port and is never edited (see its own header and
+ * CLAUDE.md's "Widget CSS" section). This sheet loads after it, so its rules
+ * win the cascade tie against `widget.css`'s own `.proto.s-*` slot-visibility
+ * block at equal specificity, by source order — the same way those rules
+ * already beat each other. No `!important` needed.
+ *
+ * Invented, and labelled as such: minimizing is not in any artboard or PRD.
+ * It is this run's single primitive answering three tickets that all want a
+ * fold instead of a close. The fold pill follows the same six-property panel
+ * contract every other widget surface uses (bg / border-width / style /
+ * colour / radius / shadow), through its own `--agent-fold-*` namespace
+ * falling back to `--agent-panel-*`, exactly like `.ag-window`/`.ag-think`.
+ */
+
+.proto.folded .ag-suggestions,
+.proto.folded .ag-think,
+.proto.folded .ag-window,
+.proto.folded .ag-bar,
+.proto.folded .ag-botbar {
+  display: none;
+}
+
+.ag-fold-pill {
+  display: none;
+}
+.proto.folded .ag-fold-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: var(--agent-width, 495px);
+  box-sizing: border-box;
+  padding: 12px 16px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--agent-font-body);
+
+  background:    var(--agent-fold-bg,           var(--agent-panel-bg,           var(--agent-surface)));
+  border-width:  var(--agent-fold-border-width, var(--agent-panel-border-width, 1px));
+  border-style:  var(--agent-fold-border-style, var(--agent-panel-border-style, solid));
+  border-color:  var(--agent-fold-border-color, var(--agent-panel-border-color, rgba(255,255,255,.4)));
+  border-radius: var(--agent-fold-radius,       var(--agent-panel-radius,       var(--agent-radius-panel)));
+  box-shadow:    var(--agent-fold-shadow,       var(--agent-panel-shadow,       var(--agent-shadow-panel)));
+}
+.ag-fold-pill:hover {
+  background: var(--agent-fold-bg-hover, var(--ag-accent-10));
+}
+.ag-fold-pill-icon {
+  display: flex;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--ag-accent);
+}
+.ag-fold-pill-icon svg { width: 20px; height: 20px; }
+.ag-fold-pill-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+.ag-fold-pill-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--agent-text);
+}
+.ag-fold-pill-sub {
+  font-size: 11px;
+  color: var(--agent-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
