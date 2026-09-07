@@ -41,6 +41,13 @@ import { SourceKindPill, SourceStatusPill } from './SourcePills';
  * text and Q&A get edit + delete (899:15332/15333), everything else gets delete
  * alone (899:15275). Delete is immediate, matching how UserContextSection
  * removes a property — no confirm dialog is drawn anywhere in the file.
+ *
+ * **Additive fork, PRD-619:** `url` now gets Edit too. No artboard draws this —
+ * the artboard predates the ticket — but the row's own `editable` condition
+ * already covers exactly one thing per kind, and a source whose URL list is
+ * frozen the moment it's created (delete-and-rebuild is the only fix today)
+ * is the same shape of gap text/qa already had. See `AddSourceModal`'s header
+ * comment for how editing a `url` row differs from editing text/qa.
  */
 export function SourceTable({
   sources,
@@ -83,7 +90,7 @@ export function SourceTable({
       <TableBody>
         {sources.map((source) => {
           const linkable = source.href != null && source.kind !== 'text' && source.kind !== 'qa';
-          const editable = source.kind === 'text' || source.kind === 'qa';
+          const editable = source.kind === 'text' || source.kind === 'qa' || source.kind === 'url';
 
           return (
             <TableRow key={source.id} interactive onClick={() => onOpen(source)}>

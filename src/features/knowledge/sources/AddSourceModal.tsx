@@ -41,6 +41,20 @@ import { UrlRuleRows, makeRule, type UrlRule } from './UrlRuleRows';
  * no design at all — the artboard in its place (932:21990) is a pasted
  * screenshot — so the dropzone below is invented, built from the same border
  * and radius tokens `ChoiceCard` uses so it reads as part of the same dialog.
+ *
+ * ## Editing a `url` row — PRD-619, additive fork
+ *
+ * A Knowledge's URL list used to be frozen the instant it trained: `editable`
+ * in `SourceTable` covered only `text`/`qa`, so one wrong link meant deleting
+ * the whole source. This prototype's data model has no grouping above a
+ * single row per URL, unlike the real product's multi-URL source, so editing
+ * a `url` row reuses the create flow's own "one URL per line" textarea
+ * instead of inventing a grouping this app doesn't have: the row's current
+ * link pre-fills the first line, the Domain/Individual picker is hidden (you
+ * are editing one individual URL, not switching modes), and on submit the
+ * first line updates THIS row while any further lines become new sibling
+ * rows — the same "one source per line" rule `submit()` already uses when
+ * creating. Fixing a link no longer means losing the row's history.
  */
 
 export type AddSourceDraft = {
@@ -115,7 +129,9 @@ export function AddSourceModal({
 
   const [name, setName] = React.useState('');
   const [urlMode, setUrlMode] = React.useState<UrlMode>('individual');
-  const [urlList, setUrlList] = React.useState('');
+  const [urlList, setUrlList] = React.useState(
+    editing?.kind === 'url' ? (editing.href ?? editing.label) : '',
+  );
   const [domain, setDomain] = React.useState('');
   const [retrieve, setRetrieve] = React.useState<Retrieve>('all');
   const [retrieveOpen, setRetrieveOpen] = React.useState(false);
@@ -151,6 +167,29 @@ export function AddSourceModal({
     if (!canTrain) return;
 
     if (editing) {
+      if (editing.kind === 'url') {
+        // First line fixes THIS row; any further line is a new source, the
+        // same "one URL per line" rule the create flow uses below.
+        const [firstLine, ...rest] = urlLines;
+        const href = normalizeUrl(firstLine);
+        onUpdate(editing.id, {
+          label: href,
+          href,
+          status: 'training',
+          updatedAt: Date.now(),
+          chunks: [{ id: 'c1', text: href }],
+        });
+        if (rest.length > 0) {
+          onSubmit(
+            rest.map((line) => {
+              const h = normalizeUrl(line);
+              return baseSource('url', h, h);
+            }),
+          );
+        }
+        return;
+      }
+
       onUpdate(editing.id, {
         label: text.trim(),
         status: 'training',
@@ -220,32 +259,36 @@ export function AddSourceModal({
       case 'url':
         return (
           <div className="flex flex-col gap-[var(--space-4)]">
-            {nameField}
-            <div className="flex flex-col gap-[var(--space-2)]">
-              <span className="[font:var(--text-body-3)] text-[var(--color-text-primary)]">Type</span>
-              <div className="flex gap-[var(--space-3)]">
-                <ChoiceCard
-                  title="Domain"
-                  description="Add URLs from a domain"
-                  icon={<Global size={20} variant="Linear" color="currentColor" />}
-                  selected={urlMode === 'domain'}
-                  onClick={() => setUrlMode('domain')}
-                />
-                <ChoiceCard
-                  title="Individual URLs"
-                  description="Add multiple URLs manually"
-                  icon={<Link2 size={20} variant="Bold" color="currentColor" />}
-                  selected={urlMode === 'individual'}
-                  onClick={() => setUrlMode('individual')}
-                />
+            {!editing && nameField}
+            {!editing && (
+              <div className="flex flex-col gap-[var(--space-2)]">
+                <span className="[font:var(--text-body-3)] text-[var(--color-text-primary)]">Type</span>
+                <div className="flex gap-[var(--space-3)]">
+                  <ChoiceCard
+                    title="Domain"
+                    description="Add URLs from a domain"
+                    icon={<Global size={20} variant="Linear" color="currentColor" />}
+                    selected={urlMode === 'domain'}
+                    onClick={() => setUrlMode('domain')}
+                  />
+                  <ChoiceCard
+                    title="Individual URLs"
+                    description="Add multiple URLs manually"
+                    icon={<Link2 size={20} variant="Bold" color="currentColor" />}
+                    selected={urlMode === 'individual'}
+                    onClick={() => setUrlMode('individual')}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            {urlMode === 'individual' ? (
+            {editing || urlMode === 'individual' ? (
               <Input
                 inputType="textarea"
                 label="List of URLs"
-                supportiveText="Enter one URL per line."
+                supportiveText={
+                  editing ? 'Fix this link, or add more below — each new line becomes its own source.' : 'Enter one URL per line.'
+                }
                 placeholder={'usejimo.com/pricing\nusejimo.com/product-tours'}
                 className="[&_textarea]:min-h-[110px]"
                 value={urlList}
