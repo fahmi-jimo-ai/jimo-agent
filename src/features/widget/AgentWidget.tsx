@@ -46,6 +46,19 @@ import { WidgetIcons, Ico } from './WidgetIcons';
  * of the disclosure `ThinkingTrace` draws on `/conversations`: one line of what
  * the agent is doing, opening onto the list of what it has done. Same object,
  * two surfaces — keep them recognisable as each other.
+ *
+ * ## New chat — PRD-611
+ *
+ * Altior's actual complaint is that ONE thread carries every question
+ * forever, so a follow-up about a different topic reuses stale context and
+ * pulls the wrong document. `evaluate()` below is already stateless per call
+ * (only `cfg` and `failedStreak` cross messages, and neither encodes topic),
+ * so this simulator has no real context-poisoning bug to reproduce — the
+ * gap is the missing AFFORDANCE Altior asked for just as much as the bug:
+ * "every time I relaunch from the search bar, it should be empty." The New
+ * chat button in the header is that affordance: it clears `reply`, `echo`,
+ * `draft` and `failedStreak` and drops back to `expanded`, so the next
+ * question starts from a state that is visibly, guaranteedly clean.
  */
 
 /** The prototype's nine. `s-{state}` on `.proto` is what widget.css gates on. */
@@ -284,6 +297,22 @@ export function AgentWidget({
                 <button className="ag-chev" title="Next question"><Ico id="i-chevron-right" /></button>
               </span>
               <span className="ag-win-actions">
+                {!asking && (
+                  <button
+                    className="ag-round-btn"
+                    title="New chat — starts a clean conversation"
+                    onClick={() => {
+                      clearTimers();
+                      setDraft('');
+                      setFailedStreak(0);
+                      setReply(null);
+                      setEcho('');
+                      setLive('expanded');
+                    }}
+                  >
+                    <Ico id="i-new-chat" />
+                  </button>
+                )}
                 <button
                   className="ag-round-btn"
                   title="Close"
