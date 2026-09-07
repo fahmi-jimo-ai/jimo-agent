@@ -1,0 +1,40 @@
+/**
+ * Additive to widget.css — PRD-615 (agent answers keep the images their
+ * sources carry, interleaved with the numbered steps rather than dropped).
+ * widget.css is a 1:1 port and is never edited; this sheet loads after it.
+ *
+ * Invented, and labelled as such: no artboard or PRD draws this response's
+ * copy — see AgentWidget's own header comment — and there is no real source
+ * image behind this prototype, so each step's screenshot is a placeholder
+ * frame with its own caption instead of a faked photo.
+ */
+
+.ag-md-steps {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: var(--agent-response-body-font-family, var(--agent-font-body));
+  color: var(--agent-text-secondary);
+}
+.ag-md-step { padding-left: 2px; }
+.ag-md-step-img {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  height: 56px;
+  border-radius: 10px;
+  background: var(--ag-accent-10);
+  border: 1px dashed var(--ag-accent-16);
+  color: var(--agent-text-muted);
+  font-size: 11px;
+  text-align: center;
+  padding: 0 10px;
+}
+.ag-md-source {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--agent-text-muted);
+}
