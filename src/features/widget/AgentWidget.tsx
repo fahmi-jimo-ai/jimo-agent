@@ -46,6 +46,17 @@ import { WidgetIcons, Ico } from './WidgetIcons';
  * of the disclosure `ThinkingTrace` draws on `/conversations`: one line of what
  * the agent is doing, opening onto the list of what it has done. Same object,
  * two surfaces — keep them recognisable as each other.
+ *
+ * ## Answers keep their pictures — PRD-615
+ *
+ * Altior's knowledge is image-first: a Tour step is often a title plus a
+ * screenshot and nothing else, so a text-only answer throws away the half
+ * that actually explains the step. The one real "found an answer" reply this
+ * engine produces (`!decision` below) is reshaped from a single paragraph
+ * into `Reply.steps`, each optionally carrying a placeholder screenshot
+ * frame next to its text — interleaved, not linked out to. The handoff reply
+ * ("Let me get a person on this") is untouched and still renders through
+ * plain `Markdown`, since it never had a source to illustrate.
  */
 
 /** The prototype's nine. `s-{state}` on `.proto` is what widget.css gates on. */
@@ -129,7 +140,16 @@ const QUESTION = {
   options: ['Okta', 'Microsoft Entra ID', 'Google Workspace', 'Something else'],
 };
 
-interface Reply { title?: string; body: string; handoff?: Decision }
+/**
+ * A step in a found-answer reply that carries the same image its Tour-step
+ * source carried — PRD-615. There is no real source image behind this
+ * prototype (the knowledge store starts empty, same as everywhere else in
+ * this app), so `hasImage` renders a placeholder frame with its own caption
+ * rather than a faked screenshot. Invented, and labelled as such, same as
+ * the rest of this file's canned copy.
+ */
+interface ReplyStep { text: string; hasImage?: boolean }
+interface Reply { title?: string; body: string; steps?: ReplyStep[]; source?: string; handoff?: Decision }
 
 export function AgentWidget({
   onHandoff,
@@ -192,7 +212,16 @@ export function AgentWidget({
         if (!decision) {
           setReply({
             title: 'Here’s what I found',
-            body: 'Single sign-on is configured under **Settings → SSO**. Add your identity provider’s metadata URL, then verify your domain so members can sign in with it.',
+            body: '',
+            // PRD-615: Altior's own steps are image-first — a title plus a
+            // screenshot, often nothing else — so the answer interleaves the
+            // source's image with each step instead of dropping it.
+            steps: [
+              { text: 'Open **Settings → SSO**.', hasImage: true },
+              { text: 'Add your identity provider’s metadata URL.', hasImage: true },
+              { text: 'Verify your domain so members can sign in with it.' },
+            ],
+            source: 'SSO Setup Tour',
           });
           setLive('response');
           return;
@@ -301,7 +330,23 @@ export function AgentWidget({
                 ) : (
                   <>
                     {reply?.title && <h2 className="ag-md-h2">{reply.title}</h2>}
-                    {reply && <Markdown text={reply.body} />}
+                    {reply?.steps ? (
+                      <>
+                        <ol className="ag-md-steps">
+                          {reply.steps.map((s, i) => (
+                            <li key={i} className="ag-md-step">
+                              <MarkdownInline text={s.text} />
+                              {s.hasImage && (
+                                <span className="ag-md-step-img">Screenshot from the source step</span>
+                              )}
+                            </li>
+                          ))}
+                        </ol>
+                        {reply.source && <p className="ag-md-source">Source: {reply.source}</p>}
+                      </>
+                    ) : (
+                      reply && <Markdown text={reply.body} />
+                    )}
                   </>
                 )}
               </div>
@@ -438,4 +483,11 @@ export function AgentWidget({
 function Markdown({ text }: { text: string }) {
   const html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   return <p className="ag-md-p" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+/** Same bold-only rule as `Markdown`, without the block-level `<p>` — a step
+ *  is already a list item and needs its text to sit flush against it. */
+function MarkdownInline({ text }: { text: string }) {
+  const html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
